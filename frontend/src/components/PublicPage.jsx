@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams } from "react-router-dom";
 
 const PublicPage = ({ pages }) => {
   const { slug } = useParams();
@@ -10,7 +10,7 @@ const PublicPage = ({ pages }) => {
     <div className="p-4">
       <h1 className="text-3xl font-bold mb-4">{page.title}</h1>
       <p className="mb-4">{page.description}</p>
-      <div dangerouslySetInnerHTML={{ __html: page.content }}></div>
+      <div dangerouslySetInnerHTML={{ __html: page.html }}></div>
     </div>
   );
 };
