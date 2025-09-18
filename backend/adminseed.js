@@ -1,8 +1,8 @@
 
 import mongoose from "mongoose";
-import User from "../models/user.model.js";
+import User from "./models/user.model.js";
 import bcrypt from "bcrypt";
-import { env } from "../conf/env.js";
+import { env } from "./conf/env.js";
 import dotenv from "dotenv";
 
 

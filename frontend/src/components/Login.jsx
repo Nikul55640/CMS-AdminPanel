@@ -2,6 +2,7 @@ import axios from "axios";
 import { useState, useContext } from "react";
 import PageContext from "../context/PageContext";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const Login = () => {
   const { setToken ,  setLoggedIn } = useContext(PageContext);
@@ -9,22 +10,27 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
-    try {
-      const res = await axios.post("http://localhost:8000/api/auth/login", {
-        username,
-        password,
-      });
-      const token = res.data.token;
-      setToken(token); // save in context
-      alert("Login successful!");
-      setLoggedIn(true);
-      navigate("/admin"); // redirect to admin dashboard
-    } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.message || "Login failed!");
-    }
-  };
+const handleLogin = async () => {
+  try {
+    const res = await axios.post("http://localhost:8000/api/auth/login", {
+      username,
+      password,
+    });
+    const token = res.data.token;
+
+    // save in context and localStorage
+    setToken(token);
+    localStorage.setItem("token", token);
+
+    toast.success("Login successful!");
+    setLoggedIn(true);
+    navigate("/admin");
+  } catch (err) {
+    console.error(err);
+    toast(err.response?.data?.message || "Login failed!");
+  }
+};
+
 
   return (
     <div className="flex items-center justify-center h-screen bg-gray-200">

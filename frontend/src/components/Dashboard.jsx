@@ -1,76 +1,72 @@
-import { useContext,useState} from "react";
-import PageContext from "../context/PageContext";
-import CMSEditor from "./CMSEditor";
-import PageList from "./PageList.jsx";
-import AddPageForm from "./AddPageForm.jsx";
-import Navbar from "./Navbar.jsx";
+import { useEffect, useState, useContext } from "react";
+import axios from "axios";
+import { FileText, FilePlus, CheckCircle, PlusCircle, Edit } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import PageContext from "../context/PageContext";
+import Navbar from "./Navbar";
 
 const Dashboard = () => {
-  const { showEditor } = useContext(PageContext);
-   const [isOpen, setIsOpen] = useState(false);
+  const { token } = useContext(PageContext);
+  const [stats, setStats] = useState({ totalPages: 0, drafts: 0, published: 0 });
 
-  const toggleSidebar = () => setIsOpen(!isOpen);
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await axios.get("http://localhost:8000/api/pages/stats", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setStats(res.data);
+      } catch (err) {
+        console.error("❌ Failed to fetch stats", err);
+      }
+    };
+    fetchStats();
+  }, [token]);
+
+  const widgetsData = [
+    { title: "Total Pages", value: stats.totalPages, icon: FileText, bg: "bg-blue-100", text: "text-blue-700" },
+    { title: "Drafts", value: stats.drafts, icon: FilePlus, bg: "bg-yellow-100", text: "text-yellow-700" },
+    { title: "Published", value: stats.published, icon: CheckCircle, bg: "bg-green-100", text: "text-green-700" },
+  ];
 
   return (
-    <>
-      <div className="flex">
-        {/* Sidebar */}
-        <div
-          className={`fixed top-0 left-0 h-full bg-gray-800 text-white p-4 transition-transform ${
-            isOpen ? "translate-x-0" : "-translate-x-full"
-          } md:translate-x-0 md:w-64`}
-        >
-          <button className="md:hidden mb-4" onClick={toggleSidebar}>
-            <X size={24} />
-          </button>
-
-          <h2 className="text-2xl font-bold mb-6">Dashboard</h2>
-
-          <nav className="flex flex-col space-y-3">
-            <Link to="/admin/pages" className="hover:bg-gray-700 p-2 rounded">
-              Pages
-            </Link>
-            <Link to="/admin/content" className="hover:bg-gray-700 p-2 rounded">
-              Content
-            </Link>
-            <Link
-              to="/admin/settings"
-              className="hover:bg-gray-700 p-2 rounded"
-            >
-              Settings
-            </Link>
-            <Link to="/admin/profile" className="hover:bg-gray-700 p-2 rounded">
-              Profile
-            </Link>
-          </nav>
+    <div className="min-h-screen bg-gray-100">
+      <div className="p-6">
+        {/* Widgets */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          {widgetsData.map((w, i) => {
+            const Icon = w.icon;
+            return (
+              <div key={i} className={`shadow rounded-lg p-4 flex items-center ${w.bg}`}>
+                <Icon className={`w-10 h-10 ${w.text} mr-4`} />
+                <div>
+                  <h3 className="text-lg font-semibold">{w.title}</h3>
+                  <p className={`text-2xl font-bold ${w.text}`}>{w.value}</p>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 ml-0 md:ml-64 p-6">
-          <button
-            className="md:hidden mb-4 p-2 bg-gray-800 text-white rounded"
-            onClick={toggleSidebar}
+        {/* Quick Links */}
+        <div className="flex flex-wrap gap-4">
+          <Link
+            to="/admin/addPage"
+            className="flex items-center bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg shadow hover:scale-105 transition"
           >
-            <Menu size={24} />
-          </button>
-
-          <div>
-            {/* Your main dashboard content goes here */}
-            <h1 className="text-3xl font-bold">
-              Welcome to the Admin Dashboard
-            </h1>
-          </div>
+            <PlusCircle className="mr-2" /> Add Page
+          </Link>
+          <Link
+            to="/admin/pages"
+            className="flex items-center bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-lg shadow hover:scale-105 transition"
+          >
+            <Edit className="mr-2" /> Edit Pages
+          </Link>
         </div>
+
+        {/* Add your other components like AddPageForm or PageList below */}
       </div>
-      <div className="p-4">
-        <Navbar />
-        <AddPageForm />
-        <PageList />
-        {showEditor ? <CMSEditor /> : <PageList />}
-      </div>
-    </>
+    </div>
   );
 };
 

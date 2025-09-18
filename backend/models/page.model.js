@@ -6,8 +6,9 @@ const PageSchema = new mongoose.Schema({
   description: String,
   html: String,
   css: String,
+  status: { type: String, default: "draft" },
+}, { timestamps: true });
 
-});
 const Page = mongoose.model("Page", PageSchema);
 
 export default Page
