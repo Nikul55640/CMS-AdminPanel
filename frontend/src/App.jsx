@@ -1,18 +1,22 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { PageProvider } from "./context/PageContext";
-import Login from "./components/Login";
-import Dashboard from "./components/Dashboard";
+import { CmsProvider } from "./context/CmsContext";
+import { ComponentProvider } from "./context/ComponentContext"; // ✅ import
+import Login from "./Pages/Login";
+import Dashboard from "./Pages/Dashboard";
 import PublicPage from "./components/PublicPage";
-import AddPageForm from "./components/AddPageForm";
-import Components from "./components/Components";
-import PageManager from "./components/PageList";
+import AddPageForm from "./Pages/AddPageForm";
+import ComponentBuilder from "./Pages/Components"; // ✅ renamed properly
+import PageManager from "./Pages/PageManager";
 import Navbar from "./components/Navbar";
 import { Toaster } from "react-hot-toast";
+import Content from "./Pages/Content";
+import EditorAdd from "./Pages/EditorAdd";
+import EditorPage from "./Pages/Editorpage";
 
 function AdminLayout({ children }) {
   return (
     <div className="flex flex-col min-h-screen">
-<Navbar/>
+      <Navbar />
       <div className="flex-grow">{children}</div>
     </div>
   );
@@ -20,55 +24,76 @@ function AdminLayout({ children }) {
 
 function App() {
   return (
-    <PageProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Admin routes wrapped in fixed navbar layout */}
-          <Route
-            path="/admin/pages"
-            element={
-              <AdminLayout>
-                <PageManager />
-              </AdminLayout>
-            }
-          />
-          <Route
-            path="/admin/addPage"
-            element={
-              <AdminLayout>
-                <AddPageForm />
-              </AdminLayout>
-            }
-          />
-          <Route
-            path="/admin/components"
-            element={
-              <AdminLayout>
-                <Components />
-              </AdminLayout>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <AdminLayout>
-                <Dashboard />
-              </AdminLayout>
-            }
-          />
-
-          {/* Login without fixed navbar */}
-          <Route path="/admin/login" element={<Login />} />
-
-          {/* Public pages */}
-          <Route path="/pages/:slug" element={<PublicPage />} />
-
-          {/* Default redirect */}
-          <Route path="/" element={<Navigate to="/home" />} />
-        </Routes>
-      </BrowserRouter>
-      <Toaster />
-    </PageProvider>
+    <CmsProvider>
+      <ComponentProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Admin routes wrapped in fixed navbar layout */}
+            <Route
+              path="/admin/pages"
+              element={
+                <AdminLayout>
+                  <PageManager />
+                </AdminLayout>
+              }
+            />
+            <Route path="/pages/:slug" element={<PublicPage />} />
+            <Route
+              path="/admin/addPage"
+              element={
+                <AdminLayout>
+                  <AddPageForm />
+                </AdminLayout>
+              }
+            />
+            <Route
+              path="/admin/content"
+              element={
+                <AdminLayout>
+                  <Content />
+                </AdminLayout>
+              }
+            />
+            <Route
+              path="/admin/components"
+              element={
+                <AdminLayout>
+                  <ComponentBuilder /> {/* ✅ use the new ComponentsPage */}
+                </AdminLayout>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <AdminLayout>
+                  <Dashboard />
+                </AdminLayout>
+              }
+            />
+            <Route
+              path="/admin/editor"
+              element={
+                <AdminLayout>
+                  <EditorAdd />
+                </AdminLayout>
+              }
+            />
+            {/* Login without fixed navbar */}
+            <Route path="/admin/login" element={<Login />} />
+            <Route
+              path="/admin/editor/:slug"
+              element={
+                <AdminLayout>
+                  <EditorPage />
+                </AdminLayout>
+              }
+            />
+            <Route path="/" element={<Navigate to="/pages/home" />} />
+          </Routes>
+        </BrowserRouter>
+        <Toaster />
+      </ComponentProvider>
+    </CmsProvider>
   );
 }
 

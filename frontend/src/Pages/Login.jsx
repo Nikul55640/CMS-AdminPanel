@@ -1,11 +1,11 @@
 import axios from "axios";
 import { useState, useContext } from "react";
-import PageContext from "../context/PageContext";
+import CmsContext from "../context/CmsContext";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 const Login = () => {
-  const { setToken ,  setLoggedIn } = useContext(PageContext);
+  const { setToken ,  setLoggedIn } = useContext(CmsContext);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
@@ -52,7 +52,7 @@ const handleLogin = async () => {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full mb-6 p-2 rounded bg-white"
+          className="w-full mb-6 p-2 rounded-lg bg-white"
         />
         <button
           onClick={handleLogin}

@@ -1,20 +1,32 @@
+// src/context/CmsContext.jsx
 import { createContext, useState, useEffect } from "react";
 import axios from "axios";
 
-const PageContext = createContext();
+const CmsContext = createContext();
 
-export const PageProvider = ({ children }) => {
+export const CmsProvider = ({ children }) => {
+  // Pages
   const [pages, setPages] = useState([]);
   const [token, setToken] = useState(localStorage.getItem("cmsToken") || "");
   const [loggedIn, setLoggedIn] = useState(!!token);
   const [showEditor, setShowEditor] = useState(false);
   const [currentPage, setCurrentPage] = useState(null);
 
-  // ✅ Sidebar state globally
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
+  // Editor content
+  const [pageContent, setPageContent] = useState({ html: "", css: "", js: "" });
 
-  // Keep localStorage in sync whenever token changes
+  // Form fields
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    slug: "",
+  });
+
+  // Sidebar
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
+
+  // Token sync
   useEffect(() => {
     if (token) {
       localStorage.setItem("cmsToken", token);
@@ -25,7 +37,7 @@ export const PageProvider = ({ children }) => {
     }
   }, [token]);
 
-  // Fetch pages when logged in
+  // Fetch pages
   useEffect(() => {
     const fetchPages = async () => {
       try {
@@ -41,18 +53,21 @@ export const PageProvider = ({ children }) => {
     if (token) fetchPages();
   }, [token]);
 
-  // Logout handler
+  // Logout
   const logout = () => {
     setToken("");
     setPages([]);
     setCurrentPage(null);
     setShowEditor(false);
     setLoggedIn(false);
+    setPageContent({ html: "", css: "", js: "" });
+    setFormData({ title: "", description: "", slug: "" });
   };
 
   return (
-    <PageContext.Provider
+    <CmsContext.Provider
       value={{
+        // Pages
         pages,
         setPages,
         loggedIn,
@@ -66,11 +81,15 @@ export const PageProvider = ({ children }) => {
         isSidebarOpen,
         toggleSidebar,
         logout,
+        pageContent,
+        setPageContent,
+        formData,
+        setFormData,
       }}
     >
       {children}
-    </PageContext.Provider>
+    </CmsContext.Provider>
   );
 };
 
-export default PageContext;
+export default CmsContext;

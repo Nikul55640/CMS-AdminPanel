@@ -1,9 +1,9 @@
 import { useParams } from "react-router-dom";
 import { useContext } from "react";
-import PageContext from "../context/PageContext";
+import CmsContext from "../context/CmsContext";
 
 const PublicPage = () => {
-  const { pages } = useContext(PageContext); // Get pages from context
+  const { pages } = useContext(CmsContext); // Get pages from context
   const { slug } = useParams();
 
   // Safely find the page
@@ -16,6 +16,7 @@ const PublicPage = () => {
     
       <div dangerouslySetInnerHTML={{ __html: page.html }}></div>
         {page.css && <style>{page.css}</style>}
+        {page.js && <script dangerouslySetInnerHTML={{ __html: page.js }} />}
 
     </div>
   );

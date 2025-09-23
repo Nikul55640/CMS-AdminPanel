@@ -1,7 +1,7 @@
 // src/components/Navbar.jsx
 import { Link, useNavigate } from "react-router-dom";
 import { useContext, useState, useEffect, useRef } from "react";
-import PageContext from "../context/PageContext";
+import PageContext from "../context/CmsContext";
 import { Menu, X } from "lucide-react";
 
 const Navbar = () => {
@@ -47,8 +47,8 @@ const Navbar = () => {
 
         {loggedIn && (
           <div className="flex items-center gap-4">
-            <Link to="/admin" className="hover:text-gray-300">Dashboard</Link>
-            <button onClick={handleLogout} className="bg-red-500 px-3 py-1 rounded hover:bg-red-600">
+            <Link to="/admin" className="  text-white font-semibold px-3 py-1 hover:underline decoration-dashed underline-offset-4 ">Dashboard</Link>
+            <button onClick={handleLogout} className="hover:text-gray-300 bg-red-500 px-3 py-1 cursor-pointer rounded hover:bg-red-600">
               Logout
             </button>
           </div>
