@@ -1,64 +1,53 @@
-import Component from "../models/component.model.js";
+import Component from "../models/component.model.js"; 
+
+// Create new component (from saved page section)
+export const createComponent = async (req, res) => {
+  try {
+    const { name, category, html, css, js, fromPage, thumbnail } = req.body;
+    const count = await Component.countDocuments();
+
+    const component = new Component({
+      name, category, html, css, js, fromPage, thumbnail, order: count
+    });
+
+    await component.save();
+    res.status(201).json(component);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
 
 // Get all components
 export const getComponents = async (req, res) => {
   try {
-    const components = await Component.find().sort({ createdAt: -1 });
+    const components = await Component.find().sort({ order: 1 });
     res.json(components);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to fetch components" });
+    res.status(500).json({ message: err.message });
   }
 };
 
-// Add a new component
-export const addComponent = async (req, res) => {
-  const { name, category = "General", items = [] } = req.body;
-
-  if (!name) return res.status(400).json({ message: "Component name is required" });
-
-  try {
-    const component = new Component({ name, category, items });
-    await component.save();
-    res.status(201).json(component);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to create component" });
-  }
-};
-
-// Update component by ID
+// Update component
 export const updateComponent = async (req, res) => {
-  const { id } = req.params;
-  const { name, category, items } = req.body;
-
   try {
-    const component = await Component.findById(id);
-    if (!component) return res.status(404).json({ message: "Component not found" });
+    const comp = await Component.findById(req.params.id);
+    if (!comp) return res.status(404).json({ message: "Component not found" });
 
-    if (name !== undefined) component.name = name;
-    if (category !== undefined) component.category = category;
-    if (items !== undefined) component.items = items;
-
-    await component.save();
-    res.json(component);
+    Object.assign(comp, req.body);
+    await comp.save();
+    res.json(comp);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to update component" });
+    res.status(500).json({ message: err.message });
   }
 };
 
-// Delete component by ID
+// Delete component
 export const deleteComponent = async (req, res) => {
-  const { id } = req.params;
-
   try {
-    const deleted = await Component.findByIdAndDelete(id);
-    if (!deleted) return res.status(404).json({ message: "Component not found" });
-
-    res.json({ message: "Component deleted successfully", component: deleted });
+    const comp = await Component.findByIdAndDelete(req.params.id);
+    if (!comp) return res.status(404).json({ message: "Component not found" });
+    res.json({ message: "Component deleted" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to delete component" });
+    res.status(500).json({ message: err.message });
   }
 };

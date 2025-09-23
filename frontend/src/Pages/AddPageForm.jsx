@@ -4,6 +4,14 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
+// Helper to generate slug from title
+const generateSlug = (text) =>
+  text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-");
+
 const AddPageForm = () => {
   const {
     pages = [],
@@ -14,52 +22,59 @@ const AddPageForm = () => {
     formData,
     setFormData,
   } = useContext(CmsContext);
-
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
 
-  // ✅ Controlled form using context
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const openEditor = () => {
+    if (!formData.title || !formData.slug) {
+      toast.error("⚠️ Please fill Title & Slug first!");
+      return;
+    }
     navigate("/admin/editor");
   };
 
   const handleSavePage = async () => {
-    if (!formData.title.trim() || !formData.slug.trim()) {
-      return toast.error("⚠️ Title and Slug are required");
-    }
-    if (pages.find((p) => p.slug === formData.slug)) {
-      return toast.error("⚠️ Slug already exists");
-    }
-    if (!pageContent.html) {
+    // Trim inputs
+    const title = formData.title.trim();
+    const slug = (formData.slug || generateSlug(title)).trim();
+    const description = formData.description.trim();
+    const metaTitle = formData.metaTitle.trim() || title;
+    const metaDescription = formData.metaDescription.trim() || description;
+    const keywords = formData.keywords.trim();
+
+    if (!title || !slug) return toast.error("⚠️ Title and Slug are required!");
+    if (!pageContent.html)
       return toast.error("⚠️ Please save editor content first!");
-    }
+    if (pages.find((p) => p.slug === slug))
+      return toast.error("⚠️ Slug already exists!");
 
     setIsSaving(true);
+
     try {
       const res = await axios.post(
         "http://localhost:8000/api/pages",
         {
           ...formData,
+          title,
+          slug,
+          description,
           html: pageContent.html,
           css: pageContent.css,
           js: pageContent.js,
-          // SEO fields
-          metaTitle: formData.metaTitle || formData.title,
-          metaDescription: formData.metaDescription || formData.description,
-          keywords: formData.keywords || "",
+          metaTitle,
+          metaDescription,
+          keywords,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const newPage = res.data;
-      setPages([...pages, newPage]);
+      setPages([...pages, res.data]);
       toast.success("✅ Page created successfully!");
-
-      // Reset form and editor
+      // Reset form & editor
       setFormData({
         title: "",
         description: "",
@@ -69,6 +84,7 @@ const AddPageForm = () => {
         keywords: "",
       });
       setPageContent({ html: "", css: "", js: "" });
+      navigate("/admin/pages");
     } catch (err) {
       console.error("❌ Error creating page:", err);
       toast.error("Failed to create page.");
@@ -106,7 +122,7 @@ const AddPageForm = () => {
           onChange={(e) => handleChange("slug", e.target.value)}
         />
 
-        {/* 🔹 SEO Fields */}
+        {/* SEO Fields */}
         <label className="text-xl font-semibold">Meta Title</label>
         <input
           className="border rounded p-2"

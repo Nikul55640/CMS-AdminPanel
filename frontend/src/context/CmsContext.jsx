@@ -26,7 +26,33 @@ export const CmsProvider = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
 
-  // Token sync
+  // Components (reusable)
+  const [components, setComponents] = useState([]);
+
+  // Fetch reusable components from backend
+  const fetchComponents = async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get("http://localhost:8000/api/components", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setComponents(res.data);
+    } catch (err) {
+      console.error("❌ Failed to fetch components:", err);
+    }
+  };
+
+  // Add new component to state
+  const addComponent = (component) => {
+    setComponents((prev) => [...prev, component]);
+  };
+
+  // Remove component from state
+  const removeComponent = (id) => {
+    setComponents((prev) => prev.filter((c) => c._id !== id));
+  };
+
+  // Token sync with localStorage
   useEffect(() => {
     if (token) {
       localStorage.setItem("cmsToken", token);
@@ -37,8 +63,9 @@ export const CmsProvider = ({ children }) => {
     }
   }, [token]);
 
-  // Fetch pages
+  // Fetch pages from backend
   useEffect(() => {
+    if (!token) return;
     const fetchPages = async () => {
       try {
         const res = await axios.get("http://localhost:8000/api/pages", {
@@ -49,8 +76,13 @@ export const CmsProvider = ({ children }) => {
         console.error("❌ Failed to fetch pages:", err);
       }
     };
+    fetchPages();
+  }, [token]);
 
-    if (token) fetchPages();
+  // Fetch components whenever token changes
+  useEffect(() => {
+    if (token) fetchComponents();
+    else setComponents([]);
   }, [token]);
 
   // Logout
@@ -62,6 +94,7 @@ export const CmsProvider = ({ children }) => {
     setLoggedIn(false);
     setPageContent({ html: "", css: "", js: "" });
     setFormData({ title: "", description: "", slug: "" });
+    setComponents([]);
   };
 
   return (
@@ -85,6 +118,13 @@ export const CmsProvider = ({ children }) => {
         setPageContent,
         formData,
         setFormData,
+
+        // Components
+        components,
+        setComponents,
+        addComponent,
+        removeComponent,
+        fetchComponents,
       }}
     >
       {children}

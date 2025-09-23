@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { CmsProvider } from "./context/CmsContext";
-import { ComponentProvider } from "./context/ComponentContext"; // ✅ import
+import { CmsProvider } from "./context/CmsContext"; 
 import Login from "./Pages/Login";
 import Dashboard from "./Pages/Dashboard";
 import PublicPage from "./components/PublicPage";
@@ -25,7 +24,7 @@ function AdminLayout({ children }) {
 function App() {
   return (
     <CmsProvider>
-      <ComponentProvider>
+      
         <BrowserRouter>
           <Routes>
             {/* Admin routes wrapped in fixed navbar layout */}
@@ -62,6 +61,7 @@ function App() {
                 </AdminLayout>
               }
             />
+
             <Route
               path="/admin"
               element={
@@ -92,7 +92,7 @@ function App() {
           </Routes>
         </BrowserRouter>
         <Toaster />
-      </ComponentProvider>
+  
     </CmsProvider>
   );
 }

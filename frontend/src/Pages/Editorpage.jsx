@@ -1,169 +1,4 @@
-// import { useContext, useState, useEffect, useRef } from "react";
-// import { useParams, useNavigate } from "react-router-dom";
-// import CmsContext from "../context/CmsContext";
-// import StudioEditor from "@grapesjs/studio-sdk/react";
-// import "@grapesjs/studio-sdk/style";
-// import {
-//   layoutSidebarButtons,
-//   dialogComponent,
-//   tableComponent,
-//   listPagesComponent,
-//   lightGalleryComponent,
-//   swiperComponent,
-//   iconifyComponent,
-//   accordionComponent,
-//   animationComponent,
-//   rteTinyMce,
-//   canvasGridMode,
-//   googleFontsAssetProvider,
-// } from "@grapesjs/studio-sdk-plugins";
-// import toast from "react-hot-toast";
-// import axios from "axios";
 
-// const EditorPage = () => {
-//   const { slug } = useParams();
-//   const { pages, setPages, token } = useContext(CmsContext);
-//   const page = pages.find((p) => p.slug === slug);
-//   const navigate = useNavigate();
-
-//   const editorRef = useRef(null);
-//   const [isSaving, setIsSaving] = useState(false);
-
-//   useEffect(() => {
-//     return () => {
-//       if (editorRef.current?.destroy) {
-//         editorRef.current.destroy();
-//         editorRef.current = null;
-//       }
-//     };
-//   }, []);
-
-//   const handleSave = async () => {
-//     if (!editorRef.current || !page) return toast("Editor not ready!");
-
-//     const html = editorRef.current.getHtml();
-//     const css = editorRef.current.getCss();
-
-//     if (!html.trim()) return toast("⚠️ Page content cannot be empty!");
-
-//     setIsSaving(true);
-//     try {
-//       const res = await axios.put(
-//         `http://localhost:8000/api/pages/${page.slug}`,
-//         { html, css },
-//         {
-//           headers: { Authorization: `Bearer ${token}` },
-//           validateStatus: () => true, // prevents axios from throwing on non-JSON
-//         }
-//       );
-
-//       // If server returned HTML (like an error page), don't try to parse JSON
-//       if (typeof res.data !== "object") {
-//         toast("⚠️ Server did not return valid JSON!");
-//         setIsSaving(false);
-//         return;
-//       }
-
-//       setPages(pages.map((p) => (p.slug === page.slug ? res.data : p)));
-//       toast("✅ Page updated successfully!");
-//       navigate("/admin/pages"); // or wherever you want to go after save
-//     } catch (err) {
-//       console.error(err);
-//       toast("Failed to save page");
-//     } finally {
-//       setIsSaving(false);
-//     }
-//   };
-
-//   if (!page) return <p>Page not found</p>;
-
-//   return (
-//     <>
-//   <div className="flex flex-col h-screen">
-//   {/* Header */}
-//   <div className="flex justify-between items-center p-4 border-b bg-white shadow">
-//     <h1 className="text-xl font-bold">Editing: {page.title}</h1>
-//     <button
-//       onClick={handleSave}
-//       disabled={isSaving}
-//       className={`px-4 py-2 rounded text-white ${
-//         isSaving
-//           ? "bg-gray-400 cursor-not-allowed"
-//           : "bg-green-500 hover:bg-green-600"
-//       }`}
-//     >
-//       {isSaving ? "Saving..." : "Save & Close"}
-//     </button>
-//   </div>
-
-//   {/* Main content area */}
-//   <div className="flex flex-1 overflow-hidden">
-//     {/* Left panel - Page Info + SEO */}
-//     <div className="w-1/4 p-4 bg-gray-50 overflow-y-auto border-r">
-//       <h2 className="text-lg font-semibold mb-2">Page Info</h2>
-//       <input
-//         type="text"
-//         placeholder="Title"
-//         className="border p-2 rounded mb-2 w-full"
-//         value={formData.title}
-//         onChange={(e) => handleChange("title", e.target.value)}
-//       />
-//       <input
-//         type="text"
-//         placeholder="Slug"
-//         className="border p-2 rounded mb-2 w-full"
-//         value={formData.slug}
-//         onChange={(e) => handleChange("slug", e.target.value)}
-//       />
-//       <textarea
-//         placeholder="Description"
-//         className="border p-2 rounded mb-2 w-full"
-//         value={formData.description}
-//         onChange={(e) => handleChange("description", e.target.value)}
-//       />
-
-//       <h2 className="text-lg font-semibold mt-4 mb-2">SEO</h2>
-//       <input
-//         type="text"
-//         placeholder="Meta Title"
-//         className="border p-2 rounded mb-2 w-full"
-//         value={formData.metaTitle}
-//         onChange={(e) => handleChange("metaTitle", e.target.value)}
-//       />
-//       <textarea
-//         placeholder="Meta Description"
-//         className="border p-2 rounded mb-2 w-full"
-//         value={formData.metaDescription}
-//         onChange={(e) => handleChange("metaDescription", e.target.value)}
-//       />
-//       <input
-//         type="text"
-//         placeholder="Keywords"
-//         className="border p-2 rounded mb-2 w-full"
-//         value={formData.keywords}
-//         onChange={(e) => handleChange("keywords", e.target.value)}
-//       />
-
-//       <h2 className="text-lg font-semibold mt-4 mb-2">Status</h2>
-//       <select
-//         className="border p-2 rounded w-full"
-//         value={formData.status}
-//         onChange={(e) => handleChange("status", e.target.value)}
-//       >
-//         <option value="draft">Draft</option>
-//         <option value="published">Published</option>
-//       </select>
-//     </div>
-
-//     {/* Right panel - GrapesJS Editor */}
-
-//   </div>
-// </div>
-// </>
-//   );
-// };
-
-// export default EditorPage;
 
 import { useContext, useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -209,6 +44,8 @@ const EditorPage = () => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  
+
   const handleSave = async () => {
     if (!editorRef.current || !page) return toast("Editor not ready!");
 
@@ -239,6 +76,27 @@ const EditorPage = () => {
     }
   };
 
+   const loadSavedComponents = async () => {
+      if (!editorRef.current) return;
+  
+      try {
+        const res = await axios.get("http://localhost:8000/api/components", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+  
+        const bm = editorRef.current.BlockManager;
+        res.data.forEach((cmp) => {
+          bm.add(cmp.name, {
+            label: cmp.name,
+            category: cmp.category || "Reusable",
+            content: `<div>${cmp.html}</div><style>${cmp.css}</style>`,
+          });
+        });
+      } catch (err) {
+        console.error("Failed to load components:", err);
+      }
+    };
+
   useEffect(() => {
     return () => {
       if (editorRef.current?.destroy) {
@@ -266,6 +124,7 @@ const EditorPage = () => {
         >
           {isSaving ? "Saving..." : "Save & Close"}
         </button>
+    
       </div>
 
       <div className="flex flex-1 overflow-hidden">
@@ -461,6 +320,9 @@ const EditorPage = () => {
               editor.CssComposer.clear();
               editor.setComponents(page.html || "<div>Start editing...</div>");
               editor.setStyle(page.css || "");
+              
+              loadSavedComponents();
+
 
               // Add blocks (same as your modal code)
               const addBlock = (id, opts) => {

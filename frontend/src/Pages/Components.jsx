@@ -1,215 +1,245 @@
-// 
-import { useState, useEffect } from "react";
+import { useContext, useState, useEffect } from "react";
+import CmsContext from "../context/CmsContext";
 import axios from "axios";
+import toast from "react-hot-toast";
 
-// Live preview of Navbar
-const NavbarPreview = ({ items }) => (
-  <nav className="bg-gray-800 text-white p-4 rounded mb-4">
-    <ul className="flex space-x-4">
-      {items.map((item) => (
-        <li key={item.id} className="relative group">
-          <a href={item.link || "#"}>{item.label}</a>
-          {item.children && item.children.length > 0 && (
-            <ul className="absolute hidden group-hover:block bg-white text-black mt-2 p-2 rounded shadow">
-              {item.children.map((child) => (
-                <li key={child.id}>
-                  <a href={child.link || "#"} className="block p-1">
-                    {child.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
-        </li>
-      ))}
-    </ul>
-  </nav>
-);
+const ComponentForm = () => {
+  const { token, addComponent, components, fetchComponents, removeComponent } =
+    useContext(CmsContext);
 
-const ComponentBuilder = () => {
-  const [components, setComponents] = useState([]);
-  const [componentName, setComponentName] = useState("");
+  const [form, setForm] = useState({
+    name: "",
+    data: { html: "", css: "", js: "" },
+  });
 
-  // Load existing components
+  const [editingId, setEditingId] = useState(null); // Track editing
+  const [expanded, setExpanded] = useState({});
+
   useEffect(() => {
-    const fetchComponents = async () => {
-      try {
-        const res = await axios.get("/api/components", {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
-        setComponents(Array.isArray(res.data) ? res.data : []);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchComponents();
-  }, []);
+    if (token) fetchComponents();
+  }, [token]);
 
-  // Add new component
-  const addComponent = () => {
-    if (!componentName) return;
-    setComponents([
-      ...components,
-      { id: Date.now(), name: componentName, items: [] },
-    ]);
-    setComponentName("");
-  };
+  // Save or update component
+  const handleSave = async () => {
+    if (!form.name) return toast.error("Please enter a component name!");
 
-  // CRUD functions
-  const removeComponent = (compId) =>
-    setComponents(components.filter((c) => c.id !== compId));
-
-  const addItem = (compId) =>
-    setComponents(
-      components.map((c) =>
-        c.id === compId
-          ? { ...c, items: [...c.items, { id: Date.now(), label: "", link: "", children: [] }] }
-          : c
-      )
-    );
-
-  const removeItem = (compId, itemId) =>
-    setComponents(
-      components.map((c) =>
-        c.id === compId ? { ...c, items: c.items.filter((i) => i.id !== itemId) } : c
-      )
-    );
-
-  const addSubItem = (compId, itemId) =>
-    setComponents(
-      components.map((c) =>
-        c.id === compId
-          ? {
-              ...c,
-              items: c.items.map((i) =>
-                i.id === itemId
-                  ? { ...i, children: [...i.children, { id: Date.now(), label: "", link: "" }] }
-                  : i
-              ),
-            }
-          : c
-      )
-    );
-
-  const removeSubItem = (compId, itemId, subId) =>
-    setComponents(
-      components.map((c) =>
-        c.id === compId
-          ? {
-              ...c,
-              items: c.items.map((i) =>
-                i.id === itemId ? { ...i, children: i.children.filter((child) => child.id !== subId) } : i
-              ),
-            }
-          : c
-      )
-    );
-
-  const updateLabel = (compId, itemId, subId, value, type = "label") =>
-    setComponents(
-      components.map((c) =>
-        c.id === compId
-          ? {
-              ...c,
-              items: c.items.map((i) => {
-                if (i.id === itemId) {
-                  if (subId) {
-                    return { ...i, children: i.children.map((child) => (child.id === subId ? { ...child, [type]: value } : child)) };
-                  } else {
-                    return { ...i, [type]: value };
-                  }
-                }
-                return i;
-              }),
-            }
-          : c
-      )
-    );
-
-  // Save component to backend
-  const saveComponent = async (comp) => {
     try {
-      await axios.post(
-        "/api/components",
-        { name: comp.name, category: "Navigation", html: "", css: "", js: "", items: comp.items },
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-      );
-      alert("Component saved!");
+      if (editingId) {
+        // Update
+        await axios.put(
+          `http://localhost:8000/api/components/${editingId}`,
+          form,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        toast.success("Component updated!");
+        fetchComponents();
+        setEditingId(null);
+      } else {
+        // Create
+        const res = await axios.post(
+          "http://localhost:8000/api/components",
+          form,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        addComponent(res.data);
+        toast.success("Component created!");
+      }
+
+      setForm({ name: "", data: { html: "", css: "", js: "" } });
     } catch (err) {
       console.error(err);
-      alert("Failed to save component");
+      toast.error("Failed to save component");
     }
   };
 
+  // Delete component
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`http://localhost:8000/api/components/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      removeComponent(id);
+      toast.success("Component deleted!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete component");
+    }
+  };
+
+  // Edit component → fills form
+  const handleEdit = (cmp) => {
+    setEditingId(cmp._id);
+    setForm({ name: cmp.name, data: { ...cmp.data } });
+    window.scrollTo({ top: 0, behavior: "smooth" }); // Scroll to form
+  };
+
+  // Preview component
+  const handlePreview = (cmp) => {
+    const newWindow = window.open("", "_blank");
+    const previewHTML = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <title>Preview - ${cmp.name}</title>
+        <style>
+          body { font-family: sans-serif; margin: 20px; }
+          ${cmp.data.css || ""}
+        </style>
+      </head>
+      <body>
+        ${cmp.data.html || ""}
+        <script>${cmp.data.js || ""}</script>
+      </body>
+      </html>
+    `;
+    newWindow.document.write(previewHTML);
+    newWindow.document.close();
+  };
+
+  // Copy to clipboard
+  const copyToClipboard = (text, label) => {
+    navigator.clipboard.writeText(text || "").then(() => {
+      toast.success(`${label} copied to clipboard`);
+    });
+  };
+
+  // Toggle HTML preview
+  const toggleExpand = (id) => {
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  // Filter components
+  const filteredComponents = components.filter(
+    (cmp) =>
+      cmp.name.toLowerCase()||
+      cmp.type?.toLowerCase()
+  );
+
   return (
-    <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">Component Builder</h2>
+    <div className="p-4 bg-white rounded shadow mb-4">
+      <h2 className="text-xl font-bold mb-2">
+        {editingId ? "Edit Component" : "Create New Component"}
+      </h2>
 
-      {/* Add Component */}
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Component Name"
-          value={componentName}
-          onChange={(e) => setComponentName(e.target.value)}
-          className="border p-2 rounded w-1/2 mr-2"
-        />
-        <button onClick={addComponent} className="bg-green-600 text-white px-4 py-2 rounded">
-          Add Component
-        </button>
-      </div>
+      {/* Form */}
+      <input
+        placeholder="Component Name"
+        className="border p-2 w-full mb-2"
+        value={form.name}
+        onChange={(e) => setForm({ ...form, name: e.target.value })}
+      />
+      <textarea
+        placeholder="HTML"
+        className="border p-2 w-full mb-2 h-24"
+        value={form.data.html}
+        onChange={(e) =>
+          setForm({ ...form, data: { ...form.data, html: e.target.value } })
+        }
+      />
+      <textarea
+        placeholder="CSS"
+        className="border p-2 w-full mb-2 h-24"
+        value={form.data.css}
+        onChange={(e) =>
+          setForm({ ...form, data: { ...form.data, css: e.target.value } })
+        }
+      />
+      <textarea
+        placeholder="JavaScript"
+        className="border p-2 w-full mb-4 h-24"
+        value={form.data.js}
+        onChange={(e) =>
+          setForm({ ...form, data: { ...form.data, js: e.target.value } })
+        }
+      />
 
-      {/* Components List */}
-      {components.map((comp) => (
-        <div key={comp.id} className="border p-4 rounded mb-4">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-bold">{comp.name}</h3>
-            <div>
-              <button onClick={() => removeComponent(comp.id)} className="bg-red-500 text-white px-2 py-1 rounded mr-2">
-                Remove
-              </button>
-              <button onClick={() => saveComponent(comp)} className="bg-indigo-600 text-white px-2 py-1 rounded">
-                Save
-              </button>
-            </div>
-          </div>
+      <button
+        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+        onClick={handleSave}
+      >
+        {editingId ? "Update Component" : "Save Component"}
+      </button>
 
-          <button onClick={() => addItem(comp.id)} className="bg-blue-500 text-white px-2 py-1 rounded mb-2">
-            + Add Item
-          </button>
-
-          {comp.items.map((item) => (
-            <div key={item.id} className="ml-4 mb-2 border p-2 rounded">
-              <div className="flex items-center mb-1">
-                <input type="text" placeholder="Item Label" value={item.label} onChange={(e) => updateLabel(comp.id, item.id, null, e.target.value)} className="border p-1 rounded w-1/3 mr-2" />
-                <input type="text" placeholder="Item Link" value={item.link} onChange={(e) => updateLabel(comp.id, item.id, null, e.target.value, "link")} className="border p-1 rounded w-1/3 mr-2" />
-                <button onClick={() => removeItem(comp.id, item.id)} className="bg-red-500 text-white px-2 py-1 rounded">
-                  Remove Item
+      {/* Component List */}
+      <h2 className="text-xl font-bold mt-6 mb-2">Saved Components</h2>
+      <ul>
+        {filteredComponents.map((cmp) => (
+          <li
+            key={cmp._id}
+            className="border p-3 mb-3 rounded bg-gray-50 shadow-sm"
+          >
+            <div className="flex justify-between items-center">
+              <div>
+                <strong>{cmp.name}</strong>
+                <p className="text-xs text-gray-500">
+                  Created:{" "}
+                  {new Date(cmp.createdAt || Date.now()).toLocaleString()}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handlePreview(cmp)}
+                  className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm"
+                >
+                  Preview
+                </button>
+                {cmp.data?.html && (
+                  <>
+                    <button
+                      onClick={() => copyToClipboard(cmp.data.html, "HTML")}
+                      className="bg-gray-500 text-white px-2 py-1 rounded text-sm"
+                    >
+                      Copy HTML
+                    </button>
+                    <button
+                      onClick={() => copyToClipboard(cmp.data.css, "CSS")}
+                      className="bg-gray-500 text-white px-2 py-1 rounded text-sm"
+                    >
+                      Copy CSS
+                    </button>
+                    <button
+                      onClick={() => copyToClipboard(cmp.data.js, "JS")}
+                      className="bg-gray-500 text-white px-2 py-1 rounded text-sm"
+                    >
+                      Copy JS
+                    </button>
+                  </>
+                )}
+                <button
+                  className="bg-yellow-500 text-white px-2 py-1 rounded"
+                  onClick={() => handleEdit(cmp)}
+                >
+                  Edit
+                </button>
+                <button
+                  className="bg-red-500 text-white px-2 py-1 rounded"
+                  onClick={() => handleDelete(cmp._id)}
+                >
+                  Delete
                 </button>
               </div>
-
-              {/* Subitems */}
-              <button onClick={() => addSubItem(comp.id, item.id)} className="bg-gray-500 text-white px-2 py-1 rounded mb-1">
-                + Add Subitem
-              </button>
-              {item.children.map((child) => (
-                <div key={child.id} className="ml-4 mb-1 flex items-center">
-                  <input type="text" placeholder="Subitem Label" value={child.label} onChange={(e) => updateLabel(comp.id, item.id, child.id, e.target.value)} className="border p-1 rounded w-1/3 mr-2" />
-                  <input type="text" placeholder="Subitem Link" value={child.link} onChange={(e) => updateLabel(comp.id, item.id, child.id, e.target.value, "link")} className="border p-1 rounded w-1/3 mr-2" />
-                  <button onClick={() => removeSubItem(comp.id, item.id, child.id)} className="bg-red-500 text-white px-2 py-1 rounded">
-                    Remove Subitem
-                  </button>
-                </div>
-              ))}
             </div>
-          ))}
 
-          {/* Live Preview */}
-          {comp.items.length > 0 && <NavbarPreview items={comp.items} />}
-        </div>
-      ))}
+            {/* Expand HTML Preview */}
+            {cmp.data?.html && (
+              <button
+                onClick={() => toggleExpand(cmp._id)}
+                className="text-sm text-blue-600 mt-2"
+              >
+                {expanded[cmp._id] ? "Hide Preview ↓" : "Show Preview →"}
+              </button>
+            )}
+            {expanded[cmp._id] && (
+              <div
+                className="mt-2 border p-3 bg-white rounded"
+                dangerouslySetInnerHTML={{ __html: cmp.data.html }}
+              />
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 };
 
-export default ComponentBuilder;
+export default ComponentForm;
