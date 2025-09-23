@@ -11,6 +11,7 @@ import { Toaster } from "react-hot-toast";
 import Content from "./Pages/Content";
 import EditorAdd from "./Pages/EditorAdd";
 import EditorPage from "./Pages/Editorpage";
+import MenuManager from "./Pages/Menumanager";
 
 function AdminLayout({ children }) {
   return (
@@ -33,6 +34,14 @@ function App() {
               element={
                 <AdminLayout>
                   <PageManager />
+                </AdminLayout>
+              }
+            />
+             <Route
+              path="/admin/menus"
+              element={
+                <AdminLayout>
+                  <MenuManager />
                 </AdminLayout>
               }
             />

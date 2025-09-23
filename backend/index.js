@@ -3,10 +3,11 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
 import path from "path";
-
+import menuRoutes from "./routes/menu.routes.js"; 
 import authRouter from "./routes/auth.route.js";
 import pageRouter from "./routes/page.route.js";
 import componentsRoute from "./routes/component.route.js"; 
+
 
 dotenv.config();
 
@@ -30,7 +31,7 @@ app.use("/uploads", express.static(path.join("./uploads"))); // ✅ make uploads
 // Routes
 app.use("/api/auth", authRouter);
 app.use("/api/pages", pageRouter);
-
+app.use("/api/menus", menuRoutes);
 app.use("/api/components",componentsRoute);
 
 

@@ -21,12 +21,16 @@ const Navbar = () => {
   // Lock body scroll when sidebar is open
   useEffect(() => {
     document.body.style.overflow = isSidebarOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [isSidebarOpen]);
 
   // Close on Escape key
   useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") closeSidebar(); };
+    const onKey = (e) => {
+      if (e.key === "Escape") closeSidebar();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
@@ -47,8 +51,16 @@ const Navbar = () => {
 
         {loggedIn && (
           <div className="flex items-center gap-4">
-            <Link to="/admin" className="  text-white font-semibold px-3 py-1 hover:underline decoration-dashed underline-offset-4 ">Dashboard</Link>
-            <button onClick={handleLogout} className="hover:text-gray-300 bg-red-500 px-3 py-1 cursor-pointer rounded hover:bg-red-600">
+            <Link
+              to="/admin"
+              className="  text-white font-semibold px-3 py-1 hover:underline decoration-dashed underline-offset-4 "
+            >
+              Dashboard
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="hover:text-gray-300 bg-red-500 px-3 py-1 cursor-pointer rounded hover:bg-red-600"
+            >
               Logout
             </button>
           </div>
@@ -81,16 +93,28 @@ const Navbar = () => {
         <h2 className="text-2xl font-bold mb-6">Dashboard</h2>
 
         <nav className="flex flex-col space-y-3">
-          <Link to="/admin/addPage" onClick={closeSidebar} className="hover:bg-gray-700 p-2 rounded">
+          <Link
+            to="/admin/addPage"
+            onClick={closeSidebar}
+            className="hover:bg-gray-700 p-2 rounded"
+          >
             Pages
           </Link>
-          <Link to="/admin/content" onClick={closeSidebar} className="hover:bg-gray-700 p-2 rounded">
-            Content
-          </Link>
-          <Link to="/admin/components" onClick={closeSidebar} className="hover:bg-gray-700 p-2 rounded">
+          <Link
+            to="/admin/components"
+            onClick={closeSidebar}
+            className="hover:bg-gray-700 p-2 rounded"
+          >
             Components
           </Link>
-          <Link to="/admin/pages" onClick={closeSidebar} className="hover:bg-gray-700 p-2 rounded">
+          <Link to="/admin/menus"  onClick={closeSidebar}   className="hover:bg-gray-700 p-2 rounded font-bold">
+            Menu Management
+          </Link>
+          <Link
+            to="/admin/pages"
+            onClick={closeSidebar}
+            className="hover:bg-gray-700 p-2 rounded"
+          >
             All Pages
           </Link>
         </nav>
