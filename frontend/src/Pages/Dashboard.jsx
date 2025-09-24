@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import CmsContext from "../context/CmsContext";
-import { PieChart, Pie, Tooltip, ResponsiveContainer  ,Cell} from "recharts";
+import { PieChart, Pie, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 const Dashboard = () => {
   const { token } = useContext(CmsContext);
@@ -43,7 +43,12 @@ const Dashboard = () => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        setRecentPages(res.data);
+        // Sequelize returns 'id' instead of '_id'
+        const pages = res.data.map((p) => ({
+          ...p,
+          _id: p.id,
+        }));
+        setRecentPages(pages);
       } catch (err) {
         console.error("❌ Failed to fetch recent pages", err);
       }
@@ -98,8 +103,7 @@ const Dashboard = () => {
       <div className="flex flex-wrap justify-center gap-4 mb-8">
         <Link
           to="/admin/addPage"
-          className="flex items-center bg-white text-blue-500
-           px-6 py-3 rounded-lg shadow hover:scale-105 transition"
+          className="flex items-center bg-white text-blue-500 px-6 py-3 rounded-lg shadow hover:scale-105 transition"
         >
           <PlusCircle className="mr-2" /> Add Page
         </Link>
@@ -175,13 +179,19 @@ const Dashboard = () => {
           </ul>
         </div>
 
+        {/* Pie Chart */}
         <div className="bg-white p-6 rounded-lg shadow flex flex-col items-center justify-center">
           <h3 className="text-xl font-semibold mb-4 text-center underline underline-offset-2">
             Draft vs Published
           </h3>
-        
-        <span className=" flex justify-start w-full  "><Square fill="#f59e0b"/>Draft </span>
-        <span className=" flex justify-start w-full  "><Square fill="#16a34a"/>Published </span>
+
+          <span className="flex justify-start w-full">
+            <Square fill="#f59e0b" /> Draft{" "}
+          </span>
+          <span className="flex justify-start w-full">
+            <Square fill="#16a34a" /> Published{" "}
+          </span>
+
           <div className="w-full h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -191,8 +201,8 @@ const Dashboard = () => {
                   nameKey="name"
                   outerRadius={80}
                 >
-                  <Cell fill="#f59e0b" /> 
-                  <Cell fill="#16a34a" /> 
+                  <Cell fill="#f59e0b" />
+                  <Cell fill="#16a34a" />
                 </Pie>
                 <Tooltip />
               </PieChart>

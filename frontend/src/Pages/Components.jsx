@@ -9,7 +9,9 @@ const ComponentForm = () => {
 
   const [form, setForm] = useState({
     name: "",
-    data: { html: "", css: "", js: "" },
+    html: "",
+    css: "",
+    js: "",
   });
 
   const [editingId, setEditingId] = useState(null); // Track editing
@@ -27,7 +29,7 @@ const ComponentForm = () => {
       if (editingId) {
         // Update
         await axios.put(
-          `http://localhost:8000/api/components/${editingId}`,
+          `http://localhost:5000/api/components/${editingId}`,
           form,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -37,7 +39,7 @@ const ComponentForm = () => {
       } else {
         // Create
         const res = await axios.post(
-          "http://localhost:8000/api/components",
+          "http://localhost:5000/api/components",
           form,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -45,31 +47,31 @@ const ComponentForm = () => {
         toast.success("Component created!");
       }
 
-      setForm({ name: "", data: { html: "", css: "", js: "" } });
+      setForm({ name: "", html: "", css: "", js: "" });
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to save component");
+      console.error(err.response?.data || err);
+      toast.error(err.response?.data?.message || "Failed to save component");
     }
   };
 
   // Delete component
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:8000/api/components/${id}`, {
+      await axios.delete(`http://localhost:5000/api/components/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       removeComponent(id);
       toast.success("Component deleted!");
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to delete component");
+      console.error(err.response?.data || err);
+      toast.error(err.response?.data?.message || "Failed to delete component");
     }
   };
 
   // Edit component → fills form
   const handleEdit = (cmp) => {
-    setEditingId(cmp._id);
-    setForm({ name: cmp.name, data: { ...cmp.data } });
+    setEditingId(cmp.id);
+    setForm({ name: cmp.name, html: cmp.html, css: cmp.css, js: cmp.js });
     window.scrollTo({ top: 0, behavior: "smooth" }); // Scroll to form
   };
 
@@ -83,12 +85,12 @@ const ComponentForm = () => {
         <title>Preview - ${cmp.name}</title>
         <style>
           body { font-family: sans-serif; margin: 20px; }
-          ${cmp.data.css || ""}
+          ${cmp.css || ""}
         </style>
       </head>
       <body>
-        ${cmp.data.html || ""}
-        <script>${cmp.data.js || ""}</script>
+        ${cmp.html || ""}
+        <script>${cmp.js || ""}</script>
       </body>
       </html>
     `;
@@ -108,131 +110,118 @@ const ComponentForm = () => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // Filter components
-  const filteredComponents = components.filter(
-    (cmp) =>
-      cmp.name.toLowerCase()||
-      cmp.type?.toLowerCase()
-  );
-
   return (
-    <div className="p-4 bg-white rounded shadow mb-4">
-      <h2 className="text-xl font-bold mb-2">
+    <div className="p-4 sm:p-6 bg-white rounded shadow-md mb-6 w-full max-w-5xl mx-auto">
+      <h2 className="text-xl sm:text-2xl font-bold mb-4 text-center">
         {editingId ? "Edit Component" : "Create New Component"}
       </h2>
 
       {/* Form */}
-      <input
-        placeholder="Component Name"
-        className="border p-2 w-full mb-2"
-        value={form.name}
-        onChange={(e) => setForm({ ...form, name: e.target.value })}
-      />
-      <textarea
-        placeholder="HTML"
-        className="border p-2 w-full mb-2 h-24"
-        value={form.data.html}
-        onChange={(e) =>
-          setForm({ ...form, data: { ...form.data, html: e.target.value } })
-        }
-      />
-      <textarea
-        placeholder="CSS"
-        className="border p-2 w-full mb-2 h-24"
-        value={form.data.css}
-        onChange={(e) =>
-          setForm({ ...form, data: { ...form.data, css: e.target.value } })
-        }
-      />
-      <textarea
-        placeholder="JavaScript"
-        className="border p-2 w-full mb-4 h-24"
-        value={form.data.js}
-        onChange={(e) =>
-          setForm({ ...form, data: { ...form.data, js: e.target.value } })
-        }
-      />
-
-      <button
-        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-        onClick={handleSave}
-      >
-        {editingId ? "Update Component" : "Save Component"}
-      </button>
+      <div className="flex flex-col gap-3 mb-4">
+        <input
+          placeholder="Component Name"
+          className="border rounded p-2 w-full"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+        />
+        <textarea
+          placeholder="HTML"
+          className="border rounded p-2 w-full h-24"
+          value={form.html}
+          onChange={(e) => setForm({ ...form, html: e.target.value })}
+        />
+        <textarea
+          placeholder="CSS"
+          className="border rounded p-2 w-full h-24"
+          value={form.css}
+          onChange={(e) => setForm({ ...form, css: e.target.value })}
+        />
+        <textarea
+          placeholder="JavaScript"
+          className="border rounded p-2 w-full h-24"
+          value={form.js}
+          onChange={(e) => setForm({ ...form, js: e.target.value })}
+        />
+        <button
+          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full sm:w-auto"
+          onClick={handleSave}
+        >
+          {editingId ? "Update Component" : "Save Component"}
+        </button>
+      </div>
 
       {/* Component List */}
       <h2 className="text-xl font-bold mt-6 mb-2">Saved Components</h2>
-      <ul>
-        {filteredComponents.map((cmp) => (
+      <ul className="flex flex-col gap-3">
+        {components.map((cmp) => (
           <li
-            key={cmp._id}
-            className="border p-3 mb-3 rounded bg-gray-50 shadow-sm"
+            key={cmp.id}
+            className="border p-3 rounded bg-gray-50 shadow-sm flex flex-col sm:flex-row sm:justify-between sm:items-center"
           >
-            <div className="flex justify-between items-center">
-              <div>
-                <strong>{cmp.name}</strong>
-                <p className="text-xs text-gray-500">
-                  Created:{" "}
-                  {new Date(cmp.createdAt || Date.now()).toLocaleString()}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handlePreview(cmp)}
-                  className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm"
-                >
-                  Preview
-                </button>
-                {cmp.data?.html && (
-                  <>
-                    <button
-                      onClick={() => copyToClipboard(cmp.data.html, "HTML")}
-                      className="bg-gray-500 text-white px-2 py-1 rounded text-sm"
-                    >
-                      Copy HTML
-                    </button>
-                    <button
-                      onClick={() => copyToClipboard(cmp.data.css, "CSS")}
-                      className="bg-gray-500 text-white px-2 py-1 rounded text-sm"
-                    >
-                      Copy CSS
-                    </button>
-                    <button
-                      onClick={() => copyToClipboard(cmp.data.js, "JS")}
-                      className="bg-gray-500 text-white px-2 py-1 rounded text-sm"
-                    >
-                      Copy JS
-                    </button>
-                  </>
-                )}
-                <button
-                  className="bg-yellow-500 text-white px-2 py-1 rounded"
-                  onClick={() => handleEdit(cmp)}
-                >
-                  Edit
-                </button>
-                <button
-                  className="bg-red-500 text-white px-2 py-1 rounded"
-                  onClick={() => handleDelete(cmp._id)}
-                >
-                  Delete
-                </button>
-              </div>
+            <div>
+              <strong>{cmp.name}</strong>
+              <p className="text-xs text-gray-500">
+                Created:{" "}
+                {new Date(cmp.createdAt || Date.now()).toLocaleString()}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
+              <button
+                onClick={() => handlePreview(cmp)}
+                className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm"
+              >
+                Preview
+              </button>
+              {cmp.html && (
+                <>
+                  <button
+                    onClick={() => copyToClipboard(cmp.html, "HTML")}
+                    className="bg-gray-500 text-white px-2 py-1 rounded text-sm"
+                  >
+                    Copy HTML
+                  </button>
+                  <button
+                    onClick={() => copyToClipboard(cmp.css, "CSS")}
+                    className="bg-gray-500 text-white px-2 py-1 rounded text-sm"
+                  >
+                    Copy CSS
+                  </button>
+                  <button
+                    onClick={() => copyToClipboard(cmp.js, "JS")}
+                    className="bg-gray-500 text-white px-2 py-1 rounded text-sm"
+                  >
+                    Copy JS
+                  </button>
+                </>
+              )}
+              <button
+                className="bg-yellow-500 text-white px-2 py-1 rounded"
+                onClick={() => handleEdit(cmp)}
+              >
+                Edit
+              </button>
+              <button
+                className="bg-red-500 text-white px-2 py-1 rounded"
+                onClick={() => handleDelete(cmp.id)}
+              >
+                Delete
+              </button>
             </div>
 
             {/* Expand HTML Preview */}
-            {cmp.data?.html && (
+            {cmp.html && (
               <button
-                onClick={() => toggleExpand(cmp._id)}
-                className="text-sm text-blue-600 mt-2"
+                onClick={() => toggleExpand(cmp.id)}
+                className="text-sm text-blue-600 mt-2 sm:mt-0"
               >
-                {expanded[cmp._id] ? "Hide Preview ↓" : "Show Preview →"}
+                {expanded[cmp.id] ? "Hide Preview ↓" : "Show Preview →"}
               </button>
             )}
-            {expanded[cmp._id] && (
+            {expanded[cmp.id] && (
               <div
                 className="mt-2 border p-3 bg-white rounded"
-                dangerouslySetInnerHTML={{ __html: cmp.data.html }}
+                dangerouslySetInnerHTML={{ __html: cmp.html }}
               />
             )}
           </li>

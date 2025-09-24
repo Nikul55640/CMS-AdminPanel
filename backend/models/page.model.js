@@ -1,27 +1,58 @@
-import mongoose from "mongoose";
-import slugify from "slugify";
+import { DataTypes } from "sequelize";
+import { sequelize } from "../db/sequelize.js";
 
-const PageSchema = new mongoose.Schema({
-  slug: { type: String, required: true, unique: true },
-  title: { type: String, required: true },
-  description: String,
-  html: String,
-  css: String,
-  js: String,
-  status: { type: String, enum: ["draft", "published"], default: "draft" },
-  // SEO fields
-  metaTitle: String,
-  metaDescription: String,
-  keywords: String,
-}, { timestamps: true });
-
-// Auto-generate slug if not provided or if title changes
-PageSchema.pre("validate", function(next) {
-  if (!this.slug && this.title) {
-    this.slug = slugify(this.title, { lower: true, strict: true });
+const Page = sequelize.define(
+  "Page",
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    title: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    slug: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+    },
+    description: {
+      type: DataTypes.TEXT,
+    },
+    html: {
+      type: DataTypes.TEXT("long"),
+    },
+    css: {
+      type: DataTypes.TEXT("long"),
+    },
+    js: {
+      type: DataTypes.TEXT("long"),
+    },
+    status: {
+      // ✅ Add status column
+      type: DataTypes.STRING,
+      defaultValue: "draft",
+    },
+    metaTitle: {
+      // ✅ Optional meta fields
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    metaDescription: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    keywords: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+  },
+  {
+    tableName: "pages",
+    timestamps: true,
   }
-  next();
-});
+);
 
-const Page = mongoose.model("Page", PageSchema);
 export default Page;

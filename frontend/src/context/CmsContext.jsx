@@ -4,120 +4,124 @@ import axios from "axios";
 
 const CmsContext = createContext();
 
+const API_BASE = "http://localhost:8000/api";
+
 export const CmsProvider = ({ children }) => {
-  // Pages
-  const [pages, setPages] = useState([]);
+  // Auth
   const [token, setToken] = useState(localStorage.getItem("cmsToken") || "");
   const [loggedIn, setLoggedIn] = useState(!!token);
-  const [showEditor, setShowEditor] = useState(false);
-  const [currentPage, setCurrentPage] = useState(null);
 
-  // Editor content
+  // Pages
+  const [pages, setPages] = useState([]);
+  const [currentPage, setCurrentPage] = useState(null);
+  const [showEditor, setShowEditor] = useState(false);
+
+  // Page content for editor
   const [pageContent, setPageContent] = useState({ html: "", css: "", js: "" });
 
-  // Form fields
+  // Form data for page editing/creation
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     slug: "",
+    metaTitle: "",
+    metaDescription: "",
+    keywords: "",
   });
 
-  // Sidebar
+  // Sidebar state
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
 
-  // Components (reusable)
+  // Components
   const [components, setComponents] = useState([]);
 
-  // Fetch reusable components from backend
+  // --- API calls ---
+  const fetchPages = async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get(`${API_BASE}/pages`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPages(res.data);
+    } catch (err) {
+      console.error(
+        "❌ Failed to fetch pages:",
+        err.response?.data || err.message
+      );
+    }
+  };
+
   const fetchComponents = async () => {
     if (!token) return;
     try {
-      const res = await axios.get("http://localhost:8000/api/components", {
+      const res = await axios.get(`${API_BASE}/components`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setComponents(res.data);
     } catch (err) {
-      console.error("❌ Failed to fetch components:", err);
+      console.error(
+        "❌ Failed to fetch components:",
+        err.response?.data || err.message
+      );
     }
   };
 
-  // Add new component to state
+  // Add/remove component
   const addComponent = (component) => {
     setComponents((prev) => [...prev, component]);
   };
-
-  // Remove component from state
   const removeComponent = (id) => {
-    setComponents((prev) => prev.filter((c) => c._id !== id));
+    setComponents((prev) => prev.filter((c) => c.id !== id));
   };
 
-  // Token sync with localStorage
+  // --- Effects ---
+  // Sync token with localStorage
   useEffect(() => {
     if (token) {
       localStorage.setItem("cmsToken", token);
       setLoggedIn(true);
+      fetchPages();
+      fetchComponents();
     } else {
       localStorage.removeItem("cmsToken");
       setLoggedIn(false);
+      setPages([]);
+      setComponents([]);
+      setCurrentPage(null);
+      setShowEditor(false);
     }
   }, [token]);
 
-  // Fetch pages from backend
-  useEffect(() => {
-    if (!token) return;
-    const fetchPages = async () => {
-      try {
-        const res = await axios.get("http://localhost:8000/api/pages", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setPages(res.data);
-      } catch (err) {
-        console.error("❌ Failed to fetch pages:", err);
-      }
-    };
-    fetchPages();
-  }, [token]);
-
-  // Fetch components whenever token changes
-  useEffect(() => {
-    if (token) fetchComponents();
-    else setComponents([]);
-  }, [token]);
-
-  // Logout
-  const logout = () => {
-    setToken("");
-    setPages([]);
-    setCurrentPage(null);
-    setShowEditor(false);
-    setLoggedIn(false);
-    setPageContent({ html: "", css: "", js: "" });
-    setFormData({ title: "", description: "", slug: "" });
-    setComponents([]);
-  };
+  // Logout function
+  const logout = () => setToken("");
 
   return (
     <CmsContext.Provider
       value={{
+        // Auth
+        token,
+        setToken,
+        loggedIn,
+        setLoggedIn,
+        logout,
+
+        // Sidebar
+        isSidebarOpen,
+        toggleSidebar,
+
         // Pages
         pages,
         setPages,
-        loggedIn,
-        setLoggedIn,
-        token,
-        setToken,
-        showEditor,
-        setShowEditor,
         currentPage,
         setCurrentPage,
-        isSidebarOpen,
-        toggleSidebar,
-        logout,
+        showEditor,
+        setShowEditor,
         pageContent,
         setPageContent,
         formData,
         setFormData,
+        fetchPages,
 
         // Components
         components,

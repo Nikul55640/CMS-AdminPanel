@@ -1,13 +1,13 @@
 import express from "express";
-import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
 import path from "path";
-import menuRoutes from "./routes/menu.routes.js"; 
+import {sequelize }from "./db/sequelize.js"; // Sequelize connection
+
+import menuRoutes from "./routes/menu.routes.js";
 import authRouter from "./routes/auth.route.js";
 import pageRouter from "./routes/page.route.js";
-import componentsRoute from "./routes/component.route.js"; 
-
+import componentsRoute from "./routes/component.route.js";
 
 dotenv.config();
 
@@ -32,17 +32,27 @@ app.use("/uploads", express.static(path.join("./uploads"))); // ✅ make uploads
 app.use("/api/auth", authRouter);
 app.use("/api/pages", pageRouter);
 app.use("/api/menus", menuRoutes);
-app.use("/api/components",componentsRoute);
-
-
+app.use("/api/components", componentsRoute);
 
 // Start server
 const PORT = process.env.PORT || 5000;
 
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log("✅ MongoDB connected");
+const startServer = async () => {
+  try {
+    // Connect to MySQL via Sequelize
+    await sequelize.authenticate();
+    console.log("✅ MySQL connected via Sequelize");
+
+    // Sync all models
+    await sequelize.sync({ alter: true }); // creates tables if not exist, updates schema
+
     app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-  })
-  .catch((err) => console.error("❌ MongoDB connection error", err));
+  } catch (err) {
+    console.error("❌ Database connection error:", err);
+    process.exit(1);
+  }
+};
+
+startServer();
+
+export default app;

@@ -1,6 +1,13 @@
-import seedAdmin from "./controllers/adminseed.js"
+// seed.js
+import seedAdmin from "./adminseed.js";
 
-seedAdmin().then(() => {
-  console.log("Seeding finished");
-  process.exit(0);
-});
+(async () => {
+  try {
+    await seedAdmin();
+    console.log("✅ Seeding finished");
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Error seeding admin:", error);
+    process.exit(1);
+  }
+})();

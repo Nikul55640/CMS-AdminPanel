@@ -1,8 +1,10 @@
+// middleware/auth.middleware.js
 import jwt from "jsonwebtoken";
+import User from "../models/user.model.js";
 
-export const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   const authHeader = req.headers.authorization;
-  console.log("Authorization Header:", authHeader); // Fix typo: was 'autoHeader'
+  console.log("Authorization Header:", authHeader);
 
   if (!authHeader) {
     return res.status(401).json({ message: "Unauthorized" });
@@ -12,11 +14,20 @@ export const authMiddleware = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
     console.log("Decoded Token:", decoded);
+
+    // Optional: check if the user exists in DB
+    const user = await User.findByPk(decoded.id);
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    req.user = user; // attach full user object to req
     next();
   } catch (err) {
     console.error("JWT verification failed:", err);
     return res.status(401).json({ message: "Unauthorized" });
   }
 };
+
+export default authMiddleware;

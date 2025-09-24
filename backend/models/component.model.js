@@ -1,17 +1,37 @@
-import mongoose from "mongoose";
+import { DataTypes } from "sequelize";
+import { sequelize } from "../db/sequelize.js";
 
-const componentSchema = new mongoose.Schema(
+const Component = sequelize.define(
+  "Component",
   {
-    name: { type: String, required: true },
-    category: { type: String, default: "General" },
-    html: { type: String, default: "" },
-    css: { type: String, default: "" },
-    js: { type: String, default: "" },
-    thumbnail: { type: String, default: "" }, // optional preview image
-    order: { type: Number, default: 0 },
-    fromPage: { type: String, default: "" }, // optional: page it came from
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    html: {
+      type: DataTypes.TEXT("long"),
+    },
+    css: {
+      type: DataTypes.TEXT("long"),
+    },
+    js: {
+      type: DataTypes.TEXT("long"),
+    },
+    order: {
+      // ✅ Add this column
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
   },
-  { timestamps: true }
+  {
+    tableName: "components",
+    timestamps: true,
+  }
 );
 
-export default mongoose.model("Component", componentSchema);
+export default Component;

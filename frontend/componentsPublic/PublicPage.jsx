@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useContext } from "react";
-import CmsContext from "../context/CmsContext";
+import CmsContext from "../src/context/CmsContext";
 
 const PublicPage = () => {
   const { pages } = useContext(CmsContext); // Get pages from context

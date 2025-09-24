@@ -1,20 +1,38 @@
-import mongoose from "mongoose";
+import { DataTypes } from "sequelize";
+import { sequelize } from "../db/sequelize.js";
+import Page from "./page.model.js";
 
-const menuSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  url: { type: String, required: true },
+const Menu = sequelize.define("Menu", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  title: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  url: {
+    type: DataTypes.STRING,
+  },
   location: {
-    type: String,
-    enum: ["navbar", "footer", "none"],
-    default: "none",
+    type: DataTypes.ENUM("navbar", "footer", "none"),
+    defaultValue: "none",
   },
   parentId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Menu",
-    default: null,
-  }, // parent for submenu
-  order: { type: Number, default: 0 },
-  createdAt: { type: Date, default: Date.now },
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+}, {
+  tableName: "menus",
+  timestamps: true,
 });
 
-export default mongoose.model("Menu", menuSchema);
+// ✅ Relationships
+Menu.belongsTo(Page, { foreignKey: "pageId", onDelete: "SET NULL" });
+Page.hasMany(Menu, { foreignKey: "pageId" });
+
+Menu.hasMany(Menu, { as: "children", foreignKey: "parentId" });
+Menu.belongsTo(Menu, { as: "parent", foreignKey: "parentId" });
+
+export default Menu;

@@ -1,18 +1,22 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { CmsProvider } from "./context/CmsContext"; 
+import { CmsProvider } from "./context/CmsContext";
 import Login from "./Pages/Login";
 import Dashboard from "./Pages/Dashboard";
-import PublicPage from "./components/PublicPage";
+import PublicPage from "../componentsPublic/PublicPage";
 import AddPageForm from "./Pages/AddPageForm";
-import ComponentBuilder from "./Pages/Components"; // ✅ renamed properly
+import ComponentBuilder from "./Pages/Components";
 import PageManager from "./Pages/PageManager";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footerpages";
 import { Toaster } from "react-hot-toast";
 import Content from "./Pages/Content";
 import EditorAdd from "./Pages/EditorAdd";
 import EditorPage from "./Pages/Editorpage";
 import MenuManager from "./Pages/Menumanager";
+import NavbarPublic from "./components/Navbarpages";
+import FooterPublic from "./components/Footerpages";
 
+// Admin Layout
 function AdminLayout({ children }) {
   return (
     <div className="flex flex-col min-h-screen">
@@ -22,86 +26,121 @@ function AdminLayout({ children }) {
   );
 }
 
+// Protected Route
+const ProtectedRoute = ({ children }) => {
+  const isLoggedIn = !!localStorage.getItem("token"); // simple auth check
+  return isLoggedIn ? children : <Navigate to="/admin/login" />;
+};
+
 function App() {
   return (
     <CmsProvider>
-      
-        <BrowserRouter>
-          <Routes>
-            {/* Admin routes wrapped in fixed navbar layout */}
-            <Route
-              path="/admin/pages"
-              element={
+      <BrowserRouter>
+        <Routes>
+          {/* Admin Routes */}
+          <Route
+            path="/admin/pages"
+            element={
+              <ProtectedRoute>
                 <AdminLayout>
                   <PageManager />
                 </AdminLayout>
-              }
-            />
-             <Route
-              path="/admin/menus"
-              element={
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/menus"
+            element={
+              <ProtectedRoute>
                 <AdminLayout>
                   <MenuManager />
                 </AdminLayout>
-              }
-            />
-            <Route path="/pages/:slug" element={<PublicPage />} />
-            <Route
-              path="/admin/addPage"
-              element={
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/addPage"
+            element={
+              <ProtectedRoute>
                 <AdminLayout>
                   <AddPageForm />
                 </AdminLayout>
-              }
-            />
-            <Route
-              path="/admin/content"
-              element={
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/components"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <ComponentBuilder />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/content"
+            element={
+              <ProtectedRoute>
                 <AdminLayout>
                   <Content />
                 </AdminLayout>
-              }
-            />
-            <Route
-              path="/admin/components"
-              element={
-                <AdminLayout>
-                  <ComponentBuilder /> {/* ✅ use the new ComponentsPage */}
-                </AdminLayout>
-              }
-            />
-
-            <Route
-              path="/admin"
-              element={
-                <AdminLayout>
-                  <Dashboard />
-                </AdminLayout>
-              }
-            />
-            <Route
-              path="/admin/editor"
-              element={
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/editor"
+            element={
+              <ProtectedRoute>
                 <AdminLayout>
                   <EditorAdd />
                 </AdminLayout>
-              }
-            />
-            {/* Login without fixed navbar */}
-            <Route path="/admin/login" element={<Login />} />
-            <Route
-              path="/admin/editor/:slug"
-              element={
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/editor/:slug"
+            element={
+              <ProtectedRoute>
                 <AdminLayout>
                   <EditorPage />
                 </AdminLayout>
-              }
-            />
-            <Route path="/" element={<Navigate to="/pages/home" />} />
-          </Routes>
-        </BrowserRouter>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <Dashboard />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Login */}
+          <Route path="/admin/login" element={<Login />} />
+
+          {/* Public Pages */}
+          <Route
+            path="/pages/:slug"
+            element={
+              <>
+                <NavbarPublic />
+                <PublicPage />
+                <FooterPublic />
+              </>
+            }
+          />
+          {/* Default */}
+          <Route path="/" element={<Navigate to="/pages/home" />} />
+
+          {/* 404 */}
+          <Route path="*" element={<p className="p-4">Page not found</p>} />
+        </Routes>
         <Toaster />
-  
+      </BrowserRouter>
     </CmsProvider>
   );
 }

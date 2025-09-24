@@ -22,6 +22,7 @@ const AddPageForm = () => {
     formData,
     setFormData,
   } = useContext(CmsContext);
+
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
 
@@ -38,13 +39,12 @@ const AddPageForm = () => {
   };
 
   const handleSavePage = async () => {
-    // Trim inputs
-    const title = formData.title.trim();
-    const slug = (formData.slug || generateSlug(title)).trim();
-    const description = formData.description.trim();
-    const metaTitle = formData.metaTitle.trim() || title;
-    const metaDescription = formData.metaDescription.trim() || description;
-    const keywords = formData.keywords.trim();
+    const title = (formData?.title || "").trim();
+    const slug = (formData?.slug || generateSlug(title) || "").trim();
+    const description = (formData?.description || "").trim();
+    const metaTitle = (formData?.metaTitle || title).trim();
+    const metaDescription = (formData?.metaDescription || description).trim();
+    const keywords = (formData?.keywords || "").trim();
 
     if (!title || !slug) return toast.error("⚠️ Title and Slug are required!");
     if (!pageContent.html)
@@ -94,54 +94,58 @@ const AddPageForm = () => {
   };
 
   return (
-    <div className="w-120 mx-auto mt-2 border-2 bg-white shadow-lg rounded-lg p-6">
-      <h2 className="text-3xl font-extrabold mb-6 text-center">Add New Page</h2>
+    <div className="w-full max-w-4xl mx-auto mt-4 border-2 bg-white shadow-lg rounded-lg p-4 sm:p-6">
+      <h2 className="text-2xl sm:text-3xl font-extrabold mb-4 sm:mb-6 text-center">
+        Add New Page
+      </h2>
 
-      <div className="flex flex-col gap-4 mb-6">
-        <label className="text-xl font-semibold">Title</label>
+      <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <label className="text-lg sm:text-xl font-semibold">Title</label>
         <input
-          className="border rounded p-2"
+          className="border rounded p-2 w-full"
           placeholder="Page Title"
           value={formData.title}
           onChange={(e) => handleChange("title", e.target.value)}
         />
 
-        <label className="text-xl font-semibold">Description</label>
+        <label className="text-lg sm:text-xl font-semibold">Description</label>
         <input
-          className="border rounded p-2"
+          className="border rounded p-2 w-full"
           placeholder="Page Description"
           value={formData.description}
           onChange={(e) => handleChange("description", e.target.value)}
         />
 
-        <label className="text-xl font-semibold">Slug</label>
+        <label className="text-lg sm:text-xl font-semibold">Slug</label>
         <input
-          className="border rounded p-2"
+          className="border rounded p-2 w-full"
           placeholder="Slug (e.g., about-us)"
           value={formData.slug}
           onChange={(e) => handleChange("slug", e.target.value)}
         />
 
         {/* SEO Fields */}
-        <label className="text-xl font-semibold">Meta Title</label>
+        <label className="text-lg sm:text-xl font-semibold">Meta Title</label>
         <input
-          className="border rounded p-2"
-          placeholder="Meta Title (for SEO)"
+          className="border rounded p-2 w-full"
+          placeholder="Meta Title"
           value={formData.metaTitle || ""}
           onChange={(e) => handleChange("metaTitle", e.target.value)}
         />
 
-        <label className="text-xl font-semibold">Meta Description</label>
+        <label className="text-lg sm:text-xl font-semibold">
+          Meta Description
+        </label>
         <textarea
-          className="border rounded p-2"
-          placeholder="Meta Description (for SEO)"
+          className="border rounded p-2 w-full"
+          placeholder="Meta Description"
           value={formData.metaDescription || ""}
           onChange={(e) => handleChange("metaDescription", e.target.value)}
         />
 
-        <label className="text-xl font-semibold">Keywords</label>
+        <label className="text-lg sm:text-xl font-semibold">Keywords</label>
         <input
-          className="border rounded p-2"
+          className="border rounded p-2 w-full"
           placeholder="Comma-separated keywords"
           value={formData.keywords || ""}
           onChange={(e) => handleChange("keywords", e.target.value)}
@@ -149,13 +153,13 @@ const AddPageForm = () => {
 
         <button
           onClick={openEditor}
-          className="flex justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-800"
+          className="flex justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-800 w-full sm:w-auto"
         >
           Open Editor
         </button>
       </div>
 
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 flex-wrap">
         <button
           onClick={handleSavePage}
           disabled={isSaving}
