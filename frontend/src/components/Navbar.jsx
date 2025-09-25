@@ -110,6 +110,9 @@ const Navbar = () => {
           <Link to="/admin/menus"  onClick={closeSidebar}   className="hover:bg-gray-700 p-2 rounded font-bold">
             Menu Management
           </Link>
+              <Link to="/admin/content"  onClick={closeSidebar}   className="hover:bg-gray-700 p-2 rounded font-bold">
+            Content
+          </Link>
           <Link
             to="/admin/pages"
             onClick={closeSidebar}

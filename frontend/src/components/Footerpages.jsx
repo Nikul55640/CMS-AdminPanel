@@ -1,23 +1,41 @@
-// FooterPublic.jsx
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import axios from "axios";
+ const registerFooterBlock = (editor) => {
+  editor.BlockManager.add("menu-footer", {
+    label: "📁 Footer Menu",
+    category: "Navigation",
+    content: `<footer class="footer"><ul id="dynamic-footer-menu"></ul></footer>`,
+  });
 
-const FooterPublic = () => {
-  const [menus, setMenus] = useState([]);
-  useEffect(() => {
-    axios.get("http://localhost:5000/api/menus/location/footer")
-      .then(res => setMenus(res.data))
-      .catch(console.error);
-  }, []);
-  const renderMenu = (menu) => (
-    <li key={menu._id}>
-      {menu.pageId ? <Link to={`/pages/${menu.slug}`} className="hover:underline">{menu.title}</Link>
-      : <a href={menu.url || "#"} className="hover:underline">{menu.title}</a>}
-      {menu.children?.length > 0 && <ul>{menu.children.map(renderMenu)}</ul>}
-    </li>
-  );
-  return <footer className="bg-gray-900 text-white p-6"><ul className="flex flex-wrap gap-4 justify-center">{menus.map(renderMenu)}</ul><p className="text-center mt-4">&copy; {new Date().getFullYear()} My Website</p></footer>;
+  editor.on("block:drag:stop", async (block) => {
+    if (block?.id !== "menu-footer") return;
+
+    try {
+      const { data: menus } = await axios.get(
+        "http://localhost:8000/api/menus/footer"
+      );
+
+      const renderMenu = (menu) => `
+        <li class="menu-item">
+          <a href="${menu.url || "#"}">${menu.title}</a>
+          ${
+            menu.children?.length
+              ? `<ul class="submenu">${menu.children
+                  .map(renderMenu)
+                  .join("")}</ul>`
+              : ""
+          }
+        </li>
+      `;
+
+      const doc = editor.Canvas.getDocument();
+      const ul = doc.querySelector("#dynamic-footer-menu");
+      if (ul) {
+        ul.innerHTML = menus.map(renderMenu).join("");
+      }
+    } catch (err) {
+      console.error("❌ Failed to load footer menus:", err);
+    }
+  });
 };
 
-export default FooterPublic;
+export default registerFooterBlock;

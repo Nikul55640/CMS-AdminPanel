@@ -19,6 +19,8 @@ import {
 import toast from "react-hot-toast";
 import CmsContext from "../context/CmsContext";
 import axios from "axios";
+import registerFooterBlock  from "../components/Footerpages";
+import registerNavbarBlock  from "../components/Navbarpages";
 
 const EditorAdd = () => {
   const editorRef = useRef(null);
@@ -71,6 +73,25 @@ const EditorAdd = () => {
     }
   };
 
+  function buildMenuHTML(menus) {
+    let html = "";
+    menus.forEach((menu) => {
+      if (menu.children && menu.children.length > 0) {
+        html += `
+        <li class="dropdown">
+          <a href="${menu.url || "#"}">${menu.title}</a>
+          <ul class="dropdown-menu">
+            ${buildMenuHTML(menu.children)}
+          </ul>
+        </li>
+      `;
+      } else {
+        html += `<li><a href="${menu.url || "#"}">${menu.title}</a></li>`;
+      }
+    });
+    return html;
+  }
+
   // Save current page content
   const handleSaveContent = () => {
     if (!editorRef.current) return;
@@ -88,20 +109,34 @@ const EditorAdd = () => {
     if (!editorRef.current) return;
 
     try {
+      const bm = editorRef.current.BlockManager;
+
+      // ✅ Get all components from backend (no second API needed)
       const res = await axios.get("http://localhost:8000/api/components", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const bm = editorRef.current.BlockManager;
+      if (!res.data || res.data.length === 0) {
+        console.warn("⚠️ No components found from backend.");
+        return;
+      }
+
+      // ✅ Add all components (reusable or not)
       res.data.forEach((cmp) => {
         bm.add(cmp.name, {
           label: cmp.name,
-          category: cmp.category || "Reusable",
-          content: `<div>${cmp.html}</div><style>${cmp.css}</style>`,
+          category: cmp.category || "Custom Components",
+          content: `
+          <div>${cmp.html || ""}</div>
+          <style>${cmp.css || ""}</style>
+          ${cmp.js ? `<script>${cmp.js}</script>` : ""}
+        `,
         });
       });
+
+      console.log(`✅ Loaded ${res.data.length} components`);
     } catch (err) {
-      console.error("Failed to load components:", err);
+      console.error("❌ Failed to load components:", err);
     }
   };
 
@@ -109,7 +144,13 @@ const EditorAdd = () => {
     <div className="flex h-screen">
       <div className="flex-1 flex flex-col">
         <div className="flex justify-between items-center p-4 border-b bg-white shadow">
-          <h1 className="text-xl font-bold">Studio Editor Pro</h1>
+          <h1 className="text-xl font-bold">Editor PRO</h1>
+          <button
+            onClick={handleSaveAsComponent}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 "
+          >
+            Save as Component
+          </button>
           <button
             onClick={handleSaveContent}
             className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
@@ -117,13 +158,6 @@ const EditorAdd = () => {
             Save Content
           </button>
         </div>
-
-        <button
-          onClick={handleSaveAsComponent}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 m-2"
-        >
-          Save Section as Component
-        </button>
 
         <div className="flex-grow">
           <StudioEditor
@@ -159,6 +193,8 @@ const EditorAdd = () => {
               editor.setComponents("<div>Start editing...</div>");
               editor.setStyle("");
 
+              registerNavbarBlock(editor);
+              registerFooterBlock(editor);
               // Load saved components
               loadSavedComponents();
 
@@ -174,6 +210,22 @@ const EditorAdd = () => {
                 content:
                   '<img src="https://via.placeholder.com/600x300" style="max-width:100%"/>',
                 category: "Basic",
+              });
+              bm.add("dropdown-navbar", {
+                label: "Dropdown Navbar",
+                category: "Navigation",
+                content: `<nav class="navbar"><ul id="gjs-navbar"></ul></nav>`,
+                render: ({ el }) => {
+                  fetch("http://localhost:8000/api/menus/location/navbar")
+                    .then((res) => res.json())
+                    .then((menus) => {
+                      const ul = el.querySelector("#gjs-navbar");
+                      ul.innerHTML = buildMenuHTML(menus);
+                    })
+                    .catch((err) =>
+                      console.error("Failed to load menus:", err)
+                    );
+                },
               });
               bm.add("button-block", {
                 label: "Button",

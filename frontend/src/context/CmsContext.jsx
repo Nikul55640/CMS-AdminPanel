@@ -10,7 +10,7 @@ export const CmsProvider = ({ children }) => {
   // Auth
   const [token, setToken] = useState(localStorage.getItem("cmsToken") || "");
   const [loggedIn, setLoggedIn] = useState(!!token);
-
+  const [menus, setMenus] = useState([]);
   // Pages
   const [pages, setPages] = useState([]);
   const [currentPage, setCurrentPage] = useState(null);
@@ -29,6 +29,21 @@ export const CmsProvider = ({ children }) => {
     keywords: "",
   });
 
+  // Fetch menus by location
+  const fetchMenus = async (location) => {
+    if (!token) return;
+    try {
+      const res = await axios.get(`${API_BASE}/menus/location/${location}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setMenus(res.data);
+    } catch (err) {
+      console.error(
+        "❌ Failed to fetch menus:",
+        err.response?.data || err.message
+      );
+    }
+  };
   // Sidebar state
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
@@ -122,8 +137,8 @@ export const CmsProvider = ({ children }) => {
         formData,
         setFormData,
         fetchPages,
-
-        // Components
+        menus,setMenus,fetchMenus,
+                // Components
         components,
         setComponents,
         addComponent,

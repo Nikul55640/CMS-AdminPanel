@@ -1,52 +1,64 @@
-// controllers/menu.controller.js
 import Menu from "../models/menu.models.js";
 import { Op } from "sequelize";
 
-// Get all menus
+// ✅ Get all menus
 export const getMenus = async (req, res) => {
   try {
     const menus = await Menu.findAll({ order: [["order", "ASC"]] });
     res.json(menus);
   } catch (error) {
     console.error("❌ Error fetching menus:", error);
-    res.status(500).json({ message: "Error fetching menus" });
+    res.status(500).json({ message: error.message });
   }
 };
 
-// Get menus by location (navbar/footer) recursively
+// ✅ Get menus by location (navbar/footer) recursively
 export const getMenusByLocation = async (req, res) => {
   const { location } = req.params;
   try {
-    // Fetch top-level menus
+    console.log("📥 Requested location:", location);
+
     const parentMenus = await Menu.findAll({
-      where: { location, parentId: null },
+      where: {
+        location,
+        parentId: { [Op.is]: null },
+      },
       order: [["order", "ASC"]],
     });
 
-    // Recursive function to attach children
-    const attachChildren = async (menu) => {
+    console.log(`✅ Found ${parentMenus.length} top-level menus`);
+
+    const attachChildren = async (menu, visited = new Set()) => {
+      if (visited.has(menu.id)) {
+        console.warn(`⚠️ Circular reference detected for menu ID: ${menu.id}`);
+        return menu.toJSON();
+      }
+      visited.add(menu.id);
+
       const children = await Menu.findAll({
         where: { parentId: menu.id },
         order: [["order", "ASC"]],
       });
 
       const childrenWithNested = await Promise.all(
-        children.map(attachChildren)
+        children.map((child) => attachChildren(child, visited))
       );
+
       return { ...menu.toJSON(), children: childrenWithNested };
     };
 
     const menusWithChildren = await Promise.all(
-      parentMenus.map(attachChildren)
+      parentMenus.map((menu) => attachChildren(menu))
     );
+
     res.json(menusWithChildren);
   } catch (error) {
     console.error("❌ Error fetching menus by location:", error);
-    res.status(500).json({ message: "Error fetching menus by location" });
+    res.status(500).json({ message: error.message });
   }
 };
 
-// Create a new menu
+// ✅ Create a new menu
 export const createMenu = async (req, res) => {
   try {
     const { title, url, location, parentId, pageId } = req.body;
@@ -61,14 +73,14 @@ export const createMenu = async (req, res) => {
       order: count,
     });
 
-    res.json(menu);
+    res.status(201).json(menu);
   } catch (error) {
     console.error("❌ Error creating menu:", error);
-    res.status(500).json({ message: "Error creating menu" });
+    res.status(500).json({ message: error.message });
   }
 };
 
-// Update a menu
+// ✅ Update a menu
 export const updateMenu = async (req, res) => {
   try {
     const { id } = req.params;
@@ -88,11 +100,11 @@ export const updateMenu = async (req, res) => {
     res.json(menu);
   } catch (error) {
     console.error("❌ Error updating menu:", error);
-    res.status(500).json({ message: "Error updating menu" });
+    res.status(500).json({ message: error.message });
   }
 };
 
-// Delete a menu and its children recursively
+// ✅ Delete a menu and its children recursively
 export const deleteMenu = async (req, res) => {
   try {
     const { id } = req.params;
@@ -110,14 +122,16 @@ export const deleteMenu = async (req, res) => {
     res.json({ message: "Menu and its children deleted" });
   } catch (error) {
     console.error("❌ Error deleting menu:", error);
-    res.status(500).json({ message: "Error deleting menu" });
+    res.status(500).json({ message: error.message });
   }
 };
 
-// Reorder multiple menus
+// ✅ Reorder multiple menus
 export const reorderMenus = async (req, res) => {
   try {
     const { menus } = req.body; // [{ id, order }]
+    if (!Array.isArray(menus)) throw new Error("Menus must be an array");
+
     const updates = menus.map(({ id, order }) =>
       Menu.update({ order }, { where: { id } })
     );
@@ -126,6 +140,6 @@ export const reorderMenus = async (req, res) => {
     res.json({ message: "Menus reordered successfully" });
   } catch (error) {
     console.error("❌ Error reordering menus:", error);
-    res.status(500).json({ message: "Error reordering menus" });
+    res.status(500).json({ message: error.message });
   }
 };

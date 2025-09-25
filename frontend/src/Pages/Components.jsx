@@ -219,10 +219,37 @@ const ComponentForm = () => {
               </button>
             )}
             {expanded[cmp.id] && (
-              <div
-                className="mt-2 border p-3 bg-white rounded"
-                dangerouslySetInnerHTML={{ __html: cmp.html }}
-              />
+              <div className="mt-2 border p-3 bg-white rounded">
+                <div
+                  ref={(el) => {
+                    if (!el) return;
+
+                    // Clear previous content
+                    el.innerHTML = "";
+
+                    // Inject HTML
+                    const htmlContainer = document.createElement("div");
+                    htmlContainer.innerHTML = cmp.html || "";
+                    el.appendChild(htmlContainer);
+
+                    // Inject CSS
+                    if (cmp.css) {
+                      const style = document.createElement("style");
+                      style.type = "text/css";
+                      style.appendChild(document.createTextNode(cmp.css));
+                      el.appendChild(style);
+                    }
+
+                    // Inject JS
+                    if (cmp.js) {
+                      const script = document.createElement("script");
+                      script.type = "text/javascript";
+                      script.appendChild(document.createTextNode(cmp.js));
+                      el.appendChild(script);
+                    }
+                  }}
+                />
+              </div>
             )}
           </li>
         ))}

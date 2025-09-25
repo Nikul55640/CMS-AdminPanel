@@ -2,7 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import path from "path";
-import {sequelize }from "./db/sequelize.js"; // Sequelize connection
+import { sequelize } from "./db/sequelize.js";
 
 import menuRoutes from "./routes/menu.routes.js";
 import authRouter from "./routes/auth.route.js";
@@ -21,12 +21,12 @@ app.use(
   })
 );
 
-// Increase limits for JSON & URL-encoded data
+// Increase JSON & URL-encoded limits for editor content
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-// Serve uploaded media files
-app.use("/uploads", express.static(path.join("./uploads"))); // ✅ make uploads accessible
+// Serve uploaded files
+app.use("/uploads", express.static(path.join("./uploads")));
 
 // Routes
 app.use("/api/auth", authRouter);
@@ -39,12 +39,12 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
-    // Connect to MySQL via Sequelize
     await sequelize.authenticate();
     console.log("✅ MySQL connected via Sequelize");
 
-    // Sync all models
-    await sequelize.sync({ alter: true }); // creates tables if not exist, updates schema
+    // Sync models
+    await sequelize.sync({ alter: true });
+    console.log("✅ Sequelize models synced");
 
     app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
   } catch (err) {
