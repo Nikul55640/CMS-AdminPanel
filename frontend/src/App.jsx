@@ -7,9 +7,7 @@ import AddPageForm from "./Pages/AddPageForm";
 import ComponentBuilder from "./Pages/Components";
 import PageManager from "./Pages/PageManager";
 import Navbar from "./components/Navbar";
-import Footer from "./components/Footerpages";
 import { Toaster } from "react-hot-toast";
-import Content from "./Pages/Content";
 import EditorAdd from "./Pages/EditorAdd";
 import EditorPage from "./Pages/Editorpage";
 import MenuManager from "./Pages/Menumanager";
@@ -74,16 +72,6 @@ function App() {
               <ProtectedRoute>
                 <AdminLayout>
                   <ComponentBuilder />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/content"
-            element={
-              <ProtectedRoute>
-                <AdminLayout>
-                  <Content />
                 </AdminLayout>
               </ProtectedRoute>
             }

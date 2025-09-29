@@ -1,6 +1,6 @@
 import { DataTypes } from "sequelize";
 import { sequelize } from "../db/sequelize.js";
-import Page from "./page.model.js";
+import Page from "./page.model.js"; // Assuming you have a Page model
 
 const Menu = sequelize.define(
   "Menu",
@@ -11,6 +11,7 @@ const Menu = sequelize.define(
       primaryKey: true,
     },
     title: {
+      // This corresponds to 'label' in our discussion
       type: DataTypes.STRING,
       allowNull: false,
     },
@@ -23,14 +24,17 @@ const Menu = sequelize.define(
       defaultValue: "none",
     },
     parentId: {
+      // Crucial for nesting
       type: DataTypes.INTEGER,
       allowNull: true,
     },
     pageId: {
+      // Allows linking to an internal page
       type: DataTypes.INTEGER,
       allowNull: true,
     },
     order: {
+      // Crucial for sorting
       type: DataTypes.INTEGER,
       allowNull: true,
     },

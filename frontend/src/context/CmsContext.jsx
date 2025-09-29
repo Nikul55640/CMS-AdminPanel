@@ -18,7 +18,7 @@ export const CmsProvider = ({ children }) => {
 
   // Page content for editor
   const [pageContent, setPageContent] = useState({ html: "", css: "", js: "" });
-
+  const [jsCode, setJsCode] = useState("// Write custom JS here...");
   // Form data for page editing/creation
   const [formData, setFormData] = useState({
     title: "",
@@ -137,13 +137,17 @@ export const CmsProvider = ({ children }) => {
         formData,
         setFormData,
         fetchPages,
-        menus,setMenus,fetchMenus,
-                // Components
+        menus,
+        setMenus,
+        fetchMenus,
+        // Components
         components,
         setComponents,
         addComponent,
         removeComponent,
         fetchComponents,
+        jsCode,
+        setJsCode,
       }}
     >
       {children}

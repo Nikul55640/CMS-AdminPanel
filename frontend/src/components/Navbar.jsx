@@ -45,7 +45,7 @@ const Navbar = () => {
           </button>
 
           <Link to="/admin" className="font-bold text-2xl hover:text-gray-300">
-            MYCMS
+            ICMS
           </Link>
         </div>
 
@@ -109,9 +109,6 @@ const Navbar = () => {
           </Link>
           <Link to="/admin/menus"  onClick={closeSidebar}   className="hover:bg-gray-700 p-2 rounded font-bold">
             Menu Management
-          </Link>
-              <Link to="/admin/content"  onClick={closeSidebar}   className="hover:bg-gray-700 p-2 rounded font-bold">
-            Content
           </Link>
           <Link
             to="/admin/pages"

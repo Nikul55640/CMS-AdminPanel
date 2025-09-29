@@ -15,7 +15,7 @@ const ComponentForm = () => {
   });
 
   const [editingId, setEditingId] = useState(null); // Track editing
-  const [expanded, setExpanded] = useState({});
+
 
   useEffect(() => {
     if (token) fetchComponents();
@@ -29,7 +29,7 @@ const ComponentForm = () => {
       if (editingId) {
         // Update
         await axios.put(
-          `http://localhost:5000/api/components/${editingId}`,
+          `http://localhost:8000/api/components/${editingId}`,
           form,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -39,7 +39,7 @@ const ComponentForm = () => {
       } else {
         // Create
         const res = await axios.post(
-          "http://localhost:5000/api/components",
+          "http://localhost:8000/api/components",
           form,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -57,7 +57,7 @@ const ComponentForm = () => {
   // Delete component
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/components/${id}`, {
+      await axios.delete(`http://localhost:8000/api/components/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       removeComponent(id);
@@ -97,19 +97,6 @@ const ComponentForm = () => {
     newWindow.document.write(previewHTML);
     newWindow.document.close();
   };
-
-  // Copy to clipboard
-  const copyToClipboard = (text, label) => {
-    navigator.clipboard.writeText(text || "").then(() => {
-      toast.success(`${label} copied to clipboard`);
-    });
-  };
-
-  // Toggle HTML preview
-  const toggleExpand = (id) => {
-    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
   return (
     <div className="p-4 sm:p-6 bg-white rounded shadow-md mb-6 w-full max-w-5xl mx-auto">
       <h2 className="text-xl sm:text-2xl font-bold mb-4 text-center">
@@ -172,29 +159,7 @@ const ComponentForm = () => {
                 className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm"
               >
                 Preview
-              </button>
-              {cmp.html && (
-                <>
-                  <button
-                    onClick={() => copyToClipboard(cmp.html, "HTML")}
-                    className="bg-gray-500 text-white px-2 py-1 rounded text-sm"
-                  >
-                    Copy HTML
-                  </button>
-                  <button
-                    onClick={() => copyToClipboard(cmp.css, "CSS")}
-                    className="bg-gray-500 text-white px-2 py-1 rounded text-sm"
-                  >
-                    Copy CSS
-                  </button>
-                  <button
-                    onClick={() => copyToClipboard(cmp.js, "JS")}
-                    className="bg-gray-500 text-white px-2 py-1 rounded text-sm"
-                  >
-                    Copy JS
-                  </button>
-                </>
-              )}
+          </button>
               <button
                 className="bg-yellow-500 text-white px-2 py-1 rounded"
                 onClick={() => handleEdit(cmp)}
@@ -209,48 +174,7 @@ const ComponentForm = () => {
               </button>
             </div>
 
-            {/* Expand HTML Preview */}
-            {cmp.html && (
-              <button
-                onClick={() => toggleExpand(cmp.id)}
-                className="text-sm text-blue-600 mt-2 sm:mt-0"
-              >
-                {expanded[cmp.id] ? "Hide Preview ↓" : "Show Preview →"}
-              </button>
-            )}
-            {expanded[cmp.id] && (
-              <div className="mt-2 border p-3 bg-white rounded">
-                <div
-                  ref={(el) => {
-                    if (!el) return;
-
-                    // Clear previous content
-                    el.innerHTML = "";
-
-                    // Inject HTML
-                    const htmlContainer = document.createElement("div");
-                    htmlContainer.innerHTML = cmp.html || "";
-                    el.appendChild(htmlContainer);
-
-                    // Inject CSS
-                    if (cmp.css) {
-                      const style = document.createElement("style");
-                      style.type = "text/css";
-                      style.appendChild(document.createTextNode(cmp.css));
-                      el.appendChild(style);
-                    }
-
-                    // Inject JS
-                    if (cmp.js) {
-                      const script = document.createElement("script");
-                      script.type = "text/javascript";
-                      script.appendChild(document.createTextNode(cmp.js));
-                      el.appendChild(script);
-                    }
-                  }}
-                />
-              </div>
-            )}
+          
           </li>
         ))}
       </ul>

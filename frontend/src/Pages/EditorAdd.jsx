@@ -19,8 +19,7 @@ import {
 import toast from "react-hot-toast";
 import CmsContext from "../context/CmsContext";
 import axios from "axios";
-import registerFooterBlock  from "../components/Footerpages";
-import registerNavbarBlock  from "../components/Navbarpages";
+
 
 const EditorAdd = () => {
   const editorRef = useRef(null);
@@ -73,24 +72,7 @@ const EditorAdd = () => {
     }
   };
 
-  function buildMenuHTML(menus) {
-    let html = "";
-    menus.forEach((menu) => {
-      if (menu.children && menu.children.length > 0) {
-        html += `
-        <li class="dropdown">
-          <a href="${menu.url || "#"}">${menu.title}</a>
-          <ul class="dropdown-menu">
-            ${buildMenuHTML(menu.children)}
-          </ul>
-        </li>
-      `;
-      } else {
-        html += `<li><a href="${menu.url || "#"}">${menu.title}</a></li>`;
-      }
-    });
-    return html;
-  }
+
 
   // Save current page content
   const handleSaveContent = () => {
@@ -193,9 +175,7 @@ const EditorAdd = () => {
               editor.setComponents("<div>Start editing...</div>");
               editor.setStyle("");
 
-              registerNavbarBlock(editor);
-              registerFooterBlock(editor);
-              // Load saved components
+            
               loadSavedComponents();
 
               // Add default blocks
@@ -211,22 +191,7 @@ const EditorAdd = () => {
                   '<img src="https://via.placeholder.com/600x300" style="max-width:100%"/>',
                 category: "Basic",
               });
-              bm.add("dropdown-navbar", {
-                label: "Dropdown Navbar",
-                category: "Navigation",
-                content: `<nav class="navbar"><ul id="gjs-navbar"></ul></nav>`,
-                render: ({ el }) => {
-                  fetch("http://localhost:8000/api/menus/location/navbar")
-                    .then((res) => res.json())
-                    .then((menus) => {
-                      const ul = el.querySelector("#gjs-navbar");
-                      ul.innerHTML = buildMenuHTML(menus);
-                    })
-                    .catch((err) =>
-                      console.error("Failed to load menus:", err)
-                    );
-                },
-              });
+             
               bm.add("button-block", {
                 label: "Button",
                 content:

@@ -1,5 +1,3 @@
-
-
 import { useContext, useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import CmsContext from "../context/CmsContext";
@@ -44,8 +42,6 @@ const EditorPage = () => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  
-
   const handleSave = async () => {
     if (!editorRef.current || !page) return toast("Editor not ready!");
 
@@ -76,26 +72,26 @@ const EditorPage = () => {
     }
   };
 
-   const loadSavedComponents = async () => {
-      if (!editorRef.current) return;
-  
-      try {
-        const res = await axios.get("http://localhost:8000/api/components", {
-          headers: { Authorization: `Bearer ${token}` },
+  const loadSavedComponents = async () => {
+    if (!editorRef.current) return;
+
+    try {
+      const res = await axios.get("http://localhost:8000/api/components", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const bm = editorRef.current.BlockManager;
+      res.data.forEach((cmp) => {
+        bm.add(cmp.name, {
+          label: cmp.name,
+          category: cmp.category || "Reusable",
+          content: `<div>${cmp.html}</div><style>${cmp.css}</style>`,
         });
-  
-        const bm = editorRef.current.BlockManager;
-        res.data.forEach((cmp) => {
-          bm.add(cmp.name, {
-            label: cmp.name,
-            category: cmp.category || "Reusable",
-            content: `<div>${cmp.html}</div><style>${cmp.css}</style>`,
-          });
-        });
-      } catch (err) {
-        console.error("Failed to load components:", err);
-      }
-    };
+      });
+    } catch (err) {
+      console.error("Failed to load components:", err);
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -111,21 +107,6 @@ const EditorPage = () => {
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center p-4 border-b bg-white shadow">
-        <h1 className="text-xl font-bold">Editing: {page.title}</h1>
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className={`px-4 py-2 rounded text-white ${
-            isSaving
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-green-500 hover:bg-green-600"
-          }`}
-        >
-          {isSaving ? "Saving..." : "Save & Close"}
-        </button>
-    
-      </div>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Right panel - GrapesJS Editor */}
@@ -320,9 +301,8 @@ const EditorPage = () => {
               editor.CssComposer.clear();
               editor.setComponents(page.html || "<div>Start editing...</div>");
               editor.setStyle(page.css || "");
-              
-              loadSavedComponents();
 
+              loadSavedComponents();
 
               // Add blocks (same as your modal code)
               const addBlock = (id, opts) => {
@@ -430,6 +410,17 @@ const EditorPage = () => {
             <option value="published">Published</option>
           </select>
         </div>
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className={`px-4 py-2 rounded text-white ${
+            isSaving
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-green-500 hover:bg-green-600"
+          }`}
+        >
+          {isSaving ? "Saving..." : "Save & Close"}
+        </button>
       </div>
     </div>
   );

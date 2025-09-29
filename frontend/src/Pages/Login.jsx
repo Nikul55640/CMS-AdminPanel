@@ -34,8 +34,8 @@ const handleLogin = async () => {
 
   return (
     <div className="flex items-center justify-center h-screen bg-gray-200">
-      <div className="bg-gray-700 p-8 rounded-lg shadow w-96 h-96">
-        <h2 className="text-4xl font-bold text-white text-center mb-10">
+      <div className="bg-gray-700 p-8 shadow-xl shadow-red-500/50 rounded-lg w-96 h-96">
+        <h2 className="text-4xl font-bold underline underline-offset-4 text-white text-center mb-10">
           Admin Login
         </h2>
         <label className="text-white text-xl font-semibold mt-8">Username:</label>
