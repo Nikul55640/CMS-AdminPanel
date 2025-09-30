@@ -1,4 +1,3 @@
-// src/components/MenuForm.jsx
 import { useState, useEffect } from "react";
 
 const MenuForm = ({ menu = {}, menus = [], pages = [], onSave, onCancel }) => {
@@ -8,6 +7,7 @@ const MenuForm = ({ menu = {}, menus = [], pages = [], onSave, onCancel }) => {
   const [parentId, setParentId] = useState(menu?.parentId || "");
   const [icon, setIcon] = useState(menu?.icon || "");
   const [openInNewTab, setOpenInNewTab] = useState(menu?.openInNewTab || false);
+  const [location, setLocation] = useState(menu?.location || "navbar");
 
   useEffect(() => {
     setTitle(menu?.title || "");
@@ -16,8 +16,10 @@ const MenuForm = ({ menu = {}, menus = [], pages = [], onSave, onCancel }) => {
     setParentId(menu?.parentId || "");
     setIcon(menu?.icon || "");
     setOpenInNewTab(menu?.openInNewTab || false);
+    setLocation(menu?.location || "navbar");
   }, [menu]);
 
+  // Handle icon upload as Base64
   const handleIconUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -26,10 +28,11 @@ const MenuForm = ({ menu = {}, menus = [], pages = [], onSave, onCancel }) => {
     reader.readAsDataURL(file);
   };
 
+  // Handle selecting a page from dropdown
   const handlePageSelect = (e) => {
     const selectedId = e.target.value;
     setPageId(selectedId || "");
-    const selectedPage = pages.find((p) => p.parent_id.toString() === selectedId);
+    const selectedPage = pages.find((p) => p.id.toString() === selectedId);
     setLink(selectedPage ? `/pages/${selectedPage.slug}` : "");
   };
 
@@ -45,6 +48,7 @@ const MenuForm = ({ menu = {}, menus = [], pages = [], onSave, onCancel }) => {
       parentId: parentId || null,
       icon: icon || null,
       openInNewTab,
+      location,
     });
   };
 
@@ -57,6 +61,20 @@ const MenuForm = ({ menu = {}, menus = [], pages = [], onSave, onCancel }) => {
         <h3 className="text-xl font-bold mb-4 text-gray-800">
           {menu?.id ? "Edit Menu Item" : "Add New Menu Item"}
         </h3>
+
+        {/* Location Selector */}
+        <label className="block mb-4">
+          <span className="font-semibold">Location *</span>
+          <select
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            className="w-full border p-2 rounded mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            required
+          >
+            <option value="navbar">Navbar</option>
+            <option value="footer">Footer</option>
+          </select>
+        </label>
 
         {/* Title */}
         <label className="block mb-4">

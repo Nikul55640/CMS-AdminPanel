@@ -4,7 +4,6 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
-// Helper to generate slug from title
 const generateSlug = (text) =>
   text
     .toLowerCase()
@@ -22,38 +21,28 @@ const AddPageForm = () => {
     formData,
     setFormData,
   } = useContext(CmsContext);
-
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleChange = (field, value) => {
+  const handleChange = (field, value) =>
     setFormData((prev) => ({ ...prev, [field]: value }));
-  };
 
   const openEditor = () => {
-    if (!formData.title || !formData.slug) {
-      toast.error("⚠️ Please fill Title & Slug first!");
-      return;
-    }
+    if (!formData.title || !formData.slug)
+      return toast.error("⚠️ Fill Title & Slug first!");
     navigate("/admin/editor");
   };
 
   const handleSavePage = async () => {
     const title = (formData?.title || "").trim();
-    const slug = (formData?.slug || generateSlug(title) || "").trim();
-    const description = (formData?.description || "").trim();
-    const metaTitle = (formData?.metaTitle || title).trim();
-    const metaDescription = (formData?.metaDescription || description).trim();
-    const keywords = (formData?.keywords || "").trim();
+    const slug = (formData?.slug || generateSlug(title)).trim();
 
     if (!title || !slug) return toast.error("⚠️ Title and Slug are required!");
-    if (!pageContent.html)
-      return toast.error("⚠️ Please save editor content first!");
+    if (!pageContent.html) return toast.error("⚠️ Save editor content first!");
     if (pages.find((p) => p.slug === slug))
       return toast.error("⚠️ Slug already exists!");
 
     setIsSaving(true);
-
     try {
       const res = await axios.post(
         "http://localhost:8000/api/pages",
@@ -61,20 +50,15 @@ const AddPageForm = () => {
           ...formData,
           title,
           slug,
-          description,
           html: pageContent.html,
           css: pageContent.css,
           js: pageContent.js,
-          metaTitle,
-          metaDescription,
-          keywords,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       setPages([...pages, res.data]);
       toast.success("✅ Page created successfully!");
-      // Reset form & editor
       setFormData({
         title: "",
         description: "",
@@ -86,90 +70,122 @@ const AddPageForm = () => {
       setPageContent({ html: "", css: "", js: "" });
       navigate("/admin/pages");
     } catch (err) {
-      console.error("❌ Error creating page:", err);
-      toast.error("Failed to create page.");
+      console.error(err);
+      toast.error("❌ Failed to create page.");
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto mt-4 border-2 bg-white shadow-lg rounded-lg p-4 sm:p-6">
-      <h2 className="text-2xl sm:text-3xl font-extrabold mb-4 sm:mb-6 text-center">
-        Add New Page
-      </h2>
-
-      <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
-        <label className="text-lg sm:text-xl font-semibold">Title</label>
-        <input
-          className="border rounded p-2 w-full"
-          placeholder="Page Title"
-          value={formData.title}
-          onChange={(e) => handleChange("title", e.target.value)}
-        />
-
-        <label className="text-lg sm:text-xl font-semibold">Description</label>
-        <input
-          className="border rounded p-2 w-full"
-          placeholder="Page Description"
-          value={formData.description}
-          onChange={(e) => handleChange("description", e.target.value)}
-        />
-
-        <label className="text-lg sm:text-xl font-semibold">Slug</label>
-        <input
-          className="border rounded p-2 w-full"
-          placeholder="Slug (e.g., about-us)"
-          value={formData.slug}
-          onChange={(e) => handleChange("slug", e.target.value)}
-        />
-
-        {/* SEO Fields */}
-        <label className="text-lg sm:text-xl font-semibold">Meta Title</label>
-        <input
-          className="border rounded p-2 w-full"
-          placeholder="Meta Title"
-          value={formData.metaTitle || ""}
-          onChange={(e) => handleChange("metaTitle", e.target.value)}
-        />
-
-        <label className="text-lg sm:text-xl font-semibold">
-          Meta Description
-        </label>
-        <textarea
-          className="border rounded p-2 w-full"
-          placeholder="Meta Description"
-          value={formData.metaDescription || ""}
-          onChange={(e) => handleChange("metaDescription", e.target.value)}
-        />
-
-        <label className="text-lg sm:text-xl font-semibold">Keywords</label>
-        <input
-          className="border rounded p-2 w-full"
-          placeholder="Comma-separated keywords"
-          value={formData.keywords || ""}
-          onChange={(e) => handleChange("keywords", e.target.value)}
-        />
-
-        <button
-          onClick={openEditor}
-          className="flex justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-800 w-full sm:w-auto"
-        >
-          Open Editor
-        </button>
+    <div className="max-w-4xl  mt-10 bg-white shadow-xl rounded-xl overflow-hidden border border-gray-200">
+ 
+      <div className="px-8 py-6 bg-gradient-to-r from-blue-600 to-blue-500 text-white">
+        <h1 className="text-3xl font-bold text-center  tracking-wide">Create a New Page</h1>
+      
       </div>
 
-      <div className="flex justify-end gap-2 flex-wrap">
+      {/* Form */}
+      <div className="p-8 space-y-6">
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-2">
+            Title *
+          </label>
+          <input
+            type="text"
+            placeholder="About Us"
+            value={formData.title}
+            onChange={(e) => handleChange("title", e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-2">
+            Slug (URL) *
+          </label>
+          <input
+            type="text"
+            placeholder="about-us"
+            value={formData.slug}
+            onChange={(e) => handleChange("slug", e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Automatically generated from title if left blank.
+          </p>
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-2">
+            Description
+          </label>
+          <textarea
+            placeholder="Short page description..."
+            value={formData.description}
+            onChange={(e) => handleChange("description", e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-400 focus:outline-none min-h-[100px] transition"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-gray-700 mb-2">
+              Meta Title
+            </label>
+            <input
+              type="text"
+              value={formData.metaTitle || ""}
+              onChange={(e) => handleChange("metaTitle", e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+            />
+          </div>
+
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-gray-700 mb-2">
+              Meta Description
+            </label>
+            <input
+              type="text"
+              value={formData.metaDescription || ""}
+              onChange={(e) => handleChange("metaDescription", e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-2">
+            Keywords
+          </label>
+          <input
+            type="text"
+            value={formData.keywords || ""}
+            onChange={(e) => handleChange("keywords", e.target.value)}
+            placeholder="about, company, team"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+          />
+        </div>
+      </div>
+
+      {/* Footer Buttons */}
+      <div className="px-8 py-5 bg-gray-50 flex justify-end gap-4 border-t border-gray-200">
+        <button
+          onClick={openEditor}
+          className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow transition duration-200"
+        >
+          ✏️ Open Editor
+        </button>
         <button
           onClick={handleSavePage}
           disabled={isSaving}
-          className={`px-6 py-2 rounded text-white ${
+          className={`px-5 py-3 rounded-lg font-semibold text-white shadow transition duration-200 ${
             isSaving
               ? "bg-gray-400 cursor-not-allowed"
-              : "bg-green-500 hover:bg-green-600"
+              : "bg-green-600 hover:bg-green-700"
           }`}
         >
-          {isSaving ? "Saving..." : "Save Page"}
+          {isSaving ? "Saving..." : "💾 Save Page"}
         </button>
       </div>
     </div>

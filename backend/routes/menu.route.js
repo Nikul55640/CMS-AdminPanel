@@ -4,17 +4,21 @@ import {
   getMenusByLocation,
   createMenu,
   updateMenu,
-  deleteMenu, // ⚠️ IMPORTANT: Import the new controller for nested updates
+  deleteMenu,
   updateMenuHierarchy,
 } from "../controllers/menu.controller.js";
-import authMiddleware from "../middleware/auth.middleware.js"; // Assuming this is correct
+import authMiddleware from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
+// CRUD
 router.get("/", getMenus);
-router.get("/location/:location", getMenusByLocation);5
+router.get("/location/:location", getMenusByLocation);
 router.post("/", authMiddleware, createMenu);
 router.put("/:id", authMiddleware, updateMenu);
-router.delete("/:id", authMiddleware, deleteMenu);6
+router.delete("/:id", authMiddleware, deleteMenu);
+
+// ✅ Hierarchy update
 router.put("/hierarchy", authMiddleware, updateMenuHierarchy);
+
 export default router;

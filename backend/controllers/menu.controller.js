@@ -1,10 +1,10 @@
 import Menu from "../models/menu.model.js";
 import { Op } from "sequelize";
-import { sequelize } from "../db/sequelize.js"; 
+import { sequelize } from "../db/sequelize.js";
 
 // --- READ OPERATIONS ---
 
-// ✅ Get all menus (flat list, primarily for internal management)
+// Get all menus (flat list)
 export const getMenus = async (req, res) => {
   try {
     const menus = await Menu.findAll({ order: [["order", "ASC"]] });
@@ -15,42 +15,37 @@ export const getMenus = async (req, res) => {
   }
 };
 
-// ✅ Get menus by location (navbar/footer) and build the tree recursively
+// Get menus by location (nested tree)
 export const getMenusByLocation = async (req, res) => {
   const { location } = req.params;
   try {
-    // Fetch all items for the location in a flat list for efficient tree-building
     const flatMenus = await Menu.findAll({
       where: { location },
       order: [["order", "ASC"]],
-      raw: true, // Use raw: true to get plain JS objects
-    }); // Helper function to build the tree from the flat list
+      raw: true,
+    });
 
-    const buildMenuTree = (items, parentId = null) => {
-      return items
-        .filter((item) => item.parentId === parentId)
-        .sort((a, b) => a.order - b.order) // Ensure correct sorting
-        .map((item) => ({
-          ...item,
-          children: buildMenuTree(items, item.id),
-        }));
-    };
+    const buildTree = (items, parentId = null) =>
+      items
+        .filter((i) => i.parentId === parentId)
+        .sort((a, b) => a.order - b.order)
+        .map((i) => ({ ...i, children: buildTree(items, i.id) }));
 
-    const menusWithChildren = buildMenuTree(flatMenus);
-    res.json(menusWithChildren);
+    res.json(buildTree(flatMenus));
   } catch (error) {
     console.error("❌ Error fetching menus by location:", error);
     res.status(500).json({ message: error.message });
   }
 };
 
-// --- CRUD OPERATIONS ---
+// --- CREATE ---
 
-// ✅ Create a new menu (Correctly calculating order)
 export const createMenu = async (req, res) => {
   try {
-    const { title, url, location, parentId, pageId } = req.body; // Determine the current highest order for the new sibling list
-    const count = await Menu.count({
+    const { title, url, location, parentId, pageId, icon, openInNewTab } =
+      req.body;
+
+    const siblingCount = await Menu.count({
       where: {
         location: location || "none",
         parentId: parentId || { [Op.is]: null },
@@ -63,7 +58,9 @@ export const createMenu = async (req, res) => {
       location: location || "none",
       parentId: parentId || null,
       pageId: pageId || null,
-      order: count, // Place the new item at the end of its level
+      icon: icon || null,
+      openInNewTab: !!openInNewTab,
+      order: siblingCount,
     });
 
     res.status(201).json(menu);
@@ -73,12 +70,13 @@ export const createMenu = async (req, res) => {
   }
 };
 
-// ✅ Update a menu (non-structural details like title/url)
+// --- UPDATE MENU (non-hierarchy fields) ---
+
 export const updateMenu = async (req, res) => {
-  // ... (Your existing updateMenu logic) ...
   try {
     const { id } = req.params;
-    const { title, url, location, parentId, pageId } = req.body;
+    const { title, url, location, parentId, pageId, icon, openInNewTab } =
+      req.body;
 
     const menu = await Menu.findByPk(id);
     if (!menu) return res.status(404).json({ message: "Menu not found" });
@@ -88,7 +86,9 @@ export const updateMenu = async (req, res) => {
       url: url || "",
       location: location || "none",
       parentId: parentId || null,
-      pageId: pageId || null, // NOTE: We don't update 'order' here, only in updateMenuHierarchy
+      pageId: pageId || null,
+      icon: icon || null,
+      openInNewTab: !!openInNewTab,
     });
 
     res.json(menu);
@@ -98,17 +98,16 @@ export const updateMenu = async (req, res) => {
   }
 };
 
-// ✅ Delete a menu and its children recursively
+// --- DELETE MENU RECURSIVELY ---
+
 export const deleteMenu = async (req, res) => {
-  // ... (Your existing deleteMenu logic) ...
   try {
-    const { id } = req.params; // Recursive deletion function
+    const { id } = req.params;
 
     const deleteRecursive = async (menuId) => {
       const children = await Menu.findAll({ where: { parentId: menuId } });
-      for (const child of children) {
-        await deleteRecursive(child.id);
-      }
+      for (const child of children) await deleteRecursive(child.id);
+
       const menu = await Menu.findByPk(menuId);
       if (menu) await menu.destroy();
     };
@@ -121,49 +120,37 @@ export const deleteMenu = async (req, res) => {
   }
 };
 
-// --- CORE HIERARCHY UPDATE (Replacing reorderMenus) ---
+// --- UPDATE MENU HIERARCHY (drag & drop) ---
 
-// ⚠️ IMPORTANT: This is the controller that handles the result of the
-// drag-and-drop action, updating both 'parentId' and 'order' simultaneously.
 export const updateMenuHierarchy = async (req, res) => {
   const { menuTree, location } = req.body;
 
-  if (!Array.isArray(menuTree)) {
+  if (!Array.isArray(menuTree))
     return res.status(400).json({ message: "Invalid menu tree format." });
-  } // --- 1. Recursive Update Function ---
 
   const updateItems = async (items, parentId = null, transaction) => {
     let order = 0;
 
     for (const item of items) {
-      const { id, children } = item; // Skip items that don't have a valid ID
-
-      if (!id || isNaN(parseInt(id))) continue; // Update the current item's parent, order, and location
+      const { id, children } = item;
+      if (!id) continue;
 
       await Menu.update(
-        {
-          parentId: parentId,
-          order: order,
-          location: location,
-        },
-        {
-          where: { id: id },
-          transaction,
-        }
+        { parentId, order, location },
+        { where: { id }, transaction }
       );
-      order++; // Recursively call for children
 
       if (children && children.length > 0) {
         await updateItems(children, id, transaction);
       }
+      order++;
     }
-  }; // --- 2. Execute in a Transaction ---
+  };
 
   try {
     await sequelize.transaction(async (t) => {
       await updateItems(menuTree, null, t);
     });
-
     res.json({ message: "Menu hierarchy updated successfully." });
   } catch (error) {
     console.error("❌ Error updating menu hierarchy:", error);

@@ -1,3 +1,4 @@
+// src/models/menu.model.js
 import { DataTypes } from "sequelize";
 import { sequelize } from "../db/sequelize.js";
 import Page from "./page.model.js"; // Assuming you have a Page model
@@ -11,7 +12,6 @@ const Menu = sequelize.define(
       primaryKey: true,
     },
     title: {
-      // This corresponds to 'label' in our discussion
       type: DataTypes.STRING,
       allowNull: false,
     },
@@ -24,19 +24,25 @@ const Menu = sequelize.define(
       defaultValue: "none",
     },
     parentId: {
-      // Crucial for nesting
       type: DataTypes.INTEGER,
       allowNull: true,
     },
     pageId: {
-      // Allows linking to an internal page
       type: DataTypes.INTEGER,
       allowNull: true,
     },
     order: {
-      // Crucial for sorting
       type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    icon: {
+      type: DataTypes.STRING,
       allowNull: true,
+    },
+    openInNewTab: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
     },
   },
   {
@@ -45,11 +51,18 @@ const Menu = sequelize.define(
   }
 );
 
-// ✅ Relationships
+// ----------------- Associations -----------------
+
+// Link to internal page
 Menu.belongsTo(Page, { foreignKey: "pageId", onDelete: "SET NULL" });
 Page.hasMany(Menu, { foreignKey: "pageId" });
 
-Menu.hasMany(Menu, { as: "children", foreignKey: "parentId" });
+// Self-referencing for nested menus
+Menu.hasMany(Menu, {
+  as: "children",
+  foreignKey: "parentId",
+  onDelete: "CASCADE", // Optional: deletes children when parent is removed
+});
 Menu.belongsTo(Menu, { as: "parent", foreignKey: "parentId" });
 
 export default Menu;

@@ -2,7 +2,16 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useContext, useState, useEffect, useRef } from "react";
 import PageContext from "../context/CmsContext";
-import { Menu, X } from "lucide-react";
+import {
+  Menu,
+  X,
+  LayoutDashboard,
+  Plus,
+  SquareChartGantt,
+  LogOut,
+} from "lucide-react";
+import { RxComponent2 } from "react-icons/rx";
+import { IoDocumentsOutline } from "react-icons/io5";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -18,7 +27,6 @@ const Navbar = () => {
     navigate("/admin/login");
   };
 
-  // Lock body scroll when sidebar is open
   useEffect(() => {
     document.body.style.overflow = isSidebarOpen ? "hidden" : "";
     return () => {
@@ -26,7 +34,6 @@ const Navbar = () => {
     };
   }, [isSidebarOpen]);
 
-  // Close on Escape key
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") closeSidebar();
@@ -38,13 +45,19 @@ const Navbar = () => {
   return (
     <>
       {/* Top navbar */}
-      <nav className="flex items-center justify-between bg-gray-800 text-white p-4">
+      <nav className="flex items-center justify-between bg-gray-900 text-white px-6 py-3 shadow-md">
         <div className="flex items-center space-x-4">
-          <button onClick={openSidebar} aria-label="Open menu" className="p-2">
+          <button
+            onClick={openSidebar}
+            aria-label="Open menu"
+            className="p-2 rounded hover:bg-gray-700 transition"
+          >
             <Menu size={28} />
           </button>
-
-          <Link to="/admin" className="font-bold text-2xl hover:text-gray-300">
+          <Link
+            to="/admin"
+            className="font-extrabold text-2xl hover:text-gray-300"
+          >
             ICMS
           </Link>
         </div>
@@ -53,69 +66,89 @@ const Navbar = () => {
           <div className="flex items-center gap-4">
             <Link
               to="/admin"
-              className="  text-white font-semibold px-3 py-1 hover:underline decoration-dashed underline-offset-4 "
+              className="text-white font-semibold px-3 py-1 rounded hover:bg-gray-200 hover:text-black transition"
             >
               Dashboard
             </Link>
             <button
               onClick={handleLogout}
-              className="hover:text-gray-300 bg-red-500 px-3 py-1 cursor-pointer rounded hover:bg-red-600"
+              className="bg-red-500 px-3 py-1 flex items-center gap-1 hover:cursor-pointer rounded hover:bg-red-600 transition"
             >
-              Logout
+              <LogOut size={20} /> Logout
             </button>
           </div>
         )}
       </nav>
 
-      {/* Overlay - click to close */}
+      {/* Overlay */}
       {isSidebarOpen && (
         <div
-          className="md:fixed inset-0  bg-zinc-300 bg-opacity-50 z-40"
+          className="fixed inset-0 bg-black opacity-50 z-40"
           onClick={closeSidebar}
           aria-hidden="true"
         />
       )}
 
-      {/* Sidebar drawer (inline transform for reliability) */}
+      {/* Sidebar */}
+      {/* Sidebar */}
       <aside
         ref={sidebarRef}
-        className="fixed top-0 left-0 h-full bg-gray-800 text-white p-4 w-64 z-50"
+        className="fixed top-0 left-0 h-full bg-gray-800 text-white p-4 w-56 z-50 shadow-xl rounded-tr-2xl rounded-br-2xl"
         style={{
           transform: isSidebarOpen ? "translateX(0)" : "translateX(-100%)",
           transition: "transform 300ms ease-in-out",
         }}
         aria-hidden={!isSidebarOpen}
       >
-        <button aria-label="Close menu" className="mb-4" onClick={closeSidebar}>
-          <X size={24} />
+        <button
+          aria-label="Close menu"
+          className="mb-4 p-1 rounded hover:bg-gray-700 transition"
+          onClick={closeSidebar}
+        >
+          <X size={20} /> {/* smaller close icon */}
         </button>
 
-        <h2 className="text-2xl font-bold mb-6">Dashboard</h2>
+        <h2 className="text-2xl font-bold mb-6 flex justify-center underline underline-offset-1">
+          Admin Panel
+        </h2>
 
-        <nav className="flex flex-col space-y-3">
+        <nav className="flex flex-col gap-2 text-sm">
+          {" "}
+          {/* smaller font */}
+          <Link
+            to="/admin/dashboard"
+            onClick={closeSidebar}
+            className="p-2 rounded flex items-center gap-2 hover:bg-gray-700 hover:border font-semibold transition"
+          >
+            <LayoutDashboard size={20} /> Dashboard
+          </Link>
           <Link
             to="/admin/addPage"
             onClick={closeSidebar}
-            className="hover:bg-gray-700 p-2 rounded"
+            className="p-2 rounded flex items-center gap-2 hover:bg-gray-700 hover:border font-semibold transition"
           >
-            Pages
+            <Plus size={20} /> Add Page
           </Link>
           <Link
             to="/admin/components"
             onClick={closeSidebar}
-            className="hover:bg-gray-700 p-2 rounded"
+            className="p-2 rounded flex items-center gap-2 hover:bg-gray-700 hover:border font-semibold transition"
           >
-            Components
+            <RxComponent2 size={20} /> Components
           </Link>
-          <Link to="/admin/menus"  onClick={closeSidebar}   className="hover:bg-gray-700 p-2 rounded font-bold">
-            Menu Management
+          <Link
+            to="/admin/menus"
+            onClick={closeSidebar}
+            className="p-2 rounded flex items-center gap-2 hover:bg-gray-700 hover:border font-semibold transition"
+          >
+            <SquareChartGantt size={20} /> Menu Management
           </Link>
           <Link
             to="/admin/pages"
             onClick={closeSidebar}
-            className="hover:bg-gray-700 p-2 rounded"
+            className="p-2 rounded flex items-center gap-2 hover:bg-gray-700 hover:border font-semibold transition"
           >
-            All Pages
+            <IoDocumentsOutline size={20} /> All Pages
           </Link>
         </nav>
       </aside>

@@ -14,6 +14,7 @@ import MenuManager from "./Pages/Menumanager";
 import NavbarPublic from "./components/Navbarpages";
 import FooterPublic from "./components/Footerpages";
 
+
 // Admin Layout
 function AdminLayout({ children }) {
   return (
@@ -35,7 +36,17 @@ function App() {
     <CmsProvider>
       <BrowserRouter>
         <Routes>
-          {/* Admin Routes */}
+  
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <Dashboard />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/admin/pages"
             element={
