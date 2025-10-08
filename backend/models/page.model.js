@@ -1,3 +1,4 @@
+// src/models/page.model.js
 import { DataTypes } from "sequelize";
 import { sequelize } from "../db/sequelize.js";
 
@@ -14,7 +15,7 @@ const Page = sequelize.define(
       allowNull: false,
     },
     slug: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING(191), // reduced length
       allowNull: false,
       unique: true,
     },
@@ -31,12 +32,10 @@ const Page = sequelize.define(
       type: DataTypes.TEXT("long"),
     },
     status: {
-      // ✅ Add status column
       type: DataTypes.STRING,
       defaultValue: "draft",
     },
     metaTitle: {
-      // ✅ Optional meta fields
       type: DataTypes.STRING,
       allowNull: true,
     },

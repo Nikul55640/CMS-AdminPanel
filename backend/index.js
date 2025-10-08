@@ -8,7 +8,7 @@ import menuRoutes from "./routes/menu.route.js";
 import authRouter from "./routes/auth.route.js";
 import pageRouter from "./routes/page.route.js";
 import componentsRoute from "./routes/component.route.js";
-import navbarRoutes from "./routes/navbar.route.js";
+
 
 dotenv.config();
 
@@ -34,7 +34,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/pages", pageRouter);
 app.use("/api/menus", menuRoutes);
 app.use("/api/components", componentsRoute);
-app.use("/api/navbar", navbarRoutes);
+
 // Start server
 const PORT = process.env.PORT || 5000;
 

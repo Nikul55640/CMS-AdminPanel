@@ -409,18 +409,18 @@ const EditorPage = () => {
             <option value="draft">Draft</option>
             <option value="published">Published</option>
           </select>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className={`px-4 py-2 rounded text-white ${
+              isSaving
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-green-500 hover:bg-green-600"
+            }`}
+          >
+            {isSaving ? "Saving..." : "Save & Close"}
+          </button>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className={`px-4 py-2 rounded text-white ${
-            isSaving
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-green-500 hover:bg-green-600"
-          }`}
-        >
-          {isSaving ? "Saving..." : "Save & Close"}
-        </button>
       </div>
     </div>
   );

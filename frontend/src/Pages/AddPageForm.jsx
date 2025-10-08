@@ -78,9 +78,9 @@ const AddPageForm = () => {
   };
 
   return (
-    <div className="max-w-4xl  mt-10 bg-white shadow-xl rounded-xl overflow-hidden border border-gray-200">
+    <div className="max-w-4xl w-auto mt-10 bg-white shadow-xl rounded-xl overflow-hidden border border-gray-200">
  
-      <div className="px-8 py-6 bg-gradient-to-r from-blue-600 to-blue-500 text-white">
+      <div className="px-8 py-6 bg-blue-600 text-white">
         <h1 className="text-3xl font-bold text-center  tracking-wide">Create a New Page</h1>
       
       </div>

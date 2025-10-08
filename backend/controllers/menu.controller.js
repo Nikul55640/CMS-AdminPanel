@@ -1,8 +1,10 @@
+// src/controllers/menu.controller.js
 import Menu from "../models/menu.model.js";
+import CustomContent from "../models/custommenu.model.js";
 import { Op } from "sequelize";
 import { sequelize } from "../db/sequelize.js";
 
-// --- READ OPERATIONS ---
+// ---------------------- READ ----------------------
 
 // Get all menus (flat list)
 export const getMenus = async (req, res) => {
@@ -15,31 +17,43 @@ export const getMenus = async (req, res) => {
   }
 };
 
-// Get menus by location (nested tree)
+// Get menus by location (nested tree) + custom HTML/CSS
 export const getMenusByLocation = async (req, res) => {
   const { location } = req.params;
+
   try {
+    // Fetch flat menus
     const flatMenus = await Menu.findAll({
       where: { location },
       order: [["order", "ASC"]],
       raw: true,
     });
 
+    // Build nested tree
     const buildTree = (items, parentId = null) =>
       items
         .filter((i) => i.parentId === parentId)
         .sort((a, b) => a.order - b.order)
         .map((i) => ({ ...i, children: buildTree(items, i.id) }));
 
-    res.json(buildTree(flatMenus));
+    const menuTree = buildTree(flatMenus);
+
+    // Fetch custom HTML/CSS for this section
+    const customContent = await CustomContent.findOne({
+      where: { section: location },
+    });
+
+    res.json({
+      menus: menuTree,
+      customContent: customContent || { html: "", css: "" },
+    });
   } catch (error) {
     console.error("❌ Error fetching menus by location:", error);
     res.status(500).json({ message: error.message });
   }
 };
 
-// --- CREATE ---
-
+// ---------------------- CREATE ----------------------
 export const createMenu = async (req, res) => {
   try {
     const { title, url, location, parentId, pageId, icon, openInNewTab } =
@@ -70,8 +84,7 @@ export const createMenu = async (req, res) => {
   }
 };
 
-// --- UPDATE MENU (non-hierarchy fields) ---
-
+// ---------------------- UPDATE MENU (non-hierarchy fields) ----------------------
 export const updateMenu = async (req, res) => {
   try {
     const { id } = req.params;
@@ -98,8 +111,7 @@ export const updateMenu = async (req, res) => {
   }
 };
 
-// --- DELETE MENU RECURSIVELY ---
-
+// ---------------------- DELETE MENU RECURSIVELY ----------------------
 export const deleteMenu = async (req, res) => {
   try {
     const { id } = req.params;
@@ -120,8 +132,7 @@ export const deleteMenu = async (req, res) => {
   }
 };
 
-// --- UPDATE MENU HIERARCHY (drag & drop) ---
-
+// ---------------------- UPDATE MENU HIERARCHY (drag & drop) ----------------------
 export const updateMenuHierarchy = async (req, res) => {
   const { menuTree, location } = req.body;
 
@@ -158,5 +169,51 @@ export const updateMenuHierarchy = async (req, res) => {
       message: "Failed to update menu hierarchy.",
       error: error.message,
     });
+  }
+};
+
+/// ---------------------- CUSTOM CONTENT ----------------------
+
+// Save or update custom HTML/CSS for navbar/footer
+export const saveCustomContent = async (req, res) => {
+  try {
+    const { section, html, css } = req.body;
+
+    if (!section)
+      return res.status(400).json({ message: "Section is required" });
+
+    let content = await CustomContent.findOne({ where: { section } });
+
+    if (content) {
+      content.html = html || content.html;
+      content.css = css || content.css;
+      await content.save();
+    } else {
+      content = await CustomContent.create({ section, html, css });
+    }
+
+    res.status(200).json({ message: "Custom content saved", content });
+  } catch (error) {
+    console.error("❌ Error saving custom content:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ---------------------- FETCH CUSTOM CONTENT ----------------------
+export const getCustomContent = async (req, res) => {
+  try {
+    const { section } = req.query;
+
+    if (!section)
+      return res.status(400).json({ message: "Section is required" });
+
+    const content = await CustomContent.findOne({ where: { section } });
+
+    if (!content) return res.status(404).json({ message: "Content not found" });
+
+    res.status(200).json({ content });
+  } catch (error) {
+    console.error("❌ Error fetching custom content:", error);
+    res.status(500).json({ message: error.message });
   }
 };

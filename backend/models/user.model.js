@@ -1,3 +1,4 @@
+// src/models/user.model.js
 import { DataTypes } from "sequelize";
 import { sequelize } from "../db/sequelize.js";
 
@@ -10,9 +11,9 @@ const User = sequelize.define(
       primaryKey: true,
     },
     username: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING(191), // VARCHAR(191) works for utf8mb4 with indexes
       allowNull: false,
-      unique: true,
+      unique: true, // Sequelize will use the existing unique index
     },
     password: {
       type: DataTypes.STRING,
@@ -21,7 +22,7 @@ const User = sequelize.define(
   },
   {
     tableName: "users",
-    timestamps: true, // adds createdAt and updatedAt automatically
+    timestamps: true,
   }
 );
 

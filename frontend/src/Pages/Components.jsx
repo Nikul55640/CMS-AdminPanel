@@ -7,75 +7,63 @@ const ComponentForm = () => {
   const { token, addComponent, components, fetchComponents, removeComponent } =
     useContext(CmsContext);
 
-  const [form, setForm] = useState({
-    name: "",
-    html: "",
-    css: "",
-    js: "",
-  });
-
-  const [editingId, setEditingId] = useState(null); // Track editing
-
+  const [form, setForm] = useState({ name: "", html: "", css: "", js: "" });
+  const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
     if (token) fetchComponents();
   }, [token]);
 
-  // Save or update component
   const handleSave = async () => {
-    if (!form.name) return toast.error("Please enter a component name!");
+    if (!form.name) return toast.error("⚠️ Enter a component name!");
 
     try {
       if (editingId) {
-        // Update
         await axios.put(
           `http://localhost:8000/api/components/${editingId}`,
           form,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        toast.success("Component updated!");
+        toast.success("✅ Component updated!");
         fetchComponents();
         setEditingId(null);
       } else {
-        // Create
         const res = await axios.post(
           "http://localhost:8000/api/components",
           form,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         addComponent(res.data);
-        toast.success("Component created!");
+        toast.success("✅ Component created!");
       }
-
       setForm({ name: "", html: "", css: "", js: "" });
     } catch (err) {
       console.error(err.response?.data || err);
-      toast.error(err.response?.data?.message || "Failed to save component");
+      toast.error(err.response?.data?.message || "❌ Failed to save component");
     }
   };
 
-  // Delete component
   const handleDelete = async (id) => {
     try {
       await axios.delete(`http://localhost:8000/api/components/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       removeComponent(id);
-      toast.success("Component deleted!");
+      toast.success("✅ Component deleted!");
     } catch (err) {
       console.error(err.response?.data || err);
-      toast.error(err.response?.data?.message || "Failed to delete component");
+      toast.error(
+        err.response?.data?.message || "❌ Failed to delete component"
+      );
     }
   };
 
-  // Edit component → fills form
   const handleEdit = (cmp) => {
     setEditingId(cmp.id);
     setForm({ name: cmp.name, html: cmp.html, css: cmp.css, js: cmp.js });
-    window.scrollTo({ top: 0, behavior: "smooth" }); // Scroll to form
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Preview component
   const handlePreview = (cmp) => {
     const newWindow = window.open("", "_blank");
     const previewHTML = `
@@ -84,7 +72,7 @@ const ComponentForm = () => {
       <head>
         <title>Preview - ${cmp.name}</title>
         <style>
-          body { font-family: sans-serif; margin: 20px; }
+          body { font-family: 'Inter', sans-serif; margin: 20px; background: #f9f9f9; }
           ${cmp.css || ""}
         </style>
       </head>
@@ -97,87 +85,123 @@ const ComponentForm = () => {
     newWindow.document.write(previewHTML);
     newWindow.document.close();
   };
+
   return (
-    <div className="p-4 sm:p-6 bg-white rounded shadow-md mb-6 w-full max-w-5xl mx-auto">
-      <h2 className="text-xl sm:text-2xl font-bold mb-4 text-center">
-        {editingId ? "Edit Component" : "Create New Component"}
-      </h2>
+    <div className="max-w-3xl mx-auto mt-10 bg-white rounded-xl shadow-lg overflow-hidden">
+      {/* Header */}
+      <div className="px-8 py-6 bg-gradient-to-r from-blue-500 to-purple-500 text-white">
+        <h1 className="text-2xl font-bold tracking-wide">
+          {editingId ? "Edit Component" : "Create Component"}
+        </h1>
+        <p className="mt-1 text-sm opacity-90">
+          Build reusable components for your website. Clean, fast, and
+          intuitive.
+        </p>
+      </div>
 
       {/* Form */}
-      <div className="flex flex-col gap-3 mb-4">
-        <input
-          placeholder="Component Name"
-          className="border rounded p-2 w-full"
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-        />
-        <textarea
-          placeholder="HTML"
-          className="border rounded p-2 w-full h-24"
-          value={form.html}
-          onChange={(e) => setForm({ ...form, html: e.target.value })}
-        />
-        <textarea
-          placeholder="CSS"
-          className="border rounded p-2 w-full h-24"
-          value={form.css}
-          onChange={(e) => setForm({ ...form, css: e.target.value })}
-        />
-        <textarea
-          placeholder="JavaScript"
-          className="border rounded p-2 w-full h-24"
-          value={form.js}
-          onChange={(e) => setForm({ ...form, js: e.target.value })}
-        />
+      <div className="px-8 py-6 space-y-5">
+        <div className="flex flex-col">
+          <label className="mb-1 text-gray-700 font-medium">
+            Component Name *
+          </label>
+          <input
+            type="text"
+            placeholder="Header Component"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <label className="mb-1 text-gray-700 font-medium">HTML</label>
+          <textarea
+            placeholder="<div>Hello World</div>"
+            value={form.html}
+            onChange={(e) => setForm({ ...form, html: e.target.value })}
+            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400 min-h-[100px] transition"
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <label className="mb-1 text-gray-700 font-medium">CSS</label>
+          <textarea
+            placeholder="div { color: red; }"
+            value={form.css}
+            onChange={(e) => setForm({ ...form, css: e.target.value })}
+            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400 min-h-[80px] transition"
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <label className="mb-1 text-gray-700 font-medium">JavaScript</label>
+          <textarea
+            placeholder="console.log('Hello');"
+            value={form.js}
+            onChange={(e) => setForm({ ...form, js: e.target.value })}
+            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400 min-h-[80px] transition"
+          />
+        </div>
+
         <button
-          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full sm:w-auto"
           onClick={handleSave}
+          className={`w-full sm:w-auto px-6 py-2 rounded-lg font-semibold text-white transition ${
+            editingId
+              ? "bg-yellow-500 hover:bg-yellow-600"
+              : "bg-purple-600 hover:bg-purple-700"
+          }`}
         >
-          {editingId ? "Update Component" : "Save Component"}
+          {editingId ? "Update Component" : "💾 Save Component"}
         </button>
       </div>
 
-      {/* Component List */}
-      <h2 className="text-xl font-bold mt-6 mb-2">Saved Components</h2>
-      <ul className="flex flex-col gap-3">
-        {components.map((cmp) => (
-          <li
-            key={cmp.id}
-            className="border p-3 rounded bg-gray-50 shadow-sm flex flex-col sm:flex-row sm:justify-between sm:items-center"
-          >
-            <div>
-              <strong>{cmp.name}</strong>
-              <p className="text-xs text-gray-500">
-                Created:{" "}
-                {new Date(cmp.createdAt || Date.now()).toLocaleString()}
-              </p>
-            </div>
+      {/* Saved Components */}
+      <div className="px-8 py-6 border-t border-gray-200 space-y-4">
+        <h2 className="text-xl font-bold text-gray-800">Saved Components</h2>
+        {components.length === 0 && (
+          <p className="text-gray-500">
+            No components yet. Start by creating one above!
+          </p>
+        )}
+        <ul className="space-y-3">
+          {components.map((cmp) => (
+            <li
+              key={cmp.id}
+              className="bg-gray-50 border border-gray-200 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center shadow-sm hover:shadow-md transition"
+            >
+              <div>
+                <strong className="text-gray-800">{cmp.name}</strong>
+                <p className="text-xs text-gray-500 mt-1">
+                  Created:{" "}
+                  {new Date(cmp.createdAt || Date.now()).toLocaleString()}
+                </p>
+              </div>
 
-            <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
-              <button
-                onClick={() => handlePreview(cmp)}
-                className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm"
-              >
-                Preview
-          </button>
-              <button
-                className="bg-yellow-500 text-white px-2 py-1 rounded"
-                onClick={() => handleEdit(cmp)}
-              >
-                Edit
-              </button>
-              <button
-                className="bg-red-500 text-white px-2 py-1 rounded"
-                onClick={() => handleDelete(cmp.id)}
-              >
-                Delete
-              </button>
-            </div>
-
-          
-          </li>
-        ))}
-      </ul>
+              <div className="flex flex-wrap gap-2 mt-3 sm:mt-0">
+                <button
+                  onClick={() => handlePreview(cmp)}
+                  className="bg-blue-500 text-white px-3 py-1  hover:cursor-pointer rounded-lg hover:bg-blue-600 text-sm transition"
+                >
+                  Preview
+                </button>
+                <button
+                  onClick={() => handleEdit(cmp)}
+                  className="bg-yellow-500 hover:cursor-pointer text-white px-3 py-1 rounded-lg hover:bg-yellow-600 text-sm transition"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(cmp.id)}
+                  className="bg-red-500 text-white px-3 py-1  hover:cursor-pointer rounded-lg hover:bg-red-600 text-sm transition"
+                >
+                  Delete
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 };

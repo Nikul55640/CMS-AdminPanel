@@ -174,8 +174,6 @@ const EditorAdd = () => {
               editor.CssComposer.clear();
               editor.setComponents("<div>Start editing...</div>");
               editor.setStyle("");
-
-            
               loadSavedComponents();
 
               // Add default blocks
