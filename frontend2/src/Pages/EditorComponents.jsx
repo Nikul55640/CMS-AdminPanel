@@ -20,7 +20,7 @@ const EditorComponent = () => {
     const fetchComponent = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:8000/api/components/${id}`,
+          `http://localhost:5000/api/components/${id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setComponentData(res.data);
@@ -43,7 +43,7 @@ const EditorComponent = () => {
 
     try {
       const res = await axios.put(
-        `http://localhost:8000/api/components/${componentData._id}`,
+        `http://localhost:5000/api/components/${componentData._id}`,
         { ...componentData, html, css },
         { headers: { Authorization: `Bearer ${token}` } }
       );

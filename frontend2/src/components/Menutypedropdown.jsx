@@ -8,7 +8,7 @@ export default function MenuTypeDropdown({ menuId, currentType }) {
     const newType = e.target.value;
     setMenuType(newType);
     try {
-      await axios.put(`http://localhost:8000/api/menus/${menuId}`, { location: newType });
+      await axios.put(`http://localhost:5000/api/menus/${menuId}`, { location: newType });
       alert("Menu updated successfully!");
     } catch (error) {
       console.error(error);

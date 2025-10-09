@@ -53,7 +53,7 @@ const EditorAdd = () => {
 
     try {
       const res = await axios.post(
-        "http://localhost:8000/api/components",
+        "http://localhost:5000/api/components",
         { name: componentName, html, css, category: "Reusable" },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -94,7 +94,7 @@ const EditorAdd = () => {
       const bm = editorRef.current.BlockManager;
 
       // ✅ Get all components from backend (no second API needed)
-      const res = await axios.get("http://localhost:8000/api/components", {
+      const res = await axios.get("http://localhost:5000/api/components", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -174,6 +174,8 @@ const EditorAdd = () => {
               editor.CssComposer.clear();
               editor.setComponents("<div>Start editing...</div>");
               editor.setStyle("");
+
+            
               loadSavedComponents();
 
               // Add default blocks

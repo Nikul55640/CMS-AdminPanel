@@ -9,7 +9,6 @@ import authRouter from "./routes/auth.route.js";
 import pageRouter from "./routes/page.route.js";
 import componentsRoute from "./routes/component.route.js";
 
-
 dotenv.config();
 
 const app = express();

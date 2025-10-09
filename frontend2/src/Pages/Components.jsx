@@ -20,7 +20,7 @@ const ComponentForm = () => {
     try {
       if (editingId) {
         await axios.put(
-          `http://localhost:8000/api/components/${editingId}`,
+          `http://localhost:5000/api/components/${editingId}`,
           form,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -29,7 +29,7 @@ const ComponentForm = () => {
         setEditingId(null);
       } else {
         const res = await axios.post(
-          "http://localhost:8000/api/components",
+          "http://localhost:5000/api/components",
           form,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -45,7 +45,7 @@ const ComponentForm = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:8000/api/components/${id}`, {
+      await axios.delete(`http://localhost:5000/api/components/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       removeComponent(id);

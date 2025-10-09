@@ -6,7 +6,7 @@ const syncDB = async () => {
     await sequelize.authenticate();
     console.log("✅ Database connected");
 
-    await Content.sync(); // Creates table if not exists
+    await Content.sync({ alter: true }); // Creates table if not exists
     console.log("✅ Content table synced");
     process.exit(0);
   } catch (err) {

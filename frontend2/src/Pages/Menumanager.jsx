@@ -17,9 +17,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-const API = "http://localhost:8000/api";
+const API = "http://localhost:5000/api";
 
-// Sortable Item with per-item style & hover overrides
 const SortableItem = ({ item, onEdit, onDelete, children }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: item.id });
@@ -41,7 +40,6 @@ const SortableItem = ({ item, onEdit, onDelete, children }) => {
     flexDirection: "column",
   };
 
-  // Hover style stored in data attributes
   const hoverStyle = {
     "--hover-bg": item.style?.hoverBgColor || "#3b82f6",
     "--hover-text": item.style?.hoverTextColor || "#fff",
@@ -150,7 +148,6 @@ const MenuManager = () => {
 
   const handleAdd = () => setSelectedMenu({ location: menuType });
   const handleEdit = (item) => setSelectedMenu(item);
-
   const handleDelete = async (item) => {
     if (!window.confirm(`Delete "${item.title}"?`)) return;
     try {
@@ -224,11 +221,7 @@ const MenuManager = () => {
     try {
       await axios.post(
         `${API}/menus/custom-content`,
-        {
-          section: menuType,
-          html: customHTML,
-          css: customCSS,
-        },
+        { section: menuType, html: customHTML, css: customCSS },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success("Custom HTML/CSS saved!");
@@ -242,50 +235,53 @@ const MenuManager = () => {
   };
 
   return (
-    <>
-      {/* Menu Type Selector */}
-      <div className="flex justify-center gap-5 mb-4">
-        <button
-          onClick={() => setMenuType("navbar")}
-          className={`px-4 py-2 rounded ${
-            menuType === "navbar" ? "bg-blue-500 text-white" : "bg-gray-200"
-          }`}
-        >
-          Navbar Menus
-        </button>
-        <button
-          onClick={() => setMenuType("footer")}
-          className={`px-4 py-2 rounded ${
-            menuType === "footer" ? "bg-blue-500 text-white" : "bg-gray-200"
-          }`}
-        >
-          Footer Menus
-        </button>
+    <div className="p-4 max-w-7xl mx-auto">
+      {/* Menu Type Buttons */}
+      <div className="flex flex-wrap gap-3 mb-6 justify-center md:justify-start">
+        {["navbar", "footer"].map((type) => (
+          <button
+            key={type}
+            onClick={() => setMenuType(type)}
+            className={`px-4 py-2 rounded transition ${
+              menuType === type
+                ? "bg-blue-500 text-white"
+                : "bg-gray-200 hover:bg-gray-300"
+            }`}
+          >
+            {type.charAt(0).toUpperCase() + type.slice(1)} Menus
+          </button>
+        ))}
         <button
           onClick={handleAdd}
           className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition"
         >
           Add Menu
         </button>
+        <button
+          onClick={() => setCustomDialogOpen(true)}
+          className="px-4 py-2 bg-gray-300 text-black rounded hover:bg-gray-400 transition"
+        >
+          Edit HTML/CSS
+        </button>
       </div>
 
-      {/* Global Style Panel */}
-      <div className="flex justify-center gap-4 mb-4 flex-wrap">
-        <label>
+      {/* Global Styles */}
+      <div className="flex flex-wrap gap-4 mb-6 justify-center md:justify-start items-center">
+        <label className="flex items-center gap-2">
           Alignment:
           <select
             value={globalStyle.alignment}
             onChange={(e) =>
               setGlobalStyle({ ...globalStyle, alignment: e.target.value })
             }
-            className="ml-2 p-1 border rounded"
+            className="p-1 border rounded"
           >
             <option value="flex-start">Left</option>
             <option value="center">Center</option>
             <option value="flex-end">Right</option>
           </select>
         </label>
-        <label>
+        <label className="flex items-center gap-2">
           Gap(px):
           <input
             type="number"
@@ -293,32 +289,34 @@ const MenuManager = () => {
             onChange={(e) =>
               setGlobalStyle({ ...globalStyle, gap: e.target.value + "px" })
             }
-            className="ml-2 p-1 border rounded w-16"
+            className="p-1 border rounded w-16"
           />
         </label>
       </div>
 
       {/* Menu List */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext
-          items={flattenMenu(menus)}
-          strategy={verticalListSortingStrategy}
+      <div className="mb-8">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
         >
-          {menus.map((item) => (
-            <SortableItem
-              key={item.id}
-              item={item}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              children={item.children}
-            />
-          ))}
-        </SortableContext>
-      </DndContext>
+          <SortableContext
+            items={flattenMenu(menus)}
+            strategy={verticalListSortingStrategy}
+          >
+            {menus.map((item) => (
+              <SortableItem
+                key={item.id}
+                item={item}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                children={item.children}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
+      </div>
 
       {/* Menu Form */}
       {selectedMenu && (
@@ -331,19 +329,10 @@ const MenuManager = () => {
         />
       )}
 
-      {/* Custom HTML/CSS */}
-      <div className="flex justify-center gap-5 mb-4">
-        <button
-          className="px-4 py-2 bg-gray-300 text-black rounded hover:bg-gray-500 hover:text-white hover:cursor-pointer transition"
-          onClick={() => setCustomDialogOpen(true)}
-        >
-          Edit HTML/CSS
-        </button>
-      </div>
-
+      {/* Custom HTML/CSS Modal */}
       {customDialogOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded shadow-lg w-11/12 max-w-2xl">
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50 p-4">
+          <div className="bg-white rounded shadow-lg w-full max-w-2xl p-6 overflow-y-auto max-h-[90vh]">
             <h2 className="text-xl font-bold mb-4">
               Edit {menuType} HTML & CSS
             </h2>
@@ -351,13 +340,13 @@ const MenuManager = () => {
             <textarea
               value={customHTML}
               onChange={(e) => setCustomHTML(e.target.value)}
-              className="w-full h-40 border rounded p-2 mb-4"
+              className="w-full h-40 border rounded p-2 mb-4 resize-none"
             />
             <label className="block mb-2 font-medium">CSS:</label>
             <textarea
               value={customCSS}
               onChange={(e) => setCustomCSS(e.target.value)}
-              className="w-full h-40 border rounded p-2 mb-4"
+              className="w-full h-40 border rounded p-2 mb-4 resize-none"
             />
             <div className="flex justify-end gap-3">
               <button
@@ -377,11 +366,11 @@ const MenuManager = () => {
         </div>
       )}
 
-      {/* Live Preview */}
+      {/* Navbar Preview */}
       <div className="mt-10">
-        <h2 className="text-lg font-bold mb-2">Navbar Preview</h2>
+        <h2 className="text-lg font-bold mb-2">Preview</h2>
         <nav
-          className="flex flex-wrap border p-4 rounded"
+          className="flex flex-wrap border p-4 rounded justify-start md:justify-between"
           style={{
             justifyContent: globalStyle.alignment,
             gap: globalStyle.gap,
@@ -431,7 +420,6 @@ const MenuManager = () => {
           />
         )}
         {customCSS && <style>{customCSS}</style>}
-        {/* Global hover CSS */}
         <style>{`
           .hover-effect:hover {
             background: var(--hover-bg);
@@ -439,7 +427,7 @@ const MenuManager = () => {
           }
         `}</style>
       </div>
-    </>
+    </div>
   );
 };
 

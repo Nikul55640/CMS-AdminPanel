@@ -9,17 +9,25 @@ const FooterPublic = () => {
   const [customContent, setCustomContent] = useState({ html: "", css: "" });
   const [settings, setSettings] = useState({});
 
-  // Convert flat list to tree
   const buildTree = (list) => {
     if (!Array.isArray(list)) return [];
     const map = {};
     const roots = [];
     list.forEach((i) => (map[i.id || i._id] = { ...i, children: [] }));
-    list.forEach((i) =>
-      i.parentId
-        ? map[i.parentId]?.children.push(map[i.id || i._id])
-        : roots.push(map[i.id || i._id])
-    );
+    list.forEach((i) => {
+      if (i.parent_id) {
+        map[i.parent_id]?.children.push(map[i.id || i._id]);
+      } else {
+        roots.push(map[i.id || i._id]);
+      }
+    });
+
+    const sortTree = (items) => {
+      items.sort((a, b) => (a.order || 0) - (b.order || 0));
+      items.forEach((item) => item.children && sortTree(item.children));
+    };
+    sortTree(roots);
+
     return roots;
   };
 
@@ -31,14 +39,8 @@ const FooterPublic = () => {
           axios.get(`${API}/menus/custom-content?section=footer`),
         ]);
 
-        // Build menu tree
-        const menuTree = buildTree(menuRes.data?.menus || menuRes.data || []);
-        setMenus(menuTree);
-
-        // Load custom HTML/CSS
+        setMenus(buildTree(menuRes.data?.menus || menuRes.data || []));
         setCustomContent(contentRes.data?.content || { html: "", css: "" });
-
-        // Optional settings
         if (contentRes.data?.settings) setSettings(contentRes.data.settings);
       } catch (err) {
         console.error("❌ Footer load failed:", err);
@@ -47,15 +49,14 @@ const FooterPublic = () => {
     fetchData();
   }, []);
 
-  // Recursive renderer
   const renderMenu = (menu) => {
-    const href = menu.pageId
-      ? `/pages/${menu.slug || menu.pageId}`
+    const href = menu.page_id
+      ? `/pages/${menu.slug || menu.page_id}`
       : menu.url || menu.link || "#";
 
     return (
       <li key={menu.id || menu._id} className={menu.customClass || ""}>
-        {menu.pageId ? (
+        {menu.page_id ? (
           <Link
             to={href}
             className="hover:underline"
@@ -87,10 +88,8 @@ const FooterPublic = () => {
       className="py-6"
       style={{ backgroundColor: settings.bg || "#f3f4f6" }}
     >
-      {/* Inject custom CSS */}
       {customContent.css && <style>{customContent.css}</style>}
 
-      {/* Render custom HTML if exists, else default menu */}
       {customContent.html ? (
         <div dangerouslySetInnerHTML={{ __html: customContent.html }} />
       ) : (

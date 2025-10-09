@@ -7,7 +7,8 @@ import {
   PlusCircle,
   Edit,
   Eye,
-  Square,UserRound
+  Square,
+  UserRound,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import CmsContext from "../context/CmsContext";
@@ -26,7 +27,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await axios.get("http://localhost:8000/api/pages/stats", {
+        const res = await axios.get("http://localhost:5000/api/pages/stats", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setStats(res.data);
@@ -38,7 +39,7 @@ const Dashboard = () => {
     const fetchRecentPages = async () => {
       try {
         const res = await axios.get(
-          "http://localhost:8000/api/pages?limit=5&sort=recent",
+          "http://localhost:5000/api/pages?limit=5&sort=recent",
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -262,14 +263,6 @@ export default Dashboard;
 
 
 
-
-
-
-
-
-
-
-
 // import { useEffect, useState, useContext } from "react";
 // import axios from "axios";
 // import {
@@ -298,7 +291,7 @@ export default Dashboard;
 //   useEffect(() => {
 //     const fetchStats = async () => {
 //       try {
-//         const res = await axios.get("http://localhost:8000/api/pages/stats", {
+//         const res = await axios.get("http://localhost:5000/api/pages/stats", {
 //           headers: { Authorization: `Bearer ${token}` },
 //         });
 //         setStats(res.data);
@@ -310,7 +303,7 @@ export default Dashboard;
 //     const fetchRecentPages = async () => {
 //       try {
 //         const res = await axios.get(
-//           "http://localhost:8000/api/pages?limit=5&sort=recent",
+//           "http://localhost:5000/api/pages?limit=5&sort=recent",
 //           { headers: { Authorization: `Bearer ${token}` } }
 //         );
 //         setRecentPages(res.data.map((p) => ({ ...p, _id: p.id })));

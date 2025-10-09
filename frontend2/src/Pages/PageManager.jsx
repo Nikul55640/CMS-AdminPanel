@@ -37,7 +37,7 @@ const PageManager = () => {
     try {
       await Promise.all(
         selectedPages.map((slug) =>
-          fetch(`http://localhost:8000/api/pages/${slug}`, {
+          fetch(`http://localhost:5000/api/pages/${slug}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` },
           })
@@ -54,7 +54,7 @@ const PageManager = () => {
   const handleDelete = async (slug) => {
     if (!window.confirm("Are you sure you want to delete this page?")) return;
     try {
-      await fetch(`http://localhost:8000/api/pages/${slug}`, {
+      await fetch(`http://localhost:5000/api/pages/${slug}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

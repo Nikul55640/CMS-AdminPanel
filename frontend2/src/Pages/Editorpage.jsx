@@ -54,7 +54,7 @@ const EditorPage = () => {
     setIsSaving(true);
     try {
       const res = await axios.put(
-        `http://localhost:8000/api/pages/${page.slug}`,
+        `http://localhost:5000/api/pages/${page.slug}`,
         { ...formData, html, css },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -76,7 +76,7 @@ const EditorPage = () => {
     if (!editorRef.current) return;
 
     try {
-      const res = await axios.get("http://localhost:8000/api/components", {
+      const res = await axios.get("http://localhost:5000/api/components", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -103,7 +103,7 @@ const EditorPage = () => {
   }, []);
 
   if (!page) return <p>Page not found</p>;
-
+console.log(loadSavedComponents)
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}

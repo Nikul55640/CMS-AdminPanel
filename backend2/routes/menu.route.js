@@ -7,7 +7,7 @@ import {
   deleteMenu,
   updateMenuHierarchy,
   saveCustomContent, // added for custom HTML/CSS
-  getCustomContent,  // added for fetching custom HTML/CSS
+  getCustomContent, // added for fetching custom HTML/CSS
 } from "../controllers/menu.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
