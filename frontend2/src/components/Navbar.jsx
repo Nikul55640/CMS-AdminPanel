@@ -66,9 +66,9 @@ const Navbar = () => {
           <div className="flex items-center gap-4">
             <Link
               to="/admin"
-              className="text-white font-semibold px-3 py-1 rounded hover:bg-gray-200 hover:text-black transition"
+              className="text-white flex gap-1 font-semibold px-3 py-1 rounded hover:bg-gray-200 hover:text-black transition"
             >
-              Dashboard
+             <LayoutDashboard /> Dashboard
             </Link>
             <button
               onClick={handleLogout}

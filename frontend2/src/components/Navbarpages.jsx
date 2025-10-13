@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import axios from "axios";
 
-const API = "http://localhost:8000/api";
+const API = "http://localhost:5000/api";
 
-const NavbarPublic = () => {
+const NavbarPublic = ({ menuType = "navbar" }) => {
   const [menus, setMenus] = useState([]);
-  const [customContent, setCustomContent] = useState({ html: "", css: "" });
-  const [settings, setSettings] = useState({});
+  const [customContent, setCustomContent] = useState({
+    html: "",
+    css: "",
+    js: "",
+  });
+  const [activeMenuIds, setActiveMenuIds] = useState([]);
 
-  const location = useLocation();
-
-  // Convert flat list to nested tree
+  // Build nested menu tree
   const buildTree = (list) => {
     if (!Array.isArray(list)) return [];
     const map = {};
@@ -25,105 +27,103 @@ const NavbarPublic = () => {
     return roots;
   };
 
+  // Fetch menus and custom content
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [menuRes, contentRes] = await Promise.all([
-          axios.get(`${API}/menus/location/navbar`),
-          axios.get(`${API}/menus/custom-content?section=navbar`),
+          axios.get(`${API}/menus/location/${menuType}`),
+          axios.get(`${API}/menus/custom-content?section=${menuType}`),
         ]);
 
-        // Build menu tree
-        const menuTree = buildTree(menuRes.data?.menus || menuRes.data || []);
-        setMenus(menuTree);
+        const fetchedMenus = buildTree(menuRes.data.menus || []);
+        let fetchedActiveIds = (menuRes.data.activeMenuIds || []).map(String);
 
-        // Load custom HTML/CSS
-        setCustomContent(contentRes.data?.content || { html: "", css: "" });
+        // Remove "custom" if there's no HTML
+        const contentHtml = contentRes.data?.content?.html?.trim() || "";
+        if (!contentHtml)
+          fetchedActiveIds = fetchedActiveIds.filter((id) => id !== "custom");
 
-        // Optional settings
-        if (contentRes.data?.settings) {
-          setSettings(contentRes.data.settings);
-        }
+        setMenus(fetchedMenus);
+        setActiveMenuIds(fetchedActiveIds);
+        setCustomContent(
+          contentRes.data?.content || { html: "", css: "", js: "" }
+        );
       } catch (err) {
         console.error("❌ Navbar load failed:", err);
       }
     };
     fetchData();
-  }, []);
+  }, [menuType]);
 
-  // Recursive menu renderer
+  // Execute custom JS
+  useEffect(() => {
+    if (!customContent.js?.trim()) return;
+    const script = document.createElement("script");
+    script.type = "text/javascript";
+    script.text = customContent.js;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, [customContent.js]);
+
+  const isMenuActive = (menu) => activeMenuIds.includes(String(menu.id));
+
   const renderMenu = (menu) => {
-    const href = menu.pageId
-      ? `/pages/${menu.slug || menu.pageId}`
-      : menu.url || "#";
-    const isActive = location.pathname === href;
-
+    if (!menu) return null;
     return (
-      <li
-        key={menu.id}
-        className={`relative group ${menu.customClass || ""}`}
-        style={{ fontSize: menu.fontSize || settings.fontSize }}
-      >
+      <li key={menu.id}>
         <Link
-          to={href}
-          className={`px-4 py-2 flex items-center gap-2 ${
-            isActive ? "font-bold" : ""
-          }`}
+          to={menu.url || "#"}
           style={{
-            color: menu.textColor || settings.text,
-            transition: "color 0.3s",
+            color: isMenuActive(menu) ? "#fff" : "#111",
+            background: isMenuActive(menu) ? "#2563eb" : "transparent",
+            padding: "4px 8px",
+            borderRadius: "4px",
+            textDecoration: "none",
           }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.color = settings.hover || menu.textColor)
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.color = menu.textColor || settings.text)
-          }
         >
-          {menu.icon && (
-            <img
-              src={menu.icon}
-              alt="icon"
-              className="w-5 h-5 object-contain inline-block"
-            />
-          )}
           {menu.title}
-          {menu.children?.length > 0 && <span className="ml-1">▼</span>}
         </Link>
-
         {menu.children?.length > 0 && (
           <ul
-            className="absolute left-0 top-full hidden group-hover:block shadow-lg rounded mt-1 z-20 min-w-[180px]"
-            style={{ backgroundColor: menu.bgColor || settings.bg || "#fff" }}
+            style={{ listStyle: "none", paddingLeft: "1rem", marginTop: "4px" }}
           >
-            {menu.children.map((child) => renderMenu(child))}
+            {menu.children.map(renderMenu)}
           </ul>
         )}
       </li>
     );
   };
 
-  return (
-    <nav>
-      {/* Inject custom CSS */}
-      {customContent.css && <style>{customContent.css}</style>}
+  const getVisibleMenus = () => {
+    // Remove "custom" if there's no HTML
+    if (activeMenuIds.includes("custom") && !customContent.html?.trim())
+      return [];
+    if (!activeMenuIds.length) return menus;
+    return menus.filter((m) => activeMenuIds.includes(String(m.id)));
+  };
 
-      <div
-        className="flex items-center gap-6 w-full"
-        style={{ justifyContent: settings.align || "flex-start" }}
-      >
-        {/* Render custom HTML if provided */}
-        {customContent.html ? (
-          <div
-            className="flex-1"
-            dangerouslySetInnerHTML={{ __html: customContent.html }}
-          />
-        ) : (
-          <ul className="flex gap-6 list-none m-0 p-0 flex-1 relative">
-            {menus.map((menu) => renderMenu(menu))}
-          </ul>
-        )}
-      </div>
+  return (
+    <nav className="z-[1000]">
+      {activeMenuIds.includes("custom") && customContent.html?.trim() ? (
+        <>
+          {customContent.css && <style>{customContent.css}</style>}
+          <div dangerouslySetInnerHTML={{ __html: customContent.html }} />
+        </>
+      ) : (
+        <ul
+          style={{
+            listStyle: "none",
+            display: "flex",
+            gap: "1rem",
+            padding: 0,
+          }}
+        >
+          {getVisibleMenus().map(renderMenu)}
+        </ul>
+      )}
     </nav>
   );
 };

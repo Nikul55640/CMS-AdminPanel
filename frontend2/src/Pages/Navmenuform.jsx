@@ -1,23 +1,47 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 
-const MenuForm = ({ menu = {}, menus = [], pages = [], onSave, onCancel }) => {
+const API = "http://localhost:5000/api";
+
+const MenuForm = ({ menu = {}, menus = [], onSave, onCancel }) => {
   const [title, setTitle] = useState(menu?.title || "");
-  const [link, setLink] = useState(menu?.link || "");
+  const [url, setUrl] = useState(menu?.url || "");
   const [pageId, setPageId] = useState(menu?.pageId || "");
-  const [parentId, setParentId] = useState(menu?.parentId || "");
+  const [parentId, setParentId] = useState(menu?.parentId || null);
   const [icon, setIcon] = useState(menu?.icon || "");
   const [openInNewTab, setOpenInNewTab] = useState(menu?.openInNewTab || false);
   const [location, setLocation] = useState(menu?.location || "navbar");
 
+  const [pages, setPages] = useState([]);
+  const [linkType, setLinkType] = useState(menu?.pageId ? "page" : "url");
+
+  const token = localStorage.getItem("token");
+
   useEffect(() => {
     setTitle(menu?.title || "");
-    setLink(menu?.link || "");
+    setUrl(menu?.url || "");
     setPageId(menu?.pageId || "");
-    setParentId(menu?.parentId || "");
+    setParentId(menu?.parentId || null);
     setIcon(menu?.icon || "");
     setOpenInNewTab(menu?.openInNewTab || false);
     setLocation(menu?.location || "navbar");
+    setLinkType(menu?.pageId ? "page" : "url");
   }, [menu]);
+
+  // Fetch pages from backend
+  useEffect(() => {
+    const fetchPages = async () => {
+      try {
+        const res = await axios.get(`${API}/pages`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setPages(res.data.pages || res.data);
+      } catch (err) {
+        console.error("Failed to fetch pages:", err);
+      }
+    };
+    fetchPages();
+  }, []);
 
   // Handle icon upload as Base64
   const handleIconUpload = (e) => {
@@ -28,12 +52,12 @@ const MenuForm = ({ menu = {}, menus = [], pages = [], onSave, onCancel }) => {
     reader.readAsDataURL(file);
   };
 
-  // Handle selecting a page from dropdown
+  // Handle page selection
   const handlePageSelect = (e) => {
     const selectedId = e.target.value;
     setPageId(selectedId || "");
     const selectedPage = pages.find((p) => p.id.toString() === selectedId);
-    setLink(selectedPage ? `/pages/${selectedPage.slug}` : "");
+    setUrl(selectedPage ? `/pages/${selectedPage.slug}` : "");
   };
 
   const handleSubmit = (e) => {
@@ -43,8 +67,8 @@ const MenuForm = ({ menu = {}, menus = [], pages = [], onSave, onCancel }) => {
     onSave({
       ...menu,
       title,
-      link: link || null,
-      pageId: pageId || null,
+      url: linkType === "url" ? url || null : url || null,
+      pageId: linkType === "page" ? pageId || null : null,
       parentId: parentId || null,
       icon: icon || null,
       openInNewTab,
@@ -62,7 +86,7 @@ const MenuForm = ({ menu = {}, menus = [], pages = [], onSave, onCancel }) => {
           {menu?.id ? "Edit Menu Item" : "Add New Menu Item"}
         </h3>
 
-        {/* Location Selector */}
+        {/* Location */}
         <label className="block mb-4">
           <span className="font-semibold">Location *</span>
           <select
@@ -89,32 +113,51 @@ const MenuForm = ({ menu = {}, menus = [], pages = [], onSave, onCancel }) => {
           />
         </label>
 
-        {/* Link / Page */}
+        {/* Link Type */}
         <label className="block mb-4">
-          <span className="font-semibold">Link / Page</span>
+          <span className="font-semibold">Link Type</span>
           <select
-            value={pageId || ""}
-            onChange={handlePageSelect}
-            className="w-full border p-2 rounded mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400 mb-2"
-          >
-            <option value="">-- Select Page (optional) --</option>
-            {pages.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            value={link}
-            onChange={(e) => {
-              setLink(e.target.value);
-              setPageId(""); // clear pageId if manually editing
-            }}
-            placeholder="External link e.g. https://example.com"
+            value={linkType}
+            onChange={(e) => setLinkType(e.target.value)}
             className="w-full border p-2 rounded mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
+          >
+            <option value="page">Page</option>
+            <option value="url">External URL</option>
+          </select>
         </label>
+
+        {/* Page Selection */}
+        {linkType === "page" && (
+          <label className="block mb-4">
+            <span className="font-semibold">Select Page</span>
+            <select
+              value={pageId || ""}
+              onChange={handlePageSelect}
+              className="w-full border p-2 rounded mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+              <option value="">-- Select Page --</option>
+              {pages.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {/* External URL */}
+        {linkType === "url" && (
+          <label className="block mb-4">
+            <span className="font-semibold">External URL</span>
+            <input
+              type="text"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://example.com"
+              className="w-full border p-2 rounded mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </label>
+        )}
 
         {/* Open in New Tab */}
         <label className="flex items-center mb-4 gap-2">
@@ -155,8 +198,8 @@ const MenuForm = ({ menu = {}, menus = [], pages = [], onSave, onCancel }) => {
             type="text"
             value={icon}
             onChange={(e) => setIcon(e.target.value)}
-            className="w-full border p-2 rounded mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
             placeholder="Paste icon/image URL"
+            className="w-full border p-2 rounded mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
           <input
             type="file"

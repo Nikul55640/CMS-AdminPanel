@@ -44,6 +44,15 @@ const Menu = sequelize.define(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false, // Indicates if this menu is the currently active one
+    },
+    activeMenuId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: "active_menu_id", // map to snake_case column
+    },
   },
   {
     tableName: "menus",
@@ -61,7 +70,7 @@ Page.hasMany(Menu, { foreignKey: "pageId" });
 Menu.hasMany(Menu, {
   as: "children",
   foreignKey: "parentId",
-  onDelete: "CASCADE", // Optional: deletes children when parent is removed
+  onDelete: "CASCADE", // Deletes children when parent is removed
 });
 Menu.belongsTo(Menu, { as: "parent", foreignKey: "parentId" });
 

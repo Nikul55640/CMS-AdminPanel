@@ -1,219 +1,254 @@
-// src/controllers/menu.controller.js
+// controllers/menu.controller.js
 import Menu from "../models/menu.model.js";
-import CustomContent from "../models/custommenu.model.js";
-import { Op } from "sequelize";
+import CustomContent from "../models/custommenu.model.js"; // fixed import
 import { sequelize } from "../db/sequelize.js";
+import { Op } from "sequelize";
+import { AsyncHandler } from "../utils/ApiHelpers.js";
 
-// ---------------------- READ ----------------------
+// ---------------- PUBLIC ROUTES ---------------- //
 
-// Get all menus (flat list)
-export const getMenus = async (req, res) => {
-  try {
-    const menus = await Menu.findAll({ order: [["order", "ASC"]] });
-    res.json(menus);
-  } catch (error) {
-    console.error("❌ Error fetching menus:", error);
-    res.status(500).json({ message: error.message });
-  }
-};
+// Get all menus (flat)
+export const getMenus = AsyncHandler(async (req, res) => {
+  const menus = await Menu.findAll({ order: [["order", "ASC"]] });
+  res.json(menus);
+});
 
-// Get menus by location (nested tree) + custom HTML/CSS
-export const getMenusByLocation = async (req, res) => {
-  const { location } = req.params;
 
-  try {
-    // Fetch flat menus
-    const flatMenus = await Menu.findAll({
-      where: { location },
-      order: [["order", "ASC"]],
-      raw: true,
-    });
+// Create menu
+export const createMenu = AsyncHandler(async (req, res) => {
+  const { title, url, location, parentId, pageId, icon, openInNewTab } =
+    req.body;
 
-    // Build nested tree
-    const buildTree = (items, parentId = null) =>
-      items
-        .filter((i) => i.parentId === parentId)
-        .sort((a, b) => a.order - b.order)
-        .map((i) => ({ ...i, children: buildTree(items, i.id) }));
-
-    const menuTree = buildTree(flatMenus);
-
-    // Fetch custom HTML/CSS for this section
-    const customContent = await CustomContent.findOne({
-      where: { section: location },
-    });
-
-    res.json({
-      menus: menuTree,
-      customContent: customContent || { html: "", css: "" },
-    });
-  } catch (error) {
-    console.error("❌ Error fetching menus by location:", error);
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// ---------------------- CREATE ----------------------
-export const createMenu = async (req, res) => {
-  try {
-    const { title, url, location, parentId, pageId, icon, openInNewTab } =
-      req.body;
-
-    const siblingCount = await Menu.count({
-      where: {
-        location: location || "none",
-        parentId: parentId || { [Op.is]: null },
-      },
-    });
-
-    const menu = await Menu.create({
-      title,
-      url: url || "",
+  const siblingCount = await Menu.count({
+    where: {
       location: location || "none",
-      parentId: parentId || null,
-      pageId: pageId || null,
-      icon: icon || null,
-      openInNewTab: !!openInNewTab,
-      order: siblingCount,
-    });
+      parentId: parentId || { [Op.is]: null },
+    },
+  });
 
-    res.status(201).json(menu);
-  } catch (error) {
-    console.error("❌ Error creating menu:", error);
-    res.status(500).json({ message: error.message });
-  }
-};
+  const menu = await Menu.create({
+    title,
+    url: url || "",
+    location: location || "none",
+    parentId: parentId || null,
+    pageId: pageId || null,
+    icon: icon || null,
+    openInNewTab: !!openInNewTab,
+    order: siblingCount,
+  });
 
-// ---------------------- UPDATE MENU (non-hierarchy fields) ----------------------
-export const updateMenu = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { title, url, location, parentId, pageId, icon, openInNewTab } =
-      req.body;
+  res.status(201).json(menu);
+});
 
-    const menu = await Menu.findByPk(id);
-    if (!menu) return res.status(404).json({ message: "Menu not found" });
+// Update menu
+export const updateMenu = AsyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { title, url, location, parentId, pageId, icon, openInNewTab } =
+    req.body;
 
-    await menu.update({
-      title,
-      url: url || "",
-      location: location || "none",
-      parentId: parentId || null,
-      pageId: pageId || null,
-      icon: icon || null,
-      openInNewTab: !!openInNewTab,
-    });
+  const menu = await Menu.findByPk(id);
+  if (!menu) return res.status(404).json({ message: "Menu not found" });
 
-    res.json(menu);
-  } catch (error) {
-    console.error("❌ Error updating menu:", error);
-    res.status(500).json({ message: error.message });
-  }
-};
+  await menu.update({
+    title,
+    url: url || "",
+    location: location || "none",
+    parentId: parentId || null,
+    pageId: pageId || null,
+    icon: icon || null,
+    openInNewTab: !!openInNewTab,
+  });
 
-// ---------------------- DELETE MENU RECURSIVELY ----------------------
-export const deleteMenu = async (req, res) => {
-  try {
-    const { id } = req.params;
+  res.json(menu);
+});
 
-    const deleteRecursive = async (menuId) => {
-      const children = await Menu.findAll({ where: { parentId: menuId } });
-      for (const child of children) await deleteRecursive(child.id);
+// Delete menu recursively
+export const deleteMenu = AsyncHandler(async (req, res) => {
+  const { id } = req.params;
 
-      const menu = await Menu.findByPk(menuId);
-      if (menu) await menu.destroy();
-    };
+  const deleteRecursive = async (menuId) => {
+    const children = await Menu.findAll({ where: { parentId: menuId } });
+    for (const child of children) await deleteRecursive(child.id);
 
-    await deleteRecursive(id);
-    res.json({ message: "Menu and its children deleted" });
-  } catch (error) {
-    console.error("❌ Error deleting menu:", error);
-    res.status(500).json({ message: error.message });
-  }
-};
+    const menu = await Menu.findByPk(menuId);
+    if (menu) await menu.destroy();
+  };
 
-// ---------------------- UPDATE MENU HIERARCHY (drag & drop) ----------------------
-export const updateMenuHierarchy = async (req, res) => {
+  await deleteRecursive(id);
+  res.json({ message: "Menu and its children deleted" });
+});
+
+// Update menu hierarchy (drag & drop)
+export const updateMenuHierarchy = AsyncHandler(async (req, res) => {
   const { menuTree, location } = req.body;
-
   if (!Array.isArray(menuTree))
     return res.status(400).json({ message: "Invalid menu tree format." });
 
   const updateItems = async (items, parentId = null, transaction) => {
     let order = 0;
-
     for (const item of items) {
       const { id, children } = item;
       if (!id) continue;
-
       await Menu.update(
         { parentId, order, location },
         { where: { id }, transaction }
       );
-
-      if (children && children.length > 0) {
-        await updateItems(children, id, transaction);
-      }
+      if (children?.length) await updateItems(children, id, transaction);
       order++;
     }
   };
 
-  try {
-    await sequelize.transaction(async (t) => {
-      await updateItems(menuTree, null, t);
-    });
-    res.json({ message: "Menu hierarchy updated successfully." });
-  } catch (error) {
-    console.error("❌ Error updating menu hierarchy:", error);
-    res.status(500).json({
-      message: "Failed to update menu hierarchy.",
-      error: error.message,
-    });
+  await sequelize.transaction(async (t) => {
+    await updateItems(menuTree, null, t);
+  });
+
+  res.json({ message: "Menu hierarchy updated" });
+});
+
+// ---------------- CUSTOM CONTENT ---------------- //
+
+// Save custom content
+export const saveCustomContent = AsyncHandler(async (req, res) => {
+  const { section, html, css, js } = req.body;
+  if (!section) return res.status(400).json({ message: "Section is required" });
+
+  let content = await CustomContent.findOne({ where: { section } });
+
+  if (content) {
+    content.html = html || content.html;
+    content.css = css || content.css;
+    content.js = js || content.js;
+    await content.save();
+  } else {
+    content = await CustomContent.create({ section, html, css, js });
   }
-};
 
-/// ---------------------- CUSTOM CONTENT ----------------------
+  res.json({ message: "Custom content saved", content });
+});
 
-// Save or update custom HTML/CSS for navbar/footer
-export const saveCustomContent = async (req, res) => {
-  try {
-    const { section, html, css } = req.body;
+// Get custom content
+export const getCustomContent = AsyncHandler(async (req, res) => {
+  const { section } = req.query;
+  if (!section) return res.status(400).json({ message: "Section is required" });
 
-    if (!section)
-      return res.status(400).json({ message: "Section is required" });
+  const content = await CustomContent.findOne({ where: { section } });
+  if (!content) return res.status(404).json({ message: "Content not found" });
 
-    let content = await CustomContent.findOne({ where: { section } });
+  res.json({ content });
+});
 
-    if (content) {
-      content.html = html || content.html;
-      content.css = css || content.css;
-      await content.save();
+export const deleteCustomContent = AsyncHandler(async (req, res) => {
+  const { section } = req.params;
+  if (!section) return res.status(400).json({ message: "Section is required" });
+
+  const content = await CustomContent.findOne({ where: { section } });
+  if (!content) return res.status(404).json({ message: "Content not found" });
+
+  await content.destroy();
+  res.json({ message: "Custom content deleted" });
+});
+
+// ---------------- ACTIVE MENUS ---------------- //
+// Get Active Menu
+export const getActiveMenu = AsyncHandler(async (req, res) => {
+  const { section } = req.query;
+  if (!section) return res.status(400).json({ message: "Section is required" });
+
+  const customMenu = await CustomContent.findOne({ where: { section } });
+  if (customMenu?.activeMenuId === "custom")
+    return res.json({ activeMenuId: "custom" });
+
+  if (customMenu?.activeMenuId)
+    return res.json({ activeMenuId: customMenu.activeMenuId });
+
+  // Fallback: check if any Menu is active
+  const activeMenu = await Menu.findOne({
+    where: { isActive: true, location: section },
+  });
+  if (activeMenu) return res.json({ activeMenuId: activeMenu.id });
+
+  res.status(404).json({ message: "No active menu found" });
+});
+
+
+// Set Active Menus (supports multiple)
+export const setActiveMenus = AsyncHandler(async (req, res) => {
+  const { menuIds = [], section } = req.body;
+
+  if (!section) return res.status(400).json({ message: "Section is required" });
+
+  // Ensure "custom" is handled separately
+  const isCustomIncluded = menuIds.includes("custom");
+
+  // Update custom content activeMenuId if "custom" is selected
+  if (isCustomIncluded) {
+    let customMenu = await CustomContent.findOne({ where: { section } });
+    if (!customMenu) {
+      customMenu = await CustomContent.create({
+        section,
+        html: "",
+        css: "",
+        js: "",
+        activeMenuId: "custom",
+      });
     } else {
-      content = await CustomContent.create({ section, html, css });
+      customMenu.activeMenuId = "custom";
+      await customMenu.save();
     }
-
-    res.status(200).json({ message: "Custom content saved", content });
-  } catch (error) {
-    console.error("❌ Error saving custom content:", error);
-    res.status(500).json({ message: error.message });
   }
-};
 
-// ---------------------- FETCH CUSTOM CONTENT ----------------------
-export const getCustomContent = async (req, res) => {
-  try {
-    const { section } = req.query;
+  // Deactivate all menus in this section first
+  await Menu.update({ isActive: false }, { where: { location: section } });
 
-    if (!section)
-      return res.status(400).json({ message: "Section is required" });
-
-    const content = await CustomContent.findOne({ where: { section } });
-
-    if (!content) return res.status(404).json({ message: "Content not found" });
-
-    res.status(200).json({ content });
-  } catch (error) {
-    console.error("❌ Error fetching custom content:", error);
-    res.status(500).json({ message: error.message });
+  // Activate menus from menuIds (skip "custom")
+  const validMenuIds = menuIds.filter((id) => id !== "custom");
+  if (validMenuIds.length) {
+    await Menu.update(
+      { isActive: true },
+      { where: { id: validMenuIds } }
+    );
   }
-};
+
+  res.json({
+    message: `Active menus updated`,
+    activeMenuIds: menuIds,
+  });
+});
+
+
+export const getMenusByLocation = AsyncHandler(async (req, res) => {
+  const { location } = req.params;
+
+  const flatMenus = await Menu.findAll({
+    where: { location },
+    order: [["order", "ASC"]],
+    raw: true,
+  });
+
+  const buildTree = (items, parentId = null) =>
+    items
+      .filter((i) => i.parentId === parentId)
+      .sort((a, b) => a.order - b.order)
+      .map((i) => ({ ...i, children: buildTree(items, i.id) }));
+
+  const menuTree = buildTree(flatMenus);
+
+  const customContent = await CustomContent.findOne({
+    where: { section: location },
+    raw: true,
+  });
+
+  // Get all active menus in this section
+  const activeMenus = await Menu.findAll({
+    where: { location, isActive: true },
+    raw: true,
+  });
+  const activeMenuIds = activeMenus.map((m) => m.id.toString());
+  if (customContent?.activeMenuId === "custom") activeMenuIds.push("custom");
+
+  res.json({
+    menus: menuTree,
+    customContent: customContent || { html: "", css: "", js: "" },
+    activeMenuIds,
+  });
+});

@@ -1,4 +1,5 @@
-import Content from "./models/content.model.js";
+import CustomContent
+ from "./models/custommenu.model.js";
 import { sequelize } from "./db/sequelize.js";
 
 const syncDB = async () => {
@@ -6,7 +7,7 @@ const syncDB = async () => {
     await sequelize.authenticate();
     console.log("✅ Database connected");
 
-    await Content.sync({ alter: true }); // Creates table if not exists
+    await CustomContent.sync({ alter: true }); // Creates table if not exists
     console.log("✅ Content table synced");
     process.exit(0);
   } catch (err) {

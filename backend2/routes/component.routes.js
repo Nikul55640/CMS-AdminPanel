@@ -1,4 +1,3 @@
-// routes/component.routes.js
 import express from "express";
 import {
   createComponent,
@@ -10,10 +9,10 @@ import authMiddleware from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-// ✅ Get all components (public or protected depending on your app)
+// Public
 router.get("/", getComponents);
 
-// ✅ Protected routes
+// Protected
 router.post("/", authMiddleware, createComponent);
 router.put("/:id", authMiddleware, updateComponent);
 router.delete("/:id", authMiddleware, deleteComponent);

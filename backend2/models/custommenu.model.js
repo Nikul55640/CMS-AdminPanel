@@ -11,8 +11,9 @@ const CustomContent = sequelize.define(
       primaryKey: true,
     },
     section: {
-      type: DataTypes.ENUM("navbar", "footer"),
+      type: DataTypes.STRING,
       allowNull: false,
+      unique: true, // ensures one record per section (e.g., navbar/footer)
     },
     html: {
       type: DataTypes.TEXT,
@@ -21,6 +22,14 @@ const CustomContent = sequelize.define(
     css: {
       type: DataTypes.TEXT,
       allowNull: true,
+    },
+    js: {
+      type: DataTypes.TEXT,
+      allowNull: true, // added JS support
+    },
+    activeMenuId: {
+      type: DataTypes.STRING,
+      allowNull: true, // store currently active menu ID
     },
   },
   {

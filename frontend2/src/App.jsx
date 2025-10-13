@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CmsProvider } from "./context/CmsContext";
 import Login from "./Pages/Login";
 import Dashboard from "./Pages/Dashboard";
-import PublicPage from "../componentsPublic/PublicPage";
 import AddPageForm from "./Pages/AddPageForm";
 import ComponentBuilder from "./Pages/Components";
 import PageManager from "./Pages/PageManager";
@@ -13,6 +12,9 @@ import EditorPage from "./Pages/Editorpage";
 import MenuManager from "./Pages/Menumanager";
 import NavbarPublic from "./components/Navbarpages";
 import FooterPublic from "./components/Footerpages";
+
+import PublicPage from "../componentsPublic/PublicPage";
+
 
 
 // Admin Layout
@@ -36,7 +38,6 @@ function App() {
     <CmsProvider>
       <BrowserRouter>
         <Routes>
-  
           <Route
             path="/admin/dashboard"
             element={
@@ -127,7 +128,7 @@ function App() {
             element={
               <>
                 <NavbarPublic />
-                <PublicPage />
+                <PublicPage/>
                 <FooterPublic />
               </>
             }

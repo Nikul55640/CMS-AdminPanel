@@ -1,3 +1,4 @@
+// src/Pages/Menumanager.jsx
 import { useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -19,6 +20,7 @@ import { CSS } from "@dnd-kit/utilities";
 
 const API = "http://localhost:5000/api";
 
+// ---------- Sortable Item ----------
 const SortableItem = ({ item, onEdit, onDelete, children }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: item.id });
@@ -31,27 +33,14 @@ const SortableItem = ({ item, onEdit, onDelete, children }) => {
     border: "1px solid #e2e8f0",
     borderRadius: "8px",
     marginBottom: "8px",
-    background: item.style?.bgColor || "#fff",
-    color: item.style?.textColor || "#111",
-    fontSize: item.style?.fontSize || "14px",
-    fontWeight: item.style?.fontWeight || "500",
-    boxShadow: item.style?.shadow || "0 1px 3px rgba(0,0,0,0.05)",
+    background: "#fff",
     display: "flex",
     flexDirection: "column",
-  };
-
-  const hoverStyle = {
-    "--hover-bg": item.style?.hoverBgColor || "#3b82f6",
-    "--hover-text": item.style?.hoverTextColor || "#fff",
+    opacity: item.hiddenInFrontend ? 0.5 : 1,
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={{ ...style, ...hoverStyle }}
-      {...attributes}
-      className="hover-effect"
-    >
+    <div ref={setNodeRef} style={style} {...attributes}>
       <div
         {...listeners}
         className="flex justify-between items-center w-full cursor-grab"
@@ -70,7 +59,11 @@ const SortableItem = ({ item, onEdit, onDelete, children }) => {
             </span>
           )}
           <span>{item.title}</span>
+          {item.hiddenInFrontend && (
+            <span className="text-xs ml-2 text-red-500">(hidden)</span>
+          )}
         </div>
+
         <div className="flex gap-2">
           <button
             onMouseDown={() => onEdit(item)}
@@ -86,6 +79,7 @@ const SortableItem = ({ item, onEdit, onDelete, children }) => {
           </button>
         </div>
       </div>
+
       {children && children.length > 0 && (
         <div
           className="ml-6 mt-2 overflow-hidden transition-all duration-300"
@@ -106,6 +100,7 @@ const SortableItem = ({ item, onEdit, onDelete, children }) => {
   );
 };
 
+// ---------- Menu Manager ----------
 const MenuManager = () => {
   const [menus, setMenus] = useState([]);
   const [menuType, setMenuType] = useState("navbar");
@@ -113,29 +108,32 @@ const MenuManager = () => {
   const [customDialogOpen, setCustomDialogOpen] = useState(false);
   const [customHTML, setCustomHTML] = useState("");
   const [customCSS, setCustomCSS] = useState("");
-
-  const [globalStyle, setGlobalStyle] = useState({
-    alignment: "flex-start",
-    gap: "12px",
-    fontSize: "14px",
-    fontWeight: "500",
-    textColor: "#111",
-    bgColor: "#fff",
-    hoverColor: "#3b82f6",
-    hoverBgColor: "#e0f2fe",
-  });
+  const [customJS, setCustomJS] = useState("");
+  const [activeMenus, setActiveMenus] = useState([]);
+  const [previewHTML, setPreviewHTML] = useState("");
 
   const token = localStorage.getItem("token");
   const sensors = useSensors(useSensor(PointerSensor));
 
+  // ---------------- Fetch Menus ----------------
   const fetchMenus = async () => {
     try {
       const res = await axios.get(`${API}/menus/location/${menuType}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setMenus(res.data.menus || res.data);
-      setCustomHTML(res.data.customContent?.html || "");
-      setCustomCSS(res.data.customContent?.css || "");
+      const data = res.data;
+
+      setMenus(data.menus || []);
+      setCustomHTML(data.customContent?.html || "");
+      setCustomCSS(data.customContent?.css || "");
+      setCustomJS(data.customContent?.js || "");
+      setActiveMenus((data.activeMenuIds || []).map(String));
+
+      generatePreview({
+        menus: data.menus,
+        customContent: data.customContent,
+        activeMenus: (data.activeMenuIds || []).map(String),
+      });
     } catch (err) {
       console.error(err);
       toast.error("Failed to fetch menus");
@@ -146,8 +144,49 @@ const MenuManager = () => {
     fetchMenus();
   }, [menuType]);
 
+  // ---------------- Build Preview ----------------
+  const buildPreviewHTML = (items, activeIds) => {
+    if (!items?.length) return "";
+    return `<ul style="list-style:none;display:flex;gap:1rem;">${items
+      .filter((item) => !item.hiddenInFrontend)
+      .map(
+        (item) => `<li>
+          <a href="${item.url || "#"}" target="${
+          item.openInNewTab ? "_blank" : "_self"
+        }"
+            style="text-decoration:none;color:${
+              activeIds.includes(String(item.id)) ? "#fff" : "#111"
+            }; background:${
+          activeIds.includes(String(item.id)) ? "#2563eb" : "transparent"
+        }; padding:4px 8px; border-radius:4px;">
+            ${item.title}
+          </a>
+          ${
+            item.children?.length
+              ? buildPreviewHTML(item.children, activeIds)
+              : ""
+          }
+        </li>`
+      )
+      .join("")}</ul>`;
+  };
+
+  const generatePreview = ({ menus, customContent, activeMenus }) => {
+    if (activeMenus.includes("custom") && customContent?.html?.trim()) {
+      setPreviewHTML(`
+        <style>${customContent?.css || ""}</style>
+        ${customContent?.html || "<p>No custom HTML</p>"}
+        <script>${customContent?.js || ""}</script>
+      `);
+    } else {
+      setPreviewHTML(buildPreviewHTML(menus, activeMenus));
+    }
+  };
+
+  // ---------------- Handlers ----------------
   const handleAdd = () => setSelectedMenu({ location: menuType });
   const handleEdit = (item) => setSelectedMenu(item);
+
   const handleDelete = async (item) => {
     if (!window.confirm(`Delete "${item.title}"?`)) return;
     try {
@@ -156,52 +195,37 @@ const MenuManager = () => {
       });
       toast.success("Menu deleted");
       fetchMenus();
-    } catch (err) {
-      console.error(err);
+    } catch {
       toast.error("Delete failed");
     }
   };
 
-  const flattenMenu = (items) => {
-    if (!Array.isArray(items)) return [];
-    let ids = [];
-    items.forEach((item) => {
-      ids.push(item.id);
-      if (item.children && item.children.length > 0) {
-        ids = ids.concat(flattenMenu(item.children));
-      }
-    });
-    return ids;
-  };
-
   const handleSave = async (menuData) => {
     try {
-      if (menuData.id) {
+      if (menuData.id)
         await axios.put(`${API}/menus/${menuData.id}`, menuData, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast.success("Menu updated");
-      } else {
+      else
         await axios.post(`${API}/menus`, menuData, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast.success("Menu created");
-      }
+      toast.success("Menu saved");
       setSelectedMenu(null);
       fetchMenus();
-    } catch (err) {
-      console.error(err);
+    } catch {
       toast.error("Failed to save menu");
     }
   };
 
-  const handleDragEnd = async (event) => {
-    const { active, over } = event;
+  const handleDragEnd = async ({ active, over }) => {
     if (!over || active.id === over.id) return;
 
-    const oldIndex = menus.findIndex((m) => m.id === active.id);
-    const newIndex = menus.findIndex((m) => m.id === over.id);
-    const newMenus = arrayMove([...menus], oldIndex, newIndex);
+    const newMenus = arrayMove(
+      [...menus],
+      menus.findIndex((m) => m.id === active.id),
+      menus.findIndex((m) => m.id === over.id)
+    );
     setMenus(newMenus);
 
     try {
@@ -211,9 +235,40 @@ const MenuManager = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success("Menu order updated");
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to update menu order");
+    } catch {
+      toast.error("Failed to update order");
+    }
+  };
+
+  const handleToggleActiveMenu = (id) => {
+    const stringId = String(id);
+    setActiveMenus((prev) => {
+      const newState = prev.includes(stringId)
+        ? prev.filter((i) => i !== stringId)
+        : [...prev, stringId];
+      generatePreview({
+        menus,
+        customContent: { html: customHTML, css: customCSS, js: customJS },
+        activeMenus: newState,
+      });
+      return newState;
+    });
+  };
+
+  const handleSaveActiveMenus = async () => {
+    try {
+      const idsToSend = activeMenus.filter(
+        (id) => id !== "custom" || customHTML.trim() !== ""
+      );
+
+      await axios.post(
+        `${API}/menus/set-active`,
+        { menuIds: idsToSend, section: menuType },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("Active menus updated!");
+    } catch {
+      toast.error("Failed to save active menus");
     }
   };
 
@@ -221,120 +276,176 @@ const MenuManager = () => {
     try {
       await axios.post(
         `${API}/menus/custom-content`,
-        { section: menuType, html: customHTML, css: customCSS },
+        { section: menuType, html: customHTML, css: customCSS, js: customJS },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.success("Custom HTML/CSS saved!");
+      toast.success("Custom HTML/CSS/JS saved!");
       setCustomDialogOpen(false);
-    } catch (err) {
-      console.error(err);
-      toast.error(
-        err.response?.data?.message || "Failed to save custom content"
-      );
+    } catch {
+      toast.error("Failed to save custom content");
+    }
+  };
+
+  const handleDeleteCustomContent = async () => {
+    if (!window.confirm("Delete custom content?")) return;
+
+    try {
+      await axios.delete(`${API}/menus/custom-content/${menuType}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success("Custom content deleted!");
+
+      // Clear local state
+      setCustomHTML("");
+      setCustomCSS("");
+      setCustomJS("");
+      setCustomDialogOpen(false);
+
+      // Remove "custom" from active menus & update preview
+      setActiveMenus((prev) => {
+        const updatedActive = prev.filter((id) => id !== "custom");
+        generatePreview({
+          menus,
+          customContent: { html: "", css: "", js: "" },
+          activeMenus: updatedActive,
+        });
+        return updatedActive;
+      });
+    } catch {
+      toast.error("Failed to delete custom content");
     }
   };
 
   return (
     <div className="p-4 max-w-7xl mx-auto">
-      {/* Menu Type Buttons */}
-      <div className="flex flex-wrap gap-3 mb-6 justify-center md:justify-start">
+      <h1 className="text-2xl font-bold mb-4 flex justify-center underline underline-offset-4">
+        Menu Manager
+      </h1>
+
+      {/* Menu Types */}
+
+      <div className="flex gap-3 mb-6">
+      <div className="flex justify-start items-center gap-3">
+        <h3 className="font-semibold text-lg  mb-2">Menu Types:</h3>
         {["navbar", "footer"].map((type) => (
           <button
             key={type}
             onClick={() => setMenuType(type)}
-            className={`px-4 py-2 rounded transition ${
-              menuType === type
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200 hover:bg-gray-300"
+            className={`px-4 py-2 cursor-pointer rounded ${
+              menuType === type ? "bg-blue-500 text-white" : "bg-gray-200"
             }`}
           >
-            {type.charAt(0).toUpperCase() + type.slice(1)} Menus
+            {type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()}
           </button>
         ))}
+      </div>
+
+      <div className="flex justify-end gap-3">
         <button
           onClick={handleAdd}
-          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition"
+          className="px-4 py-2 bg-green-500 flex justify-between  text-white rounded"
         >
           Add Menu
         </button>
         <button
           onClick={() => setCustomDialogOpen(true)}
-          className="px-4 py-2 bg-gray-300 text-black rounded hover:bg-gray-400 transition"
+          className={`px-4 py-2 rounded border ${
+            activeMenus.includes("custom")
+              ? "bg-green-500 text-white"
+              : "bg-gray-200"
+          }`}
         >
-          Edit HTML/CSS
+          Custom Menu
         </button>
       </div>
+      </div>
+      {/* Active Menus */}
+      <div className="mb-6">
+        <h3 className="font-semibold mb-2">Set Active Menus:</h3>
+        <div className="flex flex-wrap gap-2">
+          {menus
+            .filter((item) => !item.hiddenInFrontend)
+            .map((item) => (
+              <button
+                key={item.id}
+                onClick={() => handleToggleActiveMenu(item.id)}
+                className={`px-3 py-1 rounded border ${
+                  activeMenus.includes(String(item.id))
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-200"
+                }`}
+              >
+                {item.title}
+              </button>
+            ))}
+        </div>
 
-      {/* Global Styles */}
-      <div className="flex flex-wrap gap-4 mb-6 justify-center md:justify-start items-center">
-        <label className="flex items-center gap-2">
-          Alignment:
-          <select
-            value={globalStyle.alignment}
-            onChange={(e) =>
-              setGlobalStyle({ ...globalStyle, alignment: e.target.value })
-            }
-            className="p-1 border rounded"
+        <button
+          onClick={() => handleToggleActiveMenu("custom")}
+          className={`px-3 py-1 rounded border mt-2 ${
+            activeMenus.includes("custom")
+              ? "bg-green-500 text-white"
+              : "bg-gray-200"
+          }`}
+        >
+          Custom
+        </button>
+
+        <div className="mt-2">
+          <button
+            onClick={handleSaveActiveMenus}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
           >
-            <option value="flex-start">Left</option>
-            <option value="center">Center</option>
-            <option value="flex-end">Right</option>
-          </select>
-        </label>
-        <label className="flex items-center gap-2">
-          Gap(px):
-          <input
-            type="number"
-            value={parseInt(globalStyle.gap)}
-            onChange={(e) =>
-              setGlobalStyle({ ...globalStyle, gap: e.target.value + "px" })
-            }
-            className="p-1 border rounded w-16"
-          />
-        </label>
+            Save Active Menus
+          </button>
+        </div>
       </div>
 
       {/* Menu List */}
-      <div className="mb-8">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={flattenMenu(menus)}
-            strategy={verticalListSortingStrategy}
-          >
-            {menus.map((item) => (
-              <SortableItem
-                key={item.id}
-                item={item}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                children={item.children}
-              />
-            ))}
-          </SortableContext>
-        </DndContext>
-      </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={menus} strategy={verticalListSortingStrategy}>
+          {menus.map((item) => (
+            <SortableItem
+              key={item.id}
+              item={item}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              children={item.children}
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
 
-      {/* Menu Form */}
       {selectedMenu && (
         <MenuForm
           menu={selectedMenu}
           menus={menus}
-          pages={[]}
           onSave={handleSave}
           onCancel={() => setSelectedMenu(null)}
         />
       )}
 
-      {/* Custom HTML/CSS Modal */}
+      {/* Preview */}
+      <div className="mt-10 border-t pt-6">
+        <h2 className="text-xl font-semibold mb-3 text-center">
+          Live {menuType.toUpperCase()} Preview
+        </h2>
+        <div
+          className="border rounded-lg p-4 bg-gray-50"
+          dangerouslySetInnerHTML={{ __html: previewHTML }}
+        />
+      </div>
+
+      {/* Custom Content Dialog */}
       {customDialogOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50 p-4">
           <div className="bg-white rounded shadow-lg w-full max-w-2xl p-6 overflow-y-auto max-h-[90vh]">
             <h2 className="text-xl font-bold mb-4">
-              Edit {menuType} HTML & CSS
+              Edit {menuType} HTML/CSS/JS
             </h2>
             <label className="block mb-2 font-medium">HTML:</label>
             <textarea
@@ -348,12 +459,18 @@ const MenuManager = () => {
               onChange={(e) => setCustomCSS(e.target.value)}
               className="w-full h-40 border rounded p-2 mb-4 resize-none"
             />
+            <label className="block mb-2 font-medium">JS:</label>
+            <textarea
+              value={customJS}
+              onChange={(e) => setCustomJS(e.target.value)}
+              className="w-full h-40 border rounded p-2 mb-4 resize-none"
+            />
             <div className="flex justify-end gap-3">
               <button
-                onClick={() => setCustomDialogOpen(false)}
+                onClick={handleDeleteCustomContent}
                 className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition"
               >
-                Cancel
+                Delete
               </button>
               <button
                 onClick={handleSaveCustomContent}
@@ -365,68 +482,6 @@ const MenuManager = () => {
           </div>
         </div>
       )}
-
-      {/* Navbar Preview */}
-      <div className="mt-10">
-        <h2 className="text-lg font-bold mb-2">Preview</h2>
-        <nav
-          className="flex flex-wrap border p-4 rounded justify-start md:justify-between"
-          style={{
-            justifyContent: globalStyle.alignment,
-            gap: globalStyle.gap,
-            background: globalStyle.bgColor,
-          }}
-        >
-          {menus.map((item) => (
-            <div key={item.id} className="relative group">
-              <a
-                href={item.link || "#"}
-                style={{
-                  color: item.style?.textColor || globalStyle.textColor,
-                  fontSize: item.style?.fontSize || globalStyle.fontSize,
-                  fontWeight: item.style?.fontWeight || globalStyle.fontWeight,
-                  padding: "6px 12px",
-                  borderRadius: "4px",
-                }}
-                className="transition hover-effect"
-              >
-                {item.title}
-              </a>
-              {item.children && item.children.length > 0 && (
-                <div className="absolute top-full left-0 bg-white border rounded shadow-lg mt-1 opacity-0 group-hover:opacity-100 transition-opacity min-w-[150px] z-10">
-                  {item.children.map((child) => (
-                    <a
-                      key={child.id}
-                      href={child.link || "#"}
-                      style={{
-                        color: child.style?.textColor || globalStyle.textColor,
-                        background: child.style?.bgColor || "#fff",
-                      }}
-                      className="block px-3 py-1 hover:bg-blue-500 hover:text-white transition"
-                    >
-                      {child.title}
-                    </a>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </nav>
-
-        {customHTML && (
-          <div
-            className="mt-4"
-            dangerouslySetInnerHTML={{ __html: customHTML }}
-          />
-        )}
-        {customCSS && <style>{customCSS}</style>}
-        <style>{`
-          .hover-effect:hover {
-            background: var(--hover-bg);
-            color: var(--hover-text);
-          }
-        `}</style>
-      </div>
     </div>
   );
 };
