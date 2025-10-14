@@ -44,3 +44,86 @@ export const loginUser = AsyncHandler(async (req, res) => {
     user: { id: user.id, username: user.username },
   });
 });
+
+export const refreshToken = AsyncHandler(async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ message: "Unauthorized - No token" });
+
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findByPk(decoded.id);
+    if (!user) return res.status(401).json({ message: "Unauthorized - User not found" });
+
+    const newToken = jwt.sign(
+      { id: user.id, username: user.username },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+    res.json({
+      message: "Token refreshed",
+      token: newToken,
+      user: { id: user.id, username: user.username },
+    });
+  } catch (err) {
+    return res.status(401).json({ message: "Unauthorized - Invalid token" });
+  }
+}); 
+// Get current user
+export const getCurrentUser = AsyncHandler(async (req, res) => {
+  const user = req.user;
+  if (!user) return res.status(401).json({ message: "Unauthorized" });
+
+  const { password, ...userData } = user.toJSON();
+  res.json(userData);
+});
+
+// Update user password
+export const updatePassword = AsyncHandler(async (req, res) => {
+  const user = req.user;
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword?.trim() || !newPassword?.trim())
+    return res
+      .status(400)
+      .json({ message: "Current and new password required" });
+
+  const isValid = await bcrypt.compare(currentPassword, user.password);
+  if (!isValid) return res.status(401).json({ message: "Invalid current password" });
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  await user.update({ password: hashedPassword });
+
+  res.json({ message: "Password updated successfully" });
+});
+
+// Delete user account
+export const deleteUser = AsyncHandler(async (req, res) => {
+  const user = req.user;
+  await user.destroy();
+  res.json({ message: "User account deleted" });
+});
+
+export const logoutUser = AsyncHandler(async (req, res) => {
+  res.json({ message: "Logout successful" });
+});
+
+export const updateUser = AsyncHandler(async (req, res) => {
+  const user = req.user;
+  const { username } = req.body;
+
+  if (username !== undefined) {
+    if (!username?.trim())
+      return res.status(400).json({ message: "Username cannot be empty" });
+
+    const existingUser = await User.findOne({ where: { username } });
+    if (existingUser && existingUser.id !== user.id)
+      return res.status(409).json({ message: "Username already exists" });
+
+    user.username = username;
+  }
+
+  await user.save();
+  const { password, ...userData } = user.toJSON();
+  res.json({ message: "User updated", user: userData });
+}); 

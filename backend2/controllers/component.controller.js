@@ -65,3 +65,12 @@ export const moveComponent = AsyncHandler(async (req, res) => {
 
   res.json({ message: "Component moved" });
 });
+
+// Get single component
+export const getComponent = AsyncHandler(async (req, res) => {
+  const comp = await Component.findByPk(req.params.id);
+  if (!comp) return res.status(404).json({ message: "Component not found" });
+
+  res.json(comp);
+});
+

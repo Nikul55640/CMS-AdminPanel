@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useContext, useState, useEffect, useRef } from "react";
 import PageContext from "../context/CmsContext";
 import {
+  UserPen,
   Menu,
   X,
   LayoutDashboard,
@@ -50,7 +51,7 @@ const Navbar = () => {
           <button
             onClick={openSidebar}
             aria-label="Open menu"
-            className="p-2 rounded hover:bg-gray-700 transition"
+            className="p-2 rounded cursor-pointer hover:bg-gray-700 transition"
           >
             <Menu size={28} />
           </button>
@@ -64,12 +65,7 @@ const Navbar = () => {
 
         {loggedIn && (
           <div className="flex items-center gap-4">
-            <Link
-              to="/admin"
-              className="text-white flex gap-1 font-semibold px-3 py-1 rounded hover:bg-gray-200 hover:text-black transition"
-            >
-             <LayoutDashboard /> Dashboard
-            </Link>
+         
             <button
               onClick={handleLogout}
               className="bg-red-500 px-3 py-1 flex items-center gap-1 hover:cursor-pointer rounded hover:bg-red-600 transition"
@@ -102,7 +98,7 @@ const Navbar = () => {
       >
         <button
           aria-label="Close menu"
-          className="mb-4 p-1 rounded hover:bg-gray-700 transition"
+          className="mb-4 p-1 rounded cursor-pointer  hover:bg-gray-700 transition"
           onClick={closeSidebar}
         >
           <X size={20} /> {/* smaller close icon */}
@@ -149,6 +145,12 @@ const Navbar = () => {
             className="p-2 rounded flex items-center gap-2 hover:bg-gray-700 hover:border font-semibold transition"
           >
             <IoDocumentsOutline size={20} /> All Pages
+          </Link> <Link
+            to="/admin/settings"
+            onClick={closeSidebar}
+            className="p-2 rounded flex items-center gap-2 hover:bg-gray-700 hover:border font-semibold transition"
+          >
+            <UserPen size={20} /> Admin
           </Link>
         </nav>
       </aside>

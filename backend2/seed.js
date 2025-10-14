@@ -1,5 +1,5 @@
 // seed.js
-import seedAdmin from "./adminseed.js";
+import seedAdmin from "./seeders/adminseed.js";
 
 (async () => {
   try {

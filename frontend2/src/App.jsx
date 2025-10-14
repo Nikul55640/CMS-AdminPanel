@@ -12,7 +12,7 @@ import EditorPage from "./Pages/Editorpage";
 import MenuManager from "./Pages/Menumanager";
 import NavbarPublic from "./components/Navbarpages";
 import FooterPublic from "./components/Footerpages";
-
+import AdminSettings from "./Pages/AdminSettings";
 import PublicPage from "../componentsPublic/PublicPage";
 
 
@@ -54,6 +54,16 @@ function App() {
               <ProtectedRoute>
                 <AdminLayout>
                   <PageManager />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+           <Route
+            path="/admin/settings"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <AdminSettings />
                 </AdminLayout>
               </ProtectedRoute>
             }

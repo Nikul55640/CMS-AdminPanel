@@ -158,12 +158,13 @@ const EditorAdd = () => {
                 animationComponent.init(),
                 accordionComponent.init(),
                 iconifyComponent.init(),
-                swiperComponent?.init({ block: false }),
-                lightGalleryComponent?.init({ block: false }),
+                swiperComponent?.init({ block: true }),
+                lightGalleryComponent?.init({ block: true }),
                 listPagesComponent?.init(),
                 tableComponent.init(),
                 dialogComponent.init(),
                 layoutSidebarButtons.init(),
+
               ],
             }}
             onReady={(editor) => {
@@ -180,24 +181,8 @@ const EditorAdd = () => {
 
               // Add default blocks
               const bm = editor.BlockManager;
-              bm.add("text-block", {
-                label: "Text",
-                content: '<p style="padding:10px;">Insert your text here</p>',
-                category: "Basic",
-              });
-              bm.add("image-block", {
-                label: "Image",
-                content:
-                  '<img src="https://via.placeholder.com/600x300" style="max-width:100%"/>',
-                category: "Basic",
-              });
+            
              
-              bm.add("button-block", {
-                label: "Button",
-                content:
-                  '<button style="padding:10px 20px; background:#2563eb; color:white; border:none; border-radius:6px;">Click Me</button>',
-                category: "Basic",
-              });
             }}
           />
         </div>

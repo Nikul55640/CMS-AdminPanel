@@ -103,7 +103,7 @@ const EditorPage = () => {
   }, []);
 
   if (!page) return <p>Page not found</p>;
-console.log(loadSavedComponents)
+  console.log(loadSavedComponents);
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
@@ -118,21 +118,17 @@ console.log(loadSavedComponents)
               initialCss: page.css || "",
               style: { height: "100%", width: "100%" },
               plugins: [
+                // Google Fonts
                 googleFontsAssetProvider.init({
                   apiKey: "GOOGLE_FONTS_API_KEY",
                 }),
-                (editor) => {
-                  editor.onReady(() => {
-                    const textCmp = editor.getWrapper().find("p")[0];
-                    editor.select(textCmp);
-                  });
-                },
-                canvasGridMode?.init({
-                  styleableGrid: true,
-                }),
+
+                // Canvas Grid
+                canvasGridMode?.init({ styleableGrid: true }),
+
+                // TinyMCE Rich Text Editor
                 rteTinyMce.init({
                   enableOnClick: true,
-                  // Custom TinyMCE configuration
                   loadConfig: ({ component, config }) => {
                     const demoRte = component.get("demorte");
                     if (demoRte === "fixed") {
@@ -142,7 +138,8 @@ console.log(loadSavedComponents)
                         fixed_toolbar_container_target:
                           document.querySelector(".rteContainer"),
                       };
-                    } else if (demoRte === "quickbar") {
+                    }
+                    if (demoRte === "quickbar") {
                       return {
                         plugins: `${config.plugins} quickbars`,
                         toolbar: false,
@@ -153,46 +150,50 @@ console.log(loadSavedComponents)
                     return {};
                   },
                 }),
+
+                // Animation Component
                 animationComponent.init({
-                  animations({ items }) {
-                    return [
-                      ...items, // Keep existing animations
-                      // Add your custom animations here
-                      {
-                        id: "customWiggle",
-                        name: "Custom Wiggle",
-                        css: `
-                @keyframes customWiggle {
-                  0% { transform: rotate(0deg); }
-                  15% { transform: rotate(-5deg); }
-                  30% { transform: rotate(5deg); }
-                  45% { transform: rotate(-5deg); }
-                  60% { transform: rotate(3deg); }
-                  75% { transform: rotate(-2deg); }
-                  100% { transform: rotate(0deg); }
-                }`,
-                      },
-                    ];
-                  },
+                  animations: ({ items }) => [
+                    ...items,
+                    {
+                      id: "customWiggle",
+                      name: "Custom Wiggle",
+                      css: `
+              @keyframes customWiggle {
+                0% { transform: rotate(0deg); }
+                15% { transform: rotate(-5deg); }
+                30% { transform: rotate(5deg); }
+                45% { transform: rotate(-5deg); }
+                60% { transform: rotate(3deg); }
+                75% { transform: rotate(-2deg); }
+                100% { transform: rotate(0deg); }
+              }
+            `,
+                    },
+                  ],
                 }),
+
+                // Accordions
                 accordionComponent.init({
                   block: { category: "My Accordions" },
                   blockGroup: { category: "My Accordions" },
                 }),
+
+                // Iconify
                 iconifyComponent.init({
                   block: { category: "Extra", label: "Iconify" },
                 }),
-                swiperComponent?.init({
-                  block: false, // Skip default block
-                }),
-                // Add custom blocks for the swiper
+
+                // Swiper
+                swiperComponent?.init({ block: false }),
                 (editor) => {
                   editor.Blocks.add("swiper", {
                     label: "Swiper Slider",
                     category: "Swiper example",
                     media:
                       '<svg viewBox="0 0 24 24"><path d="M22 7.6c0-1-.5-1.6-1.3-1.6H3.4C2.5 6 2 6.7 2 7.6v9.8c0 1 .5 1.6 1.3 1.6h17.4c.8 0 1.3-.6 1.3-1.6V7.6zM21 18H3V7h18v11z" fill-rule="nonzero"/><path d="M4 12.5L6 14v-3zM20 12.5L18 14v-3z"/></svg>',
-                    content: `<div class="swiper" style="height: 200px">
+                    content: `
+            <div class="swiper" style="height:200px">
               <div class="swiper-wrapper">
                 <div class="swiper-slide"><div>Slide 1</div></div>
                 <div class="swiper-slide"><div>Slide 2</div></div>
@@ -200,14 +201,15 @@ console.log(loadSavedComponents)
               </div>
               <div class="swiper-button-next"></div>
               <div class="swiper-button-prev"></div>
-            </div>`,
+            </div>
+          `,
                   });
                 },
-                lightGalleryComponent?.init({
-                  block: false, // Skip default block
-                }),
-                // Add custom gallery blocks
+
+                // LightGallery
+                lightGalleryComponent?.init({ block: false }),
                 (editor) => {
+                  // Gallery Images
                   editor.Blocks.add("gallery-images", {
                     label: "Gallery Images",
                     category: "LightGallery examples",
@@ -239,6 +241,8 @@ console.log(loadSavedComponents)
                       ],
                     },
                   });
+
+                  // Gallery Videos
                   editor.Blocks.add("gallery-videos", {
                     label: "Gallery Video",
                     category: "LightGallery examples",
@@ -276,6 +280,8 @@ console.log(loadSavedComponents)
                     },
                   });
                 },
+
+                // Extra Components
                 listPagesComponent?.init({
                   block: { category: "Extra", label: "My List Pages" },
                 }),
@@ -285,18 +291,25 @@ console.log(loadSavedComponents)
                 dialogComponent.init({
                   block: { category: "Extra", label: "My Dialog" },
                 }),
+
+                // Layout Sidebar Buttons Customization
                 layoutSidebarButtons.init({
-                  sidebarButton({ id, buttonProps }) {
-                    if (id === "panelGlobalStyles") return null;
-                    return buttonProps;
-                  },
+                  sidebarButton: ({ id, buttonProps }) =>
+                    id === "panelGlobalStyles" ? null : buttonProps,
                 }),
+
+                // OnReady selection
+                (editor) =>
+                  editor.onReady(() => {
+                    const firstParagraph = editor.getWrapper().find("p")[0];
+                    if (firstParagraph) editor.select(firstParagraph);
+                  }),
               ],
             }}
             onReady={(editor) => {
               editorRef.current = editor;
 
-              // Reset existing components
+              // Reset editor content
               editor.DomComponents.clear();
               editor.CssComposer.clear();
               editor.setComponents(page.html || "<div>Start editing...</div>");
@@ -304,12 +317,12 @@ console.log(loadSavedComponents)
 
               loadSavedComponents();
 
-              // Add blocks (same as your modal code)
+              // Helper to add blocks
               const addBlock = (id, opts) => {
                 if (!editor.Blocks.get(id)) editor.Blocks.add(id, opts);
               };
 
-              // BASIC
+              // BASIC BLOCKS
               addBlock("text-block", {
                 label: "Text",
                 content: '<p style="padding:10px;">Insert your text here</p>',
@@ -328,30 +341,30 @@ console.log(loadSavedComponents)
                 category: "Basic",
               });
 
-              // LAYOUT
+              // LAYOUT BLOCKS
               addBlock("2-columns", {
                 label: "2 Columns",
                 content: `
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-                  <div style="background:#f3f4f6; padding:20px;">Column 1</div>
-                  <div style="background:#f3f4f6; padding:20px;">Column 2</div>
-                </div>`,
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+          <div style="background:#f3f4f6; padding:20px;">Column 1</div>
+          <div style="background:#f3f4f6; padding:20px;">Column 2</div>
+        </div>`,
                 category: "Layout",
               });
 
-              // COMPONENTS
+              // COMPONENTS BLOCKS
               addBlock("card-block", {
                 label: "Card",
                 content: `
-                <div style="border:1px solid #e5e7eb; border-radius:8px; padding:20px; text-align:center; background:white;">
-                  <img src="https://via.placeholder.com/150" style="border-radius:50%; margin-bottom:15px;" />
-                  <h3 style="font-size:1.25rem; font-weight:bold;">Card Title</h3>
-                  <p style="color:#6b7280;">This is a simple card description.</p>
-                </div>`,
+        <div style="border:1px solid #e5e7eb; border-radius:8px; padding:20px; text-align:center; background:white;">
+          <img src="https://via.placeholder.com/150" style="border-radius:50%; margin-bottom:15px;" />
+          <h3 style="font-size:1.25rem; font-weight:bold;">Card Title</h3>
+          <p style="color:#6b7280;">This is a simple card description.</p>
+        </div>`,
                 category: "Components",
               });
 
-              // You can continue adding other blocks exactly like in your modal code
+              // Continue adding other custom blocks here...
             }}
           />
         </div>

@@ -13,7 +13,6 @@ export const getMenus = AsyncHandler(async (req, res) => {
   res.json(menus);
 });
 
-
 // Create menu
 export const createMenu = AsyncHandler(async (req, res) => {
   const { title, url, location, parentId, pageId, icon, openInNewTab } =
@@ -170,7 +169,6 @@ export const getActiveMenu = AsyncHandler(async (req, res) => {
   res.status(404).json({ message: "No active menu found" });
 });
 
-
 // Set Active Menus (supports multiple)
 export const setActiveMenus = AsyncHandler(async (req, res) => {
   const { menuIds = [], section } = req.body;
@@ -203,10 +201,7 @@ export const setActiveMenus = AsyncHandler(async (req, res) => {
   // Activate menus from menuIds (skip "custom")
   const validMenuIds = menuIds.filter((id) => id !== "custom");
   if (validMenuIds.length) {
-    await Menu.update(
-      { isActive: true },
-      { where: { id: validMenuIds } }
-    );
+    await Menu.update({ isActive: true }, { where: { id: validMenuIds } });
   }
 
   res.json({
@@ -214,7 +209,6 @@ export const setActiveMenus = AsyncHandler(async (req, res) => {
     activeMenuIds: menuIds,
   });
 });
-
 
 export const getMenusByLocation = AsyncHandler(async (req, res) => {
   const { location } = req.params;

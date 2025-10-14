@@ -102,3 +102,4 @@ export const getStats = AsyncHandler(async (req, res) => {
 
   res.json({ totalPages, drafts, published });
 });
+
