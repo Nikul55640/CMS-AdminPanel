@@ -20,6 +20,7 @@ import { CSS } from "@dnd-kit/utilities";
 
 const API = "http://localhost:5000/api";
 
+// ---------------- Sortable Item ----------------
 const SortableItem = ({ item, onEdit, onDelete, children }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: item.id });
@@ -32,7 +33,7 @@ const SortableItem = ({ item, onEdit, onDelete, children }) => {
     border: "1px solid #e2e8f0",
     borderRadius: "8px",
     marginBottom: "8px",
-    background: "#fff",
+    background: "",
     display: "flex",
     flexDirection: "column",
     opacity: item.hiddenInFrontend ? 0.5 : 1,
@@ -99,6 +100,7 @@ const SortableItem = ({ item, onEdit, onDelete, children }) => {
   );
 };
 
+// ---------------- Menu Manager ----------------
 const MenuManager = () => {
   const [menus, setMenus] = useState([]);
   const [menuType, setMenuType] = useState("navbar");
@@ -109,11 +111,12 @@ const MenuManager = () => {
   const [customJS, setCustomJS] = useState("");
   const [activeMenus, setActiveMenus] = useState([]);
   const [previewHTML, setPreviewHTML] = useState("");
-  const [customActiveTab, setCustomActiveTab] = useState("HTML"); // ✅ Added missing state
+  const [customActiveTab, setCustomActiveTab] = useState("HTML");
 
   const token = localStorage.getItem("token");
   const sensors = useSensors(useSensor(PointerSensor));
 
+  // ---------------- Fetch Menus ----------------
   const fetchMenus = async () => {
     try {
       const res = await axios.get(`${API}/menus/location/${menuType}`, {
@@ -125,12 +128,24 @@ const MenuManager = () => {
       setCustomHTML(data.customContent?.html || "");
       setCustomCSS(data.customContent?.css || "");
       setCustomJS(data.customContent?.js || "");
-      setActiveMenus((data.activeMenuIds || []).map(String));
+
+      // Only include "custom" if it is in activeMenuIds AND has HTML content
+      let fetchedActiveMenus = (data.activeMenuIds || []).map(String);
+      if (
+        !fetchedActiveMenus.includes("custom") ||
+        !data.customContent?.html?.trim()
+      ) {
+        fetchedActiveMenus = fetchedActiveMenus.filter((id) => id !== "custom");
+      }
+
+      console.log("Active menus after filtering custom:", fetchedActiveMenus);
+
+      setActiveMenus(fetchedActiveMenus);
 
       generatePreview({
         menus: data.menus,
         customContent: data.customContent,
-        activeMenus: (data.activeMenuIds || []).map(String),
+        activeMenus: fetchedActiveMenus,
       });
     } catch (err) {
       console.error("Fetch menus error:", err);
@@ -142,7 +157,7 @@ const MenuManager = () => {
     fetchMenus();
   }, [menuType]);
 
-  // ---------------- Build Preview ----------------
+  // ---------------- Build Preview HTML ----------------
   const buildPreviewHTML = (items, activeIds) => {
     if (!items?.length) return "";
     return `<ul style="list-style:none;display:flex;flex-wrap:wrap;gap:1rem;">${items
@@ -181,7 +196,7 @@ const MenuManager = () => {
     }
   };
 
-  // ---------------- Helper: Get all nested IDs ----------------
+  // ---------------- Helper: Get All Nested IDs ----------------
   const getAllMenuIds = (menu) => {
     let ids = [String(menu.id)];
     if (menu.children?.length) {
@@ -248,10 +263,16 @@ const MenuManager = () => {
     }
   };
 
+  // ---------------- Toggle Active Menu ----------------
   const handleToggleActiveMenu = (id) => {
+    console.log("Toggle called for ID:", id);
+
     const findMenuById = (items, id) => {
       for (const item of items) {
-        if (String(item.id) === String(id)) return item;
+        if (String(item.id) === String(id)) {
+          console.log("Menu found:", item);
+          return item;
+        }
         if (item.children) {
           const found = findMenuById(item.children, id);
           if (found) return found;
@@ -262,15 +283,25 @@ const MenuManager = () => {
 
     const menuItem =
       id === "custom" ? { id: "custom" } : findMenuById(menus, id);
-    if (!menuItem) return;
+
+    if (!menuItem) {
+      console.warn("Menu not found for ID:", id);
+      return;
+    }
 
     const idsToToggle = getAllMenuIds(menuItem);
+    console.log("IDs to toggle:", idsToToggle);
 
     setActiveMenus((prev) => {
+      console.log("Previous activeMenus:", prev);
       const isActive = idsToToggle.every((i) => prev.includes(i));
+      console.log("Is currently active:", isActive);
+
       const newState = isActive
         ? prev.filter((i) => !idsToToggle.includes(i))
         : [...prev, ...idsToToggle.filter((i) => !prev.includes(i))];
+
+      console.log("New activeMenus state:", newState);
 
       generatePreview({
         menus,
@@ -280,24 +311,35 @@ const MenuManager = () => {
 
       return newState;
     });
+
+    console.log("Toggle complete for IDs:", idsToToggle);
   };
 
+  // ---------------- Save Active Menus ----------------
   const handleSaveActiveMenus = async () => {
+    console.log("Saving active menus:", activeMenus);
+
     try {
       const idsToSend = activeMenus.filter(
         (id) => id !== "custom" || customHTML.trim() !== ""
       );
-      await axios.post(
+      console.log("IDs to send to backend:", idsToSend);
+
+      const res = await axios.post(
         `${API}/menus/set-active`,
         { menuIds: idsToSend, section: menuType },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      console.log("Backend response:", res.data);
       toast.success("Active menus updated!");
     } catch (err) {
+      console.error("Failed to save active menus:", err);
       toast.error("Failed to save active menus");
     }
   };
 
+  // ---------------- Save Custom Content ----------------
   const handleSaveCustomContent = async () => {
     try {
       await axios.post(
@@ -312,6 +354,7 @@ const MenuManager = () => {
     }
   };
 
+  // ---------------- Delete Custom Content ----------------
   const handleDeleteCustomContent = async () => {
     if (!window.confirm("Delete custom content?")) return;
     try {
@@ -334,23 +377,27 @@ const MenuManager = () => {
     }
   };
 
+  // ---------------- Render ----------------
   return (
     <>
+      {/* Header */}
       <div className=" max-w-5xl mx-auto mt-6 px-8 py-6 border  border-gray-900 rounded-tr-2xl rounded-tl-2xl bg-gradient-to-r from-blue-500 to-purple-500 text-white">
         <h1 className="text-2xl font-bold tracking-wide">Menu Manager</h1>
         <p className="mt-1 text-sm opacity-90">
           Build menus for your website. Clean, fast, and intuitive.
         </p>
       </div>
+
       <div className="p-4 max-w-5xl mx-auto  border border-gray-900 rounded-br-2xl rounded-bl-2xl shadow-lg mb-10">
-        <div className="flex flex-col md:flex-row gap-3 mb-6 justify-between items-start md:items-center">
-          <div className="flex flex-wrap gap-3">
-            <h3 className="font-semibold text-lg mb-2">Menu Types:</h3>
+        {/* Menu Type Buttons */}
+        
+          <div className=" gap-3">
+            <h3 className="font-semibold text-lg mb-2 text-center">Menu Types:</h3>
             {["navbar", "footer"].map((type) => (
               <button
                 key={type}
                 onClick={() => setMenuType(type)}
-                className={`px-4 py-2 rounded ${
+                className={`px-4 py-2  w-1/2 cursor-pointer  mb-2 rounded ${
                   menuType === type ? "bg-blue-500 text-white" : "bg-gray-200"
                 }`}
               >
@@ -377,30 +424,28 @@ const MenuManager = () => {
               Custom Menu
             </button>
           </div>
-        </div>
-
-        {/* Active Menus */}
         <div className="mb-6">
           <h3 className="font-semibold mb-2">Set Active Menus:</h3>
-          <div className="flex flex-wrap gap-2">
-            {menus
-              .filter((item) => !item.hiddenInFrontend)
-              .map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => handleToggleActiveMenu(item.id)}
-                  className={`px-3 py-1 rounded border ${
-                    getAllMenuIds(item).some((id) => activeMenus.includes(id))
-                      ? "bg-green-500 text-white"
-                      : "bg-gray-200"
-                  }`}
-                >
-                  {item.title}
-                </button>
-              ))}
+          
+            <div className="flex flex-wrap gap-2">
+              {menus
+                .filter((item) => !item.hiddenInFrontend)
+                .map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => handleToggleActiveMenu(item.id)}
+                    className={`px-3 py-1 cursor-pointer rounded border ${
+                      activeMenus.includes(String(item.id))
+                        ? "bg-green-500 text-white"
+                        : "bg-gray-200"
+                    }`}
+                  >
+                    {item.title}
+                  </button>
+                ))}
             <button
               onClick={() => handleToggleActiveMenu("custom")}
-              className={`px-3 py-1 rounded border ${
+              className={`px-3 py-1 cursor-pointer rounded border ${
                 activeMenus.includes("custom")
                   ? "bg-green-500 text-white"
                   : "bg-gray-200"
@@ -409,7 +454,6 @@ const MenuManager = () => {
               Custom
             </button>
           </div>
-
           <div className="mt-2">
             <button
               onClick={handleSaveActiveMenus}
@@ -419,8 +463,6 @@ const MenuManager = () => {
             </button>
           </div>
         </div>
-
-        {/* Menu List */}
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -439,6 +481,7 @@ const MenuManager = () => {
           </SortableContext>
         </DndContext>
 
+        {/* Menu Form */}
         {selectedMenu && (
           <MenuForm
             menu={selectedMenu}
@@ -458,8 +501,6 @@ const MenuManager = () => {
             dangerouslySetInnerHTML={{ __html: previewHTML }}
           />
         </div>
-
-        {/* Custom Content Dialog */}
         {customDialogOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50 p-4">
             <div className="bg-white rounded shadow-lg w-full max-w-4xl p-4 overflow-hidden max-h-[90vh] flex flex-col">
@@ -484,8 +525,9 @@ const MenuManager = () => {
                 ))}
               </div>
 
-              {/* Editor & Preview */}
-              <div className="flex flex-1 gap-4 overflow-hidden mt-2">
+              {/* Editor and Live Preview */}
+              <div className="flex flex-1  gap-4 overflow-y-scroll">
+                {/* Editor */}
                 <textarea
                   value={
                     customActiveTab === "HTML"
@@ -499,27 +541,25 @@ const MenuManager = () => {
                       setCustomHTML(e.target.value);
                     if (customActiveTab === "CSS") setCustomCSS(e.target.value);
                     if (customActiveTab === "JS") setCustomJS(e.target.value);
-                    generatePreview({
-                      menus,
-                      customContent: {
-                        html: customHTML,
-                        css: customCSS,
-                        js: customJS,
-                      },
-                      activeMenus,
-                    });
                   }}
-                  className="flex-1 border rounded p-2 resize-none h-full font-mono text-sm"
+                  className="flex-1 border rounded p-2  h-full font-mono text-sm"
                 />
+
+                {/* Live Preview */}
                 <iframe
                   className="flex-1 border rounded h-full"
                   sandbox="allow-scripts"
                   srcDoc={`
-                  <html>
-                    <head><style>${customCSS}</style></head>
-                    <body>${customHTML}<script>${customJS}<\/script></body>
-                  </html>
-                `}
+                    <html>
+                      <head>
+                        <style>${customCSS}</style>
+                      </head>
+                      <body>
+                        ${customHTML}
+                        <script>${customJS}<\/script>
+                      </body>
+                    </html>
+                  `}
                 />
               </div>
 
@@ -547,6 +587,37 @@ const MenuManager = () => {
 };
 
 export default MenuManager;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /// src/Pages/Menumanager.jsx
 // import { useState, useEffect } from "react";

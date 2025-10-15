@@ -16,7 +16,12 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
 
   // Toggle submenu open/close
   const toggleSubmenu = (id) => {
-    setSubmenuOpenIds((prev) => ({ ...prev, [id]: !prev[id] }));
+    console.log("Toggling submenu:", id, "Current state:", submenuOpenIds[id]);
+    setSubmenuOpenIds((prev) => {
+      const newState = { ...prev, [id]: !prev[id] };
+      console.log("New submenu state:", newState);
+      return newState;
+    });
   };
 
   // Build nested menu tree from flat list
@@ -37,12 +42,32 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
       }
     });
 
+    console.log("Built menu tree:", roots);
     return roots;
+  };
+
+  // Filter only active menus (recursively)
+  const filterActiveMenus = (menuList) => {
+    return menuList
+      .map((menu) => {
+        const filteredChildren = menu.children
+          ? filterActiveMenus(menu.children)
+          : [];
+        if (
+          activeMenuIds.includes(String(menu.id)) ||
+          filteredChildren.length
+        ) {
+          return { ...menu, children: filteredChildren };
+        }
+        return null;
+      })
+      .filter(Boolean);
   };
 
   // Fetch menus and custom content
   useEffect(() => {
     const fetchData = async () => {
+      console.log("Fetching menus and custom content for:", menuType);
       try {
         const [menuRes, contentRes] = await Promise.all([
           axios.get(`${API}/menus/location/${menuType}`),
@@ -50,13 +75,23 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
         ]);
 
         const flatMenus = menuRes.data.menus || [];
+        console.log("Flat menus fetched:", flatMenus);
+
         const nestedMenus = buildTree(flatMenus);
 
+        // Get active menu IDs from backend
         let fetchedActiveIds = (menuRes.data.activeMenuIds || []).map(String);
-        const contentHtml = contentRes.data?.content?.html?.trim() || "";
 
-        if (!contentHtml)
-          fetchedActiveIds = fetchedActiveIds.filter((id) => id !== "custom");
+        // Only include 'custom' if backend explicitly marked it as active
+        const contentHtml = contentRes.data?.content?.html?.trim() || "";
+        if (!fetchedActiveIds.includes("custom")) {
+          console.log(
+            "Custom menu is not active according to backend, ignoring it."
+          );
+        }
+
+        console.log("Active menu IDs:", fetchedActiveIds);
+        console.log("Custom content fetched:", contentRes.data?.content);
 
         setMenus(nestedMenus);
         setActiveMenuIds(fetchedActiveIds);
@@ -75,12 +110,15 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
   useEffect(() => {
     if (!customContent.js?.trim()) return;
 
+    console.log("Executing custom JS:", customContent.js);
+
     const script = document.createElement("script");
     script.type = "text/javascript";
     script.text = customContent.js;
     document.body.appendChild(script);
 
     return () => {
+      console.log("Removing custom JS script");
       document.body.removeChild(script);
     };
   }, [customContent.js]);
@@ -93,27 +131,31 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
     return false;
   };
 
-  // Recursive menu render
+  const isAnyChildActive = (menu) => {
+    if (activeMenuIds.includes(String(menu.id))) return true;
+    if (menu.children?.length)
+      return menu.children.some((child) => isAnyChildActive(child));
+    return false;
+  };
+
+  // Render menu recursively
   const renderMenu = (menu) => {
     const active = isMenuActive(menu);
-    const submenuOpen = !!submenuOpenIds[menu.id];
+    const submenuOpen = !!submenuOpenIds[menu.id] || isAnyChildActive(menu);
+
+    console.log(
+      "Rendering menu:",
+      menu.title,
+      "Active:",
+      active,
+      "Submenu open:",
+      submenuOpen
+    );
 
     return (
       <li key={menu.id} className="relative">
-        <div className="flex items-center justify-between">
-          <Link
-            to={menu.url || "#"}
-            style={{
-              color: active ? "#fff" : "#111",
-              background: active ? "#2563eb" : "transparent",
-              padding: "6px 12px",
-              borderRadius: "6px",
-              textDecoration: "none",
-              display: "inline-block",
-            }}
-          >
-            {menu.title}
-          </Link>
+        <div className="">
+          <Link to={menu.url || ""}>{menu.title}</Link>
 
           {menu.children?.length > 0 && (
             <button
@@ -141,6 +183,7 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
 
   return (
     <nav className="z-[1000] bg-gray-100 md:bg-transparent p-2 md:p-0">
+      {/* Only show custom menu if it's explicitly active */}
       {activeMenuIds.includes("custom") && customContent.html?.trim() ? (
         <>
           {customContent.css && <style>{customContent.css}</style>}
@@ -151,7 +194,7 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
           className="flex flex-col md:flex-row gap-2 md:gap-4 p-2 md:p-0"
           style={{ listStyle: "none" }}
         >
-          {menus.map(renderMenu)}
+          {filterActiveMenus(menus).map(renderMenu)}
         </ul>
       )}
     </nav>

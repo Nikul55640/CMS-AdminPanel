@@ -46,7 +46,7 @@ const Navbar = () => {
   return (
     <>
       {/* Top navbar */}
-      <nav className="flex items-center justify-between bg-gray-900 text-white px-6 py-3 shadow-md">
+      <nav className="flex items-center justify-between bg-gradient-to-t from-gray-900 to-gray-700 text-white px-6 py-3 shadow-md">
         <div className="flex items-center space-x-4">
           <button
             onClick={openSidebar}

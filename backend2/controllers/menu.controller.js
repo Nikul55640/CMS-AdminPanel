@@ -175,26 +175,6 @@ export const setActiveMenus = AsyncHandler(async (req, res) => {
 
   if (!section) return res.status(400).json({ message: "Section is required" });
 
-  // Ensure "custom" is handled separately
-  const isCustomIncluded = menuIds.includes("custom");
-
-  // Update custom content activeMenuId if "custom" is selected
-  if (isCustomIncluded) {
-    let customMenu = await CustomContent.findOne({ where: { section } });
-    if (!customMenu) {
-      customMenu = await CustomContent.create({
-        section,
-        html: "",
-        css: "",
-        js: "",
-        activeMenuId: "custom",
-      });
-    } else {
-      customMenu.activeMenuId = "custom";
-      await customMenu.save();
-    }
-  }
-
   // Deactivate all menus in this section first
   await Menu.update({ isActive: false }, { where: { location: section } });
 
@@ -204,9 +184,36 @@ export const setActiveMenus = AsyncHandler(async (req, res) => {
     await Menu.update({ isActive: true }, { where: { id: validMenuIds } });
   }
 
+  // Handle "custom" separately
+  if (menuIds.includes("custom")) {
+    const customMenu = await CustomContent.findOne({ where: { section } });
+    if (customMenu && customMenu.html.trim()) {
+      // Only store "custom" as active if HTML exists
+      customMenu.activeMenuId = "custom";
+      await customMenu.save();
+    }
+  } else {
+    // If user deselected "custom", remove activeMenuId
+    const customMenu = await CustomContent.findOne({ where: { section } });
+    if (customMenu) {
+      customMenu.activeMenuId = null;
+      await customMenu.save();
+    }
+  }
+
+  // Rebuild activeMenuIds to return
+  const updatedMenus = await Menu.findAll({
+    where: { location: section, isActive: true },
+  });
+  const activeIds = updatedMenus.map((m) => String(m.id));
+
+  // Include custom only if it has HTML and was selected
+  const customMenu = await CustomContent.findOne({ where: { section } });
+  if (customMenu?.activeMenuId === "custom") activeIds.push("custom");
+
   res.json({
     message: `Active menus updated`,
-    activeMenuIds: menuIds,
+    activeMenuIds: activeIds,
   });
 });
 

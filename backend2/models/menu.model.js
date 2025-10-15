@@ -53,6 +53,7 @@ const Menu = sequelize.define(
       allowNull: true,
       field: "active_menu_id", // map to snake_case column
     },
+    
   },
   {
     tableName: "menus",

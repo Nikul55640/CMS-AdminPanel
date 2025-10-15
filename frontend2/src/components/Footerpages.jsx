@@ -11,6 +11,7 @@ const FooterPublic = () => {
     css: "",
     js: "",
   });
+  const [activeMenuIds, setActiveMenuIds] = useState([]);
   const [settings, setSettings] = useState({
     bg: "#f3f4f6",
     text: "#111",
@@ -18,24 +19,46 @@ const FooterPublic = () => {
     linkGap: "16px",
   });
 
-  // Build tree for nested menus
+  // Build nested menu tree
   const buildTree = (list) => {
     if (!Array.isArray(list)) return [];
     const map = {};
     const roots = [];
+
     list.forEach((i) => (map[i.id || i._id] = { ...i, children: [] }));
+
     list.forEach((i) => {
       if (i.parent_id) map[i.parent_id]?.children.push(map[i.id || i._id]);
       else roots.push(map[i.id || i._id]);
     });
 
+    // Sort recursively
     const sortTree = (items) => {
       items.sort((a, b) => (a.order || 0) - (b.order || 0));
       items.forEach((item) => item.children && sortTree(item.children));
     };
     sortTree(roots);
 
+    console.log("Built footer menu tree:", roots);
     return roots;
+  };
+
+  // Filter only active menus recursively
+  const filterActiveMenus = (menuList) => {
+    return menuList
+      .map((menu) => {
+        const filteredChildren = menu.children
+          ? filterActiveMenus(menu.children)
+          : [];
+        if (
+          activeMenuIds.includes(String(menu.id || menu._id)) ||
+          filteredChildren.length
+        ) {
+          return { ...menu, children: filteredChildren };
+        }
+        return null;
+      })
+      .filter(Boolean);
   };
 
   // Fetch menus and custom content
@@ -47,7 +70,16 @@ const FooterPublic = () => {
           axios.get(`${API}/menus/custom-content?section=footer`),
         ]);
 
-        setMenus(buildTree(menuRes.data?.menus || menuRes.data || []));
+        const flatMenus = menuRes.data?.menus || menuRes.data || [];
+        console.log("Flat footer menus fetched:", flatMenus);
+
+        const nestedMenus = buildTree(flatMenus);
+
+        const fetchedActiveIds = (menuRes.data.activeMenuIds || []).map(String);
+        console.log("Active footer menu IDs:", fetchedActiveIds);
+
+        setMenus(nestedMenus);
+        setActiveMenuIds(fetchedActiveIds);
         setCustomContent(
           contentRes.data?.content || { html: "", css: "", js: "" }
         );
@@ -62,22 +94,31 @@ const FooterPublic = () => {
     fetchData();
   }, []);
 
-  // Execute custom JS if any
+  // Execute custom JS safely
   useEffect(() => {
-    if (!customContent.js) return;
+    if (!customContent.js?.trim()) return;
+    console.log("Executing footer custom JS:", customContent.js);
+
     const script = document.createElement("script");
     script.type = "text/javascript";
     script.text = customContent.js;
     document.body.appendChild(script);
-    return () => document.body.removeChild(script);
+
+    return () => {
+      console.log("Removing footer custom JS script");
+      document.body.removeChild(script);
+    };
   }, [customContent.js]);
 
+  // Render menu recursively
   const renderMenu = (menu) => {
     const href = menu.page_id
       ? `/pages/${menu.slug || menu.page_id}`
       : menu.url || "#";
     const textColor = menu.textColor || settings.text;
     const hoverColor = menu.hoverText || settings.hoverText;
+
+    console.log("Rendering footer menu:", menu.title);
 
     return (
       <li key={menu.id || menu._id} className={menu.customClass || ""}>
@@ -121,14 +162,14 @@ const FooterPublic = () => {
       {customContent.css && <style>{customContent.css}</style>}
 
       {/* Render custom HTML if present */}
-      {customContent.html ? (
+      {customContent.html?.trim() ? (
         <div dangerouslySetInnerHTML={{ __html: customContent.html }} />
       ) : (
         <ul
           className="flex flex-wrap justify-center"
           style={{ gap: settings.linkGap }}
         >
-          {menus.map(renderMenu)}
+          {filterActiveMenus(menus).map(renderMenu)}
         </ul>
       )}
     </footer>
