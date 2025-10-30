@@ -181,8 +181,25 @@ const EditorAdd = () => {
 
               // Add default blocks
               const bm = editor.BlockManager;
-            
-             
+              bm.add("section", {
+                label: "Section",
+                content: `<section style="padding: 20px; border: 1px solid #ccc;">
+                  <h2>Section Title</h2>
+                  <p>Section content...</p>
+                </section>`,
+              });
+              bm.add("text", {
+                label: "Text",
+                content: '<div data-gjs-type="text">Insert your text here</div>',
+              });
+              bm.add("image", {
+                label: "Image",
+                content: { type: "image" },
+              });
+              bm.add("link", {
+                label: "Link",
+                content: '<a href="#">Insert link</a>',
+              }); 
             }}
           />
         </div>

@@ -109,8 +109,8 @@ const PageManager = () => {
 
   return (
     <div className="min-h-screen p-6">
-      <div className="mt-6 items-center bg-gradient-to-r from-blue-500 to-purple-500 rounded-t-2xl   h-18 flex justify-center ">
-        <h2 className="text-4xl font-bold text-center text-white w-auto  ">
+      <div className="mt-6 text-center text-white bg-gradient-to-r from-blue-500 to-purple-500 rounded-t-2xl   h-18  ">
+        <h2 className="text-4xl font-bold text-center  w-auto  ">
           Pages
         </h2>
         <p className="mt-1 text-sm opacity-90">
@@ -194,7 +194,7 @@ const PageManager = () => {
                         recentlyUpdated ? "bg-yellow-50" : ""
                       }`}
                     >
-                      <td className="px-4 py-2">
+                      <td className="px-4 py-2 text-center">
                         <input
                           type="checkbox"
                           checked={selectedPages.includes(p.slug)}

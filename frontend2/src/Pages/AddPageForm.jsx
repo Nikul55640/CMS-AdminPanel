@@ -81,13 +81,9 @@ const AddPageForm = () => {
   };
 
   return (
-    <motion.div
+    <div
       className="max-w-3xl mx-auto mt-12 bg-white shadow-2xl rounded-2xl border border-gray-100 overflow-hidden"
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
     >
-     
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
         <h1 className="text-3xl font-bold text-center">Create New Page</h1>
         <p className="text-center text-blue-100 mt-1">
@@ -211,7 +207,7 @@ const AddPageForm = () => {
           <Save /> Save Page
         </motion.button>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

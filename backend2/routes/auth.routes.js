@@ -8,8 +8,7 @@ import {
   getCurrentUser,
   updatePassword,
   deleteUser,
-  logoutUser,
-  updateUser,
+  logoutUser
 } from "../controllers/auth.controller.js";
 
 const authRouter = express.Router();
@@ -33,8 +32,7 @@ authRouter.post("/logout", authMiddleware, logoutUser);
 // Get current logged-in user
 authRouter.get("/me", authMiddleware, getCurrentUser);
 
-// Update user info (like username)
-authRouter.put("/update-user", authMiddleware, updateUser);
+
 
 // Update user password
 authRouter.put("/update-password", authMiddleware, updatePassword);

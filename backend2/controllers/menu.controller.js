@@ -224,15 +224,26 @@ export const getMenusByLocation = AsyncHandler(async (req, res) => {
     where: { location },
     order: [["order", "ASC"]],
     raw: true,
+    nested: true,
   });
 
-  const buildTree = (items, parentId = null) =>
-    items
-      .filter((i) => i.parentId === parentId)
-      .sort((a, b) => a.order - b.order)
-      .map((i) => ({ ...i, children: buildTree(items, i.id) }));
+   // Build a map of all menus for easy lookup
+    const map = {};
+    flatMenus.forEach(menu => {
+      map[menu.id] = { ...menu, children: [] };
+    });
 
-  const menuTree = buildTree(flatMenus);
+    // Build hierarchy (attach children to parents)
+    const roots = [];
+    flatMenus.forEach(menu => {
+      if (menu.parentId) {
+        if (map[menu.parentId]) {
+          map[menu.parentId].children.push(map[menu.id]);
+        }
+      } else {
+        roots.push(map[menu.id]);
+      }
+    });
 
   const customContent = await CustomContent.findOne({
     where: { section: location },
@@ -248,7 +259,7 @@ export const getMenusByLocation = AsyncHandler(async (req, res) => {
   if (customContent?.activeMenuId === "custom") activeMenuIds.push("custom");
 
   res.json({
-    menus: menuTree,
+    menus: roots,
     customContent: customContent || { html: "", css: "", js: "" },
     activeMenuIds,
   });

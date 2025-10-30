@@ -108,22 +108,3 @@ export const logoutUser = AsyncHandler(async (req, res) => {
   res.json({ message: "Logout successful" });
 });
 
-export const updateUser = AsyncHandler(async (req, res) => {
-  const user = req.user;
-  const { username } = req.body;
-
-  if (username !== undefined) {
-    if (!username?.trim())
-      return res.status(400).json({ message: "Username cannot be empty" });
-
-    const existingUser = await User.findOne({ where: { username } });
-    if (existingUser && existingUser.id !== user.id)
-      return res.status(409).json({ message: "Username already exists" });
-
-    user.username = username;
-  }
-
-  await user.save();
-  const { password, ...userData } = user.toJSON();
-  res.json({ message: "User updated", user: userData });
-}); 

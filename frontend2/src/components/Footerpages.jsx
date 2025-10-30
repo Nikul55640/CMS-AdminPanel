@@ -4,7 +4,7 @@ import axios from "axios";
 
 const API = "http://localhost:5000/api";
 
-const FooterPublic = () => {
+const FooterPublic = ({ menuType = "footer" }) => {
   const [menus, setMenus] = useState([]);
   const [customContent, setCustomContent] = useState({
     html: "",
@@ -13,10 +13,7 @@ const FooterPublic = () => {
   });
   const [activeMenuIds, setActiveMenuIds] = useState([]);
   const [settings, setSettings] = useState({
-    bg: "#f3f4f6",
-    text: "#111",
-    hoverText: "#1d4ed8",
-    linkGap: "16px",
+    
   });
 
   // Build nested menu tree
@@ -66,15 +63,14 @@ const FooterPublic = () => {
     const fetchData = async () => {
       try {
         const [menuRes, contentRes] = await Promise.all([
-          axios.get(`${API}/menus/location/footer`),
-          axios.get(`${API}/menus/custom-content?section=footer`),
+          axios.get(`${API}/menus/location/${menuType}`),
+          axios.get(`${API}/menus/custom-content?section=${menuType}`),
         ]);
 
         const flatMenus = menuRes.data?.menus || menuRes.data || [];
         console.log("Flat footer menus fetched:", flatMenus);
 
         const nestedMenus = buildTree(flatMenus);
-
         const fetchedActiveIds = (menuRes.data.activeMenuIds || []).map(String);
         console.log("Active footer menu IDs:", fetchedActiveIds);
 
@@ -90,9 +86,8 @@ const FooterPublic = () => {
         console.error("❌ Footer load failed:", err);
       }
     };
-
     fetchData();
-  }, []);
+  }, [menuType]);
 
   // Execute custom JS safely
   useEffect(() => {
@@ -155,13 +150,10 @@ const FooterPublic = () => {
 
   return (
     <footer
-      className="py-6 px-4 sm:px-6 lg:px-8"
+      className=""
       style={{ backgroundColor: settings.bg }}
     >
-      {/* Inject custom CSS */}
       {customContent.css && <style>{customContent.css}</style>}
-
-      {/* Render custom HTML if present */}
       {customContent.html?.trim() ? (
         <div dangerouslySetInnerHTML={{ __html: customContent.html }} />
       ) : (

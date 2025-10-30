@@ -9,14 +9,17 @@ import Navbar from "./components/Navbar";
 import { Toaster } from "react-hot-toast";
 import EditorAdd from "./Pages/EditorAdd";
 import EditorPage from "./Pages/Editorpage";
-import MenuManager from "./Pages/Menumanager";
+
 import NavbarPublic from "./components/Navbarpages";
 import FooterPublic from "./components/Footerpages";
 import AdminSettings from "./Pages/AdminSettings";
 import PublicPage from "../componentsPublic/PublicPage";
+import Navbarmenu from "./Pages/Navbarmenu";
+// import Footermenu from "./Pages/Footermenu";
 
 
 
+/*************  ✨ Windsurf Command 🌟  *************/
 // Admin Layout
 function AdminLayout({ children }) {
   return (
@@ -26,6 +29,7 @@ function AdminLayout({ children }) {
     </div>
   );
 }
+/*******  8beb5c8d-b536-4a19-b4b7-6558dfadb24f  *******/
 
 // Protected Route
 const ProtectedRoute = ({ children }) => {
@@ -69,11 +73,21 @@ function App() {
             }
           />
           <Route
-            path="/admin/menus"
+            path="/admin/menus/navbar"
             element={
               <ProtectedRoute>
                 <AdminLayout>
-                  <MenuManager />
+                  <Navbarmenu />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+            <Route
+            path="/admin/menus/footer"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                
                 </AdminLayout>
               </ProtectedRoute>
             }
