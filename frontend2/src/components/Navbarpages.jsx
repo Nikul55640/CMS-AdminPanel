@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import Navbar from "./Navbar";
 
 const API = "http://localhost:5000/api";
 
@@ -40,11 +41,10 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
           return null;
         }
       })
-      .filter(Boolean)
+      .filter(Boolean);
     return filtered;
   };
 
-  
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -57,7 +57,6 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
           console.error(`❌ No menus found for ${menuType}`);
           return;
         }
-
 
         const flatMenus = menuRes.data.menus || [];
         const nestedMenus = menuRes.data.menus || [];
@@ -76,7 +75,6 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
     fetchData();
   }, [menuType]);
 
- 
   useEffect(() => {
     if (!customContent.js?.trim()) return;
 
@@ -106,7 +104,7 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
     return active || childActive;
   };
 
- 
+  const logoUrl =  NavbarPublic.logoUrl || Navbarmenu.logoUrl || null;
   const renderMenu = (menu) => {
     const submenuOpen = !!submenuOpenIds[menu.id];
     const hasChildren = menu.children && menu.children.length > 0;
@@ -182,11 +180,20 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
           />
         </>
       ) : (
-        <ul
-          className="flex flex-col md:flex-row gap-2 md:gap-4 p-2 md:p-0"
-          style={{ listStyle: "none" }}
-        >
-          {filterActiveMenus(menus).map(renderMenu)}
+        <ul>
+          <li className="flex flex-col md:flex-row gap-2  md:gap-2 md:p-0">
+            <div className="flex flex-col md:flex-row gap-2 md:gap-2 md:p-0">
+              {logoUrl && (
+                <Link to="/">
+                  <img src={logoUrl} alt="Logo" className="h-8 w-auto" />
+                </Link>
+              )}
+            </div>
+            <div className="flex-grow" />
+            <div className="flex flex-col md:flex-row gap-2 md:gap-2 md:p-0">
+              </div>
+            {filterActiveMenus(menus).map(renderMenu)}
+          </li>
         </ul>
       )}
     </nav>

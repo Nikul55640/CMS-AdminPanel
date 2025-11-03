@@ -550,7 +550,7 @@
 //             <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
 //               <div className="p-6 border-b border-gray-200">
 //                 <div className="flex justify-between items-center">
-//                   <h2 className="text-2xl font-bold text-gray-800">
+//                   <h2 className="text-xl font-bold text-gray-800">
 //                     Edit Footer Custom Content
 //                   </h2>
 //                   <button

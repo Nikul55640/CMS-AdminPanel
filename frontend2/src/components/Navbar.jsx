@@ -65,7 +65,7 @@ const Navbar = () => {
           </button>
           <Link
             to="/admin"
-            className="font-extrabold text-2xl hover:text-gray-300"
+            className="font-extrabold text-xl hover:text-gray-300"
           >
             ICMS
           </Link>
@@ -110,7 +110,7 @@ const Navbar = () => {
           <X size={20} />
         </button>
 
-        <h2 className="text-2xl font-bold mb-6 flex justify-center underline underline-offset-1">
+        <h2 className="text-xl font-bold mb-6 flex justify-center underline underline-offset-1">
           Admin Panel
         </h2>
 

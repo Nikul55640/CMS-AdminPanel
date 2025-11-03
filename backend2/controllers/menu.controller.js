@@ -264,3 +264,50 @@ export const getMenusByLocation = AsyncHandler(async (req, res) => {
     activeMenuIds,
   });
 });
+
+export const updateMenuLogo = AsyncHandler(async (req, res) => {
+  const { logo } = req.body;
+  const { location } = req.params;
+
+  let customContent = await CustomContent.findOne({ where: { section: location } });
+  
+  if (customContent) {
+    customContent.logo = logo || customContent.logo;
+    await customContent.save();
+  } else {
+    customContent = await CustomContent.create({ section: location, logo });
+  }
+
+  res.json({ message: "Menu logo updated", logo: customContent.logo });
+});
+
+export const menulogo = AsyncHandler(async (req, res) => {
+  const { location } = req.params;
+
+  // ✅ Check if file is uploaded
+  if (!req.file) {
+    return res.status(400).json({ message: "No logo uploaded" });
+  }
+
+  // ✅ Create public path for logo
+  const logoPath = `/uploads/${req.file.filename}`;
+
+  // ✅ (Optional) Store logo path in your database
+  // Example: if you have a Menu or Page model with a `logo` field
+  // const updatedMenu = await Menu.findOneAndUpdate(
+  //   { location },
+  //   { logo: logoPath },
+  //   { new: true, upsert: true } // creates one if it doesn't exist
+  // );
+
+  // ✅ Send success response
+  res.json({
+    success: true,
+    message: "Logo uploaded successfully",
+    location,
+    logo: logoPath,
+    // menu: updatedMenu, // only if you save it in DB
+  });
+});
+
+  

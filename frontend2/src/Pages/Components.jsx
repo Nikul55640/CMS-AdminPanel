@@ -91,7 +91,7 @@ const ComponentForm = () => {
     <div className="max-w-3xl mx-auto mt-12 bg-white rounded-2xl shadow-lg overflow-hidden">
       {/* Header */}
       <div className="px-8 py-6 text-center border bg-gradient-to-r from-blue-500 to-purple-500 text-white">
-        <h1 className="text-2xl font-bold tracking-wide">
+        <h1 className="text-xl font-bold tracking-wide">
           {editingId ? "Edit Component" : "Create Component"}
         </h1>
         <p className="mt-1 text-sm opacity-90">

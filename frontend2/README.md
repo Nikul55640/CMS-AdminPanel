@@ -227,7 +227,7 @@ const ComponentForm = () => {
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         {/* Header */}
         <div className="px-8 py-6 border bg-gradient-to-r from-blue-500 to-purple-500 text-white">
-          <h1 className="text-2xl font-bold tracking-wide">
+          <h1 className="text-xl font-bold tracking-wide">
             {editingId ? "Edit Component" : "Create Component"}
           </h1>
           <p className="mt-1 text-sm opacity-90">
@@ -1082,21 +1082,21 @@ export const getMenusByLocation = async (req, res, next) => {
 //             <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
 //               <div className="p-6 border-b border-gray-200">
 //                 <div className="flex justify-between items-center">
-//                   <h2 className="text-2xl font-bold text-gray-800">
+//                   <h2 className="text-xl font-bold text-gray-800">
 //                     Edit Navbar Custom Content
 //                   </h2>
 //                   <button
 //                     onClick={() => setCustomDialogOpen(false)}
 //                     className="text-gray-400 hover:text-gray-600 transition-colors"
 //                   >
+//                   
 //                     <svg
 //                       className="w-6 h-6"
 //                       fill="none"
 //                       stroke="currentColor"
 //                       viewBox="0 0 24 24"
 //                     >
-//                       <path
-//                         strokeLinecap="round"
+//                       <path      strokeLinecap="round"
 //                         strokeLinejoin="round"
 //                         strokeWidth={2}
 //                         d="M6 18L18 6M6 6l12 12"

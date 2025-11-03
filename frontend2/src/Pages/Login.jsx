@@ -20,7 +20,8 @@ const handleLogin = async () => {
 
     // save in context and localStorage
     setToken(token);
-    localStorage.setItem("token", token);
+
+    sessionStorage.setItem("token", token);
     toast.success("Login successful!");
     setLoggedIn(true);
     navigate("/admin");

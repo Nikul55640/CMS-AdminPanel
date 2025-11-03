@@ -417,7 +417,7 @@ export default Dashboard;
 //       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl">
 //         {/* Recent Pages */}
 //         <div className="md:col-span-2 bg-white rounded-2xl p-6 shadow-lg flex flex-col">
-//           <h3 className="text-2xl font-bold mb-4 text-center underline underline-offset-4">
+//           <h3 className="text-xl font-bold mb-4 text-center underline underline-offset-4">
 //             Recent Pages
 //           </h3>
 //           <ul className="divide-y divide-gray-200">
@@ -445,7 +445,7 @@ export default Dashboard;
 
 //         {/* Pie Chart */}
 //         <div className="bg-white rounded-2xl p-6 shadow-lg flex flex-col items-center justify-center">
-//           <h3 className="text-2xl font-bold mb-4 underline underline-offset-4">
+//           <h3 className="text-xl font-bold mb-4 underline underline-offset-4">
 //             Draft vs Published
 //           </h3>
 //           <div className="flex gap-4 mb-4">

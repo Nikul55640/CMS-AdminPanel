@@ -2,7 +2,7 @@
 import { createContext, useState, useEffect } from "react";
 import axios from "axios";
 
-const CmsContext = createContext();
+const  CmsContext = createContext();
 
 const API_BASE = "http://localhost:5000/api";
 

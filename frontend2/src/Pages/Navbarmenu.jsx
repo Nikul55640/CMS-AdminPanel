@@ -17,7 +17,12 @@ import SortableItem from "../components/Navbarmanager/SortableItem";
 import CustomContentDialog from "../components/Navbarmanager/CustomContentDialog";
 import ActiveMenuSelector from "../components/Navbarmanager/ActiveMenuSelector";
 import MenuForm from "../Components/Navbarmanager/Navmenuform.jsx";
-import { moveItemInTree, findMenuById, getAllMenuIds } from "../components//Navbarmanager/menuTreeUtils";
+import {
+  moveItemInTree,
+  findMenuById,
+  getAllMenuIds,
+} from "../components//Navbarmanager/menuTreeUtils";
+import ManualCss from "@/components/Navbarmanager/ManualCss";
 
 const API = "http://localhost:5000/api";
 
@@ -70,6 +75,48 @@ const NavbarManager = () => {
       )
       .join("")}</ul>`;
   }, []);
+
+  // ✅ Utility: find item by ID recursively
+  const findItemById = (items, id) => {
+    for (const item of items) {
+      if (item.id === id) return item;
+      if (item.children?.length) {
+        const found = findItemById(item.children, id);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  // ✅ Utility: remove item by ID recursively
+  const removeItemById = (items, id) => {
+    return items
+      .map((item) => {
+        if (item.id === id) return null;
+        if (item.children?.length) {
+          item.children = removeItemById(item.children, id);
+        }
+        return item;
+      })
+      .filter(Boolean);
+  };
+
+  // ✅ Utility: insert item into a parent’s children
+  const insertItemAsChild = (items, parentId, newItem) => {
+    return items.map((item) => {
+      if (item.id === parentId) {
+        const children = item.children || [];
+        return { ...item, children: [...children, newItem] };
+      }
+      if (item.children?.length) {
+        return {
+          ...item,
+          children: insertItemAsChild(item.children, parentId, newItem),
+        };
+      }
+      return item;
+    });
+  };
 
   const generatePreview = useCallback(
     ({ menus, customContent, activeMenus }) => {
@@ -181,23 +228,37 @@ const NavbarManager = () => {
       fetchMenus();
     }
   };
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
 
-  const handleDragEnd = async ({ active, over }) => {
     if (!over || active.id === over.id) return;
-    const newMenus = moveItemInTree(menus, active.id, over.id);
-    setMenus(newMenus);
 
-    try {
-      await axios.post(
-        `${API}/menus/hierarchy`,
-        { menuTree: newMenus, location: menuType },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success("Menu order updated");
-    } catch {
-      toast.error("Failed to update order");
-      fetchMenus();
+    console.group("🪄 Drag Event");
+    console.log("Active:", active.id);
+    console.log("Over:", over.id);
+    console.groupEnd();
+
+    const draggedItem = findItemById(menus, active.id);
+
+    // 1️⃣ Remove from its current location
+    let updatedMenus = removeItemById(menus, active.id);
+
+    // 2️⃣ If dropped inside another item → make it child
+    if (over.id.startsWith("drop-")) {
+      const parentId = over.id.replace("drop-", "");
+      updatedMenus = insertItemAsChild(updatedMenus, parentId, draggedItem);
+    } else {
+      // 3️⃣ Else, drop it at top level
+      const overIndex = updatedMenus.findIndex((i) => i.id === over.id);
+      if (overIndex >= 0) {
+        updatedMenus.splice(overIndex + 1, 0, draggedItem);
+      } else {
+        updatedMenus.push(draggedItem);
+      }
     }
+
+    console.log("✅ Updated Menu Structure:", updatedMenus);
+    setMenus([...updatedMenus]);
   };
 
   const handleToggleActiveMenu = (id) => {
@@ -303,48 +364,49 @@ const NavbarManager = () => {
           </button>
           <button
             onClick={() => setCustomDialogOpen(true)}
-            className={`px-5 py-2 rounded-lg border ${
+            disabled={isLoading}
+            className={`px-5 py-2 rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               activeMenus.includes("custom")
-                ? "bg-green-500 text-white"
-                : "bg-gray-100 text-gray-600"
+                ? "bg-green-500 text-white shadow hover:bg-green-600"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
             Custom Menu
           </button>
         </div>
-
         {isLoading ? (
           <div className="text-center py-8">Loading menus...</div>
         ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={menus.map((m) => m.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              {menus.map((item) => (
-                <SortableItem
-                  key={item.id}
-                  item={item}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onDrop={handleDrop}
-                />
-              ))}
-            </SortableContext>
-          </DndContext>
+        <DndContext
+  sensors={sensors}
+  collisionDetection={closestCenter}
+  onDragEnd={handleDragEnd}
+>
+  <SortableContext
+    items={menus.map((m) => m.id)}
+    strategy={verticalListSortingStrategy}
+  >
+    {menus.map((item) => (
+      <SortableItem
+        key={item.id}
+        item={item}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onDrop={handleDrop}
+      />
+    ))}
+  </SortableContext>
+</DndContext>
+
         )}
 
-        {/* <ActiveMenuSelector
+        <ActiveMenuSelector
           menus={menus}
           customHTML={customHTML}
           activeMenus={activeMenus}
           onToggle={handleToggleActiveMenu}
           onSave={handleSaveActiveMenus}
-        /> */}
+        />
 
         {selectedMenu && (
           <MenuForm
@@ -353,7 +415,9 @@ const NavbarManager = () => {
             onSave={handleSave}
             onCancel={() => setSelectedMenu(null)}
           />
+
         )}
+        <ManualCss />
 
         <div className="mt-8">
           <h2 className="text-xl font-semibold mb-4 text-center text-gray-700">
