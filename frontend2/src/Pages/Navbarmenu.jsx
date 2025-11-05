@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import {
@@ -7,22 +7,23 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  DragOverlay,
 } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 
-import SortableItem from "../components/Navbarmanager/SortableItem";
+import SortableItem from "../components/Navbarmanager/DND/SortableItem";
 import CustomContentDialog from "../components/Navbarmanager/CustomContentDialog";
 import ActiveMenuSelector from "../components/Navbarmanager/ActiveMenuSelector";
 import MenuForm from "../Components/Navbarmanager/Navmenuform.jsx";
 import {
-  moveItemInTree,
   findMenuById,
   getAllMenuIds,
-} from "../components//Navbarmanager/menuTreeUtils";
+} from "../components/Navbarmanager/MenuTreeUtils.jsx";
 import ManualCss from "@/components/Navbarmanager/ManualCss";
+import MenuStyleEditor from "@/components/Navbarmanager/MenustyleChanger";
 
 const API = "http://localhost:5000/api";
 
@@ -37,15 +38,41 @@ const NavbarManager = () => {
   const [previewHTML, setPreviewHTML] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [customActiveTab, setCustomActiveTab] = useState("HTML");
+  const [menuStyle, setMenuStyle] = useState({});
+
+  const [activeId, setActiveId] = useState(null); // <-- active drag id
 
   const token = localStorage.getItem("token");
   const menuType = "navbar";
+
+  // ✅ Utility: find item and its parent by ID recursively
+  const findItemAndParent = (items, id, parent = null) => {
+    for (const item of items) {
+      if (String(item.id) === String(id)) {
+        return { item, parent };
+      }
+      if (item.children?.length) {
+        const found = findItemAndParent(item.children, id, item);
+        if (found.item) return found;
+      }
+    }
+    return { item: null, parent: null };
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
     })
   );
+
+  const [logoPreview, setLogoPreview] = useState(null);
+  const handleLogoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setLogoPreview(reader.result);
+    reader.readAsDataURL(file);
+  };
 
   // Build HTML preview
   const buildPreviewHTML = useCallback((items, activeIds) => {
@@ -76,50 +103,8 @@ const NavbarManager = () => {
       .join("")}</ul>`;
   }, []);
 
-  // ✅ Utility: find item by ID recursively
-  const findItemById = (items, id) => {
-    for (const item of items) {
-      if (item.id === id) return item;
-      if (item.children?.length) {
-        const found = findItemById(item.children, id);
-        if (found) return found;
-      }
-    }
-    return null;
-  };
-
-  // ✅ Utility: remove item by ID recursively
-  const removeItemById = (items, id) => {
-    return items
-      .map((item) => {
-        if (item.id === id) return null;
-        if (item.children?.length) {
-          item.children = removeItemById(item.children, id);
-        }
-        return item;
-      })
-      .filter(Boolean);
-  };
-
-  // ✅ Utility: insert item into a parent’s children
-  const insertItemAsChild = (items, parentId, newItem) => {
-    return items.map((item) => {
-      if (item.id === parentId) {
-        const children = item.children || [];
-        return { ...item, children: [...children, newItem] };
-      }
-      if (item.children?.length) {
-        return {
-          ...item,
-          children: insertItemAsChild(item.children, parentId, newItem),
-        };
-      }
-      return item;
-    });
-  };
-
   const generatePreview = useCallback(
-    ({ menus, customContent, activeMenus }) => {
+    ({ menus, customContent, activeMenus, menuStyle }) => {
       if (activeMenus.includes("custom") && customContent?.html?.trim()) {
         setPreviewHTML(`
         <style>${customContent?.css || ""}</style>
@@ -127,7 +112,58 @@ const NavbarManager = () => {
         <script>${customContent?.js || ""}<\/script>
       `);
       } else {
-        setPreviewHTML(buildPreviewHTML(menus, activeMenus));
+        // ✅ apply menu style dynamically
+        const {
+          backgroundColor = "#ffffff",
+          textColor = "#000000",
+          hoverColor = "#1d4ed8",
+          fontSize = "16",
+          fontFamily = "Arial, sans-serif",
+          alignment = "left",
+        } = menuStyle || {};
+
+        const justify =
+          alignment === "center"
+            ? "center"
+            : alignment === "right"
+            ? "flex-end"
+            : "flex-start";
+
+        // inject dynamic CSS for hover + font
+        const styleBlock = `
+        <style>
+          .menu-container {
+            background: ${backgroundColor};
+            display: flex;
+            justify-content: ${justify};
+            gap: 1rem;
+            padding: 10px 20px;
+            font-family: ${fontFamily};
+            font-size: ${fontSize}px;
+          }
+          .menu-container {
+  background: ${backgroundColor};
+  display: flex;
+  justify-content: ${justify};
+  gap: 1rem;
+  padding: 10px 20px;
+  font-family: ${fontFamily};
+  font-size: ${fontSize}px;
+  position: ${menuStyle?.sticky ? "sticky" : "relative"};
+  top: ${menuStyle?.sticky ? "0" : "auto"};
+}
+         .menu-container a:hover {
+            color: ${hoverColor};
+          }
+        </style>
+      `;
+
+        const menuHTML = `<nav class="menu-container">${buildPreviewHTML(
+          menus,
+          activeMenus
+        )}</nav>`;
+
+        setPreviewHTML(styleBlock + menuHTML);
       }
     },
     [buildPreviewHTML]
@@ -172,6 +208,23 @@ const NavbarManager = () => {
     fetchMenus();
   }, [fetchMenus]);
 
+  useEffect(() => {
+    generatePreview({
+      menus,
+      customContent: { html: customHTML, css: customCSS, js: customJS },
+      activeMenus,
+      menuStyle, // ✅ include this
+    });
+  }, [
+    menus,
+    customHTML,
+    customCSS,
+    customJS,
+    activeMenus,
+    menuStyle,
+    generatePreview,
+  ]);
+
   // Handlers
   const handleAdd = () => setSelectedMenu({ location: menuType });
   const handleEdit = (item) => setSelectedMenu(item);
@@ -210,11 +263,10 @@ const NavbarManager = () => {
     }
   };
 
-  // ✅ When an item is dropped inside another
-  const handleDrop = async (parentId, childId) => {
-    const toastId = toast.loading("Updating hierarchy...");
+  const handleHierarchyChange = async (newMenus) => {
+    const toastId = toast.loading("Updating menu structure...");
     try {
-      const newMenus = moveItemInTree(menus, childId, parentId);
+      // Optimistically update UI
       setMenus(newMenus);
 
       await axios.post(
@@ -222,43 +274,92 @@ const NavbarManager = () => {
         { menuTree: newMenus, location: menuType },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.success("Item nested successfully", { id: toastId });
-    } catch {
-      toast.error("Failed to update hierarchy", { id: toastId });
+      toast.success("Menu structure updated", { id: toastId });
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update structure", {
+        id: toastId,
+      });
+      // On failure, revert the optimistic update by refetching
       fetchMenus();
     }
   };
+
+  // onDragStart + onDragEnd integration
+  const handleDragStart = (event) => {
+    setActiveId(event.active.id);
+  };
+
   const handleDragEnd = (event) => {
     const { active, over } = event;
 
-    if (!over || active.id === over.id) return;
+    // No drop target or dropping on itself
+    if (!over || active.id === over.id) {
+      setActiveId(null);
+      return;
+    }
 
-    console.group("🪄 Drag Event");
-    console.log("Active:", active.id);
-    console.log("Over:", over.id);
-    console.groupEnd();
+    const newMenus = JSON.parse(JSON.stringify(menus)); // Deep copy for mutation
 
-    const draggedItem = findItemById(menus, active.id);
+    // Find the dragged item and its original parent
+    const { item: draggedItem, parent: originalParent } = findItemAndParent(
+      newMenus,
+      active.id
+    );
 
-    // 1️⃣ Remove from its current location
-    let updatedMenus = removeItemById(menus, active.id);
+    if (!draggedItem) {
+      setActiveId(null);
+      return;
+    }
 
-    // 2️⃣ If dropped inside another item → make it child
-    if (over.id.startsWith("drop-")) {
-      const parentId = over.id.replace("drop-", "");
-      updatedMenus = insertItemAsChild(updatedMenus, parentId, draggedItem);
-    } else {
-      // 3️⃣ Else, drop it at top level
-      const overIndex = updatedMenus.findIndex((i) => i.id === over.id);
-      if (overIndex >= 0) {
-        updatedMenus.splice(overIndex + 1, 0, draggedItem);
-      } else {
-        updatedMenus.push(draggedItem);
+    // Remove item from its original position
+    const sourceContainer = originalParent ? originalParent.children : newMenus;
+    const itemIndex = sourceContainer.findIndex(
+      (i) => String(i.id) === String(active.id)
+    );
+    sourceContainer.splice(itemIndex, 1);
+
+    let targetParent = null;
+    let targetIndex = -1;
+
+    // Case 1: Dropping into a droppable area (nesting)
+    if (String(over.id).startsWith("drop-")) {
+      const parentId = String(over.id).replace("drop-", "");
+      const { item: newParent } = findItemAndParent(newMenus, parentId);
+      if (newParent) {
+        targetParent = newParent;
+        if (!targetParent.children) {
+          targetParent.children = [];
+        }
+        // Add to the end of the new parent's children
+        targetIndex = targetParent.children.length;
+      }
+    }
+    // Case 2: Dropping onto another sortable item (reordering)
+    else {
+      const { item: overItem, parent: overParent } = findItemAndParent(
+        newMenus,
+        over.id
+      );
+      if (overItem) {
+        targetParent = overParent;
+        const destContainer = targetParent ? targetParent.children : newMenus;
+        targetIndex = destContainer.findIndex(
+          (i) => String(i.id) === String(over.id)
+        );
       }
     }
 
-    console.log("✅ Updated Menu Structure:", updatedMenus);
-    setMenus([...updatedMenus]);
+    // Insert item into its new position
+    if (targetIndex !== -1) {
+      const destContainer = targetParent ? targetParent.children : newMenus;
+      destContainer.splice(targetIndex, 0, draggedItem);
+    } else {
+      // Fallback: if something went wrong, add to the root to prevent item loss
+      newMenus.push(draggedItem);
+    }
+
+    handleHierarchyChange(newMenus);
+    setActiveId(null);
   };
 
   const handleToggleActiveMenu = (id) => {
@@ -266,7 +367,7 @@ const NavbarManager = () => {
       id === "custom" ? { id: "custom" } : findMenuById(menus, id);
     if (!menuItem) return;
 
-    const idsToToggle = getAllMenuIds(menuItem);
+    const idsToToggle = getAllMenuIds([menuItem]); // get all ids from this subtree
 
     setActiveMenus((prev) => {
       const isActive = idsToToggle.every((i) => prev.includes(i));
@@ -342,6 +443,18 @@ const NavbarManager = () => {
     }
   };
 
+  // active item for overlay
+  const activeItem = activeId ? findMenuById(menus, activeId) : null;
+
+  const newLocal = (
+    <ActiveMenuSelector
+      menus={menus}
+      customHTML={customHTML}
+      activeMenus={activeMenus}
+      onToggle={handleToggleActiveMenu}
+      onSave={handleSaveActiveMenus}
+    />
+  );
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto mt-8 px-8 py-6 rounded-t-2xl bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg">
@@ -377,36 +490,41 @@ const NavbarManager = () => {
         {isLoading ? (
           <div className="text-center py-8">Loading menus...</div>
         ) : (
-        <DndContext
-  sensors={sensors}
-  collisionDetection={closestCenter}
-  onDragEnd={handleDragEnd}
->
-  <SortableContext
-    items={menus.map((m) => m.id)}
-    strategy={verticalListSortingStrategy}
-  >
-    {menus.map((item) => (
-      <SortableItem
-        key={item.id}
-        item={item}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onDrop={handleDrop}
-      />
-    ))}
-  </SortableContext>
-</DndContext>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            {/* flatten all IDs so nested items are recognized by SortableContext */}
+            <SortableContext
+              items={getAllMenuIds(menus)}
+              strategy={verticalListSortingStrategy}
+            >
+              {menus.map((item) => (
+                <SortableItem
+                  key={item.id}
+                  item={item}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onToggleActiveMenu={handleToggleActiveMenu} // ✅ new
+                  activeMenus={activeMenus} // ✅ new
+                />
+              ))}
+            </SortableContext>
 
+            <DragOverlay>
+              {activeItem ? (
+                <div className="p-2 bg-white shadow-lg border rounded-md">
+                  {activeItem.title}
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         )}
+        <MenuStyleEditor onStyleChange={setMenuStyle} />
 
-        <ActiveMenuSelector
-          menus={menus}
-          customHTML={customHTML}
-          activeMenus={activeMenus}
-          onToggle={handleToggleActiveMenu}
-          onSave={handleSaveActiveMenus}
-        />
+        {/* {newLocal} */}
 
         {selectedMenu && (
           <MenuForm
@@ -415,9 +533,7 @@ const NavbarManager = () => {
             onSave={handleSave}
             onCancel={() => setSelectedMenu(null)}
           />
-
         )}
-        <ManualCss />
 
         <div className="mt-8">
           <h2 className="text-xl font-semibold mb-4 text-center text-gray-700">

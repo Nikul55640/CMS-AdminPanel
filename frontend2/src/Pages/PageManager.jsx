@@ -212,7 +212,7 @@ const PageManager = () => {
                               await fetch(
                                 `http://localhost:5000/api/pages/${p.slug}`,
                                 {
-                                  method: "PATCH",
+                                  method: "PUT",
                                   headers: {
                                     "Content-Type": "application/json",
                                     Authorization: `Bearer ${token}`,

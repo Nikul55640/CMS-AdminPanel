@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import Navbar from "./Navbar";
+import { Menu, X, ChevronDown, ChevronRight } from "lucide-react";
+
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
 
 const API = "http://localhost:5000/api";
 
@@ -14,37 +21,10 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
     js: "",
   });
   const [activeMenuIds, setActiveMenuIds] = useState([]);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [submenuOpenIds, setSubmenuOpenIds] = useState({});
-  const [hasChildren, sethasChildrenOpen] = useState(false);
 
-  const toggleSubmenu = (id) => {
-    console.log(`📂 Toggling submenu for menu ID: ${id}`);
-    setSubmenuOpenIds((prev) => {
-      const updated = { ...prev, [id]: !prev[id] };
-      console.log("➡️ Updated submenuOpenIds:", updated);
-      return updated;
-    });
-  };
-
-  const filterActiveMenus = (menuList) => {
-    const filtered = menuList
-      .map((menu) => {
-        const filteredChildren = menu.children
-          ? filterActiveMenus(menu.children)
-          : [];
-        const isActive =
-          activeMenuIds.includes(String(menu.id || menu._id)) ||
-          filteredChildren.length > 0;
-        if (isActive) {
-          return { ...menu, children: filteredChildren };
-        } else {
-          return null;
-        }
-      })
-      .filter(Boolean);
-    return filtered;
-  };
-
+  /* ---------------- Fetch Menus + Custom Content ---------------- */
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -53,14 +33,10 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
           axios.get(`${API}/menus/custom-content?section=${menuType}`),
         ]);
 
-        if (!menuRes.data || !menuRes.data.menus) {
-          console.error(`❌ No menus found for ${menuType}`);
-          return;
-        }
-
-        const flatMenus = menuRes.data.menus || [];
-        const nestedMenus = menuRes.data.menus || [];
-        const fetchedActiveIds = (menuRes.data.activeMenuIds || []).map(String);
+        const nestedMenus = menuRes.data?.menus || [];
+        const fetchedActiveIds = (menuRes.data?.activeMenuIds || []).map(
+          String
+        );
 
         setMenus(nestedMenus);
         setActiveMenuIds(fetchedActiveIds);
@@ -71,131 +47,173 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
         console.error(`❌ Failed to load ${menuType} menus:`, err);
       }
     };
-
     fetchData();
   }, [menuType]);
 
+  /* ---------------- Inject Custom JS ---------------- */
   useEffect(() => {
     if (!customContent.js?.trim()) return;
-
-    try {
-      const script = document.createElement("script");
-      script.type = "text/javascript";
-      script.text = `(function(){ const navbar = document.querySelector('.custom-navbar'); ${customContent.js} })();`;
-      document.body.appendChild(script);
-      console.log("✅ Custom JS appended to document.");
-      return () => {
-        document.body.removeChild(script);
-        console.log(" Custom JS script removed from DOM.");
-      };
-    } catch (error) {
-      console.error(` Error executing ${menuType} JS:`, error);
-    }
+    const script = document.createElement("script");
+    script.text = `(function(){ const navbar = document.querySelector('.custom-navbar'); ${customContent.js} })();`;
+    document.body.appendChild(script);
+    return () => document.body.removeChild(script);
   }, [customContent.js]);
+
+  /* ---------------- Recursive Filter for Active Menus ---------------- */
+  const filterActiveMenus = (menuList) =>
+    menuList
+      .map((menu) => {
+        const children = menu.children ? filterActiveMenus(menu.children) : [];
+        const isActive =
+          activeMenuIds.includes(String(menu.id)) || children.length > 0;
+        return isActive ? { ...menu, children } : null;
+      })
+      .filter(Boolean);
+
+  const toggleSubmenu = (id) => {
+    setSubmenuOpenIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const isMenuActive = (menu) => {
     const active = activeMenuIds.includes(String(menu.id));
     const childActive = menu.children?.some((child) => isMenuActive(child));
-    console.log(
-      `🔎 Checking active state for: ${menu.title} (${menu.id}) -> ${
-        active || childActive
-      }`
-    );
     return active || childActive;
   };
 
-  const logoUrl =  NavbarPublic.logoUrl || Navbarmenu.logoUrl || null;
-  const renderMenu = (menu) => {
-    const submenuOpen = !!submenuOpenIds[menu.id];
+  /* ---------------- Recursive Render ---------------- */
+  const renderMenu = (menu, level = 0) => {
     const hasChildren = menu.children && menu.children.length > 0;
-    console.log(`🧱 Rendering menu:`, menu);
-    console.log(
-      `📁 ${menu.title} (${menu.id}) has children: ${hasChildren}, submenuOpen: ${submenuOpen}`
-    );
+    const submenuOpen = submenuOpenIds[menu.id];
 
     return (
-      <li
-        key={menu.id}
-        className="relative group md:static"
-        style={{ listStyle: "none" }}
-      >
-        <div className="flex items-center justify-between">
+      <li key={menu.id} className="relative list-none">
+        <div
+          className={`flex items-center justify-between py-2 px-4 ${
+            level === 0 ? "hover:bg-gray-100 rounded-lg" : ""
+          }`}
+        >
           <Link
             to={menu.url || "#"}
-            onMouseEnter={() => {
-              if (hasChildren) console.log(`🖱️ Hover enter on ${menu.title}`);
-              sethasChildrenOpen(!hasChildren);
-              console.log(hasChildren);
-            }}
-            onMouseLeave={() => {
-              if (hasChildren) console.log(`🖱️ Hover leave on ${menu.title}`);
-              sethasChildrenOpen(!hasChildren);
-            }}
-            className={`block px-3 py-2 hover:text-blue-600 ${
-              isMenuActive(menu) ? "text-blue-600 font-semibold" : ""
+            className={`text-sm font-medium ${
+              isMenuActive(menu)
+                ? "text-blue-600 font-semibold"
+                : "text-gray-700 hover:text-blue-600"
             }`}
           >
             {menu.title}
           </Link>
           {hasChildren && (
-            <div className="md:hidden">
-              <button
-                onClick={() => toggleSubmenu(menu.id)}
-                aria-label="Toggle submenu"
-                className="p-1 rounded hover:bg-gray-200 transition"
-              >
-                {submenuOpen ? (
-                  <ChevronDown size={16} />
-                ) : (
-                  <ChevronRight size={16} />
-                )}
-              </button>
-            </div>
+            <button
+              onClick={() => toggleSubmenu(menu.id)}
+              className="p-1 ml-2 rounded-md hover:bg-gray-200 transition md:hidden"
+            >
+              {submenuOpen ? (
+                <ChevronDown size={14} />
+              ) : (
+                <ChevronRight size={14} />
+              )}
+            </button>
           )}
         </div>
+
+        {/* Dropdown (mobile + desktop) */}
         {hasChildren && (
           <ul
-            className={`ml-6 mt-1 flex flex-col gap-1
-              ${submenuOpen ? "block" : "hidden"} 
-              md:block md:group-hover:block`}
-            style={{ minWidth: "160px", listStyle: "none", zIndex: 50 }}
+            className={`${
+              submenuOpen ? "block" : "hidden"
+            } md:absolute md:left-0 md:top-full md:mt-2 md:shadow-lg md:bg-white md:rounded-lg md:border md:w-48 md:hidden group-hover:md:block transition-all`}
           >
-            {menu.children.map(renderMenu)}
+            {menu.children.map((child) => renderMenu(child, level + 1))}
           </ul>
         )}
       </li>
     );
   };
 
+  /* ---------------- Custom HTML Mode ---------------- */
+  if (activeMenuIds.includes("custom") && customContent.html?.trim()) {
+    return (
+      <nav className="custom-navbar">
+        {customContent.css && (
+          <style>{`.custom-navbar { all: unset; }\n${customContent.css}`}</style>
+        )}
+        <div dangerouslySetInnerHTML={{ __html: customContent.html }} />
+      </nav>
+    );
+  }
+
+  /* ---------------- Standard Navbar ---------------- */
   return (
-    <nav className="custom-navbar  bg-gray-100 md:bg-transparent p-2 md:p-0">
-      {activeMenuIds.includes("custom") && customContent.html?.trim() ? (
-        <>
-          {customContent.css && (
-            <style>{`.custom-navbar { /* Scoped CSS */ }\n${customContent.css}`}</style>
-          )}
-          <div
-            dangerouslySetInnerHTML={{ __html: customContent.html }}
-            onLoad={() => console.log("🧩 Custom HTML loaded")}
-          />
-        </>
-      ) : (
-        <ul>
-          <li className="flex flex-col md:flex-row gap-2  md:gap-2 md:p-0">
-            <div className="flex flex-col md:flex-row gap-2 md:gap-2 md:p-0">
-              {logoUrl && (
-                <Link to="/">
-                  <img src={logoUrl} alt="Logo" className="h-8 w-auto" />
-                </Link>
-              )}
-            </div>
-            <div className="flex-grow" />
-            <div className="flex flex-col md:flex-row gap-2 md:gap-2 md:p-0">
-              </div>
-            {filterActiveMenus(menus).map(renderMenu)}
-          </li>
+    <nav className="custom-navbar w-full bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between h-16">
+        {/* Logo */}
+        <Link to="/" className="text-xl font-bold text-blue-600">
+          {Logo}
+        </Link>
+
+        {/* Hamburger (mobile) */}
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="md:hidden text-gray-700 hover:text-blue-600 transition"
+        >
+          {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+
+        {/* Desktop Navigation */}
+        <div className="hidden md:block">
+          <NavigationMenu>
+            <NavigationMenuList className="flex gap-4">
+              {filterActiveMenus(menus).map((menu) => (
+                <NavigationMenuItem key={menu.id}>
+                  {menu.children && menu.children.length > 0 ? (
+                    <>
+                      <NavigationMenuTrigger className="text-gray-700 hover:text-blue-600 font-medium">
+                        {menu.title}
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent className="bg-white border border-gray-200 rounded-lg shadow-lg p-2 mt-1">
+                        <ul className="flex flex-col gap-1">
+                          {menu.children.map((child) => (
+                            <li key={child.id}>
+                              <Link
+                                to={child.url || "#"}
+                                className="block px-3 py-1 text-sm rounded-md hover:bg-gray-100"
+                              >
+                                {child.title}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </NavigationMenuContent>
+                    </>
+                  ) : (
+                    <Link
+                      to={menu.url || "#"}
+                      className={`text-gray-700 hover:text-blue-600 font-medium px-3 py-2 rounded-md ${
+                        isMenuActive(menu)
+                          ? "text-blue-600 font-semibold"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {menu.title}
+                    </Link>
+                  )}
+                </NavigationMenuItem>
+              ))}
+            </NavigationMenuList>
+          </NavigationMenu>
+        </div>
+      </div>
+
+      {/* Mobile Dropdown */}
+      <div
+        className={`md:hidden bg-white border-t border-gray-200 transition-all duration-300 overflow-hidden ${
+          mobileOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >.
+        <ul className="flex flex-col p-2 space-y-1">
+          {filterActiveMenus(menus).map((menu) => renderMenu(menu))}
         </ul>
-      )}
+      </div>
     </nav>
   );
 };

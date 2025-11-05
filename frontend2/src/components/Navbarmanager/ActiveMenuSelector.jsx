@@ -6,6 +6,7 @@ const ActiveMenuSelector = ({
   activeMenus,
   onToggle,
   onSave,
+  
 }) => {
   const renderCheckboxes = (items, level = 0) => (
     <div style={{ marginLeft: `${level * 16}px` }}>
@@ -19,7 +20,8 @@ const ActiveMenuSelector = ({
             />
             <span className="text-gray-700 font-medium">{item.title}</span>
           </label>
-          {item.children?.length > 0 && renderCheckboxes(item.children, level + 1)}
+          {item.children?.length > 0 &&
+            renderCheckboxes(item.children, level + 1)}
         </div>
       ))}
     </div>
@@ -36,7 +38,6 @@ const ActiveMenuSelector = ({
       ) : (
         <p className="text-gray-500  text-sm">No menus available.</p>
       )}
-
       {customHTML?.trim() && (
         <div className="mt-3">
           <label className="flex justify-center gap-2">
@@ -45,7 +46,9 @@ const ActiveMenuSelector = ({
               checked={activeMenus.includes("custom")}
               onChange={() => onToggle("custom")}
             />
-            <span className="text-gray-700 font-medium">Custom Navbar Content</span>
+            <span className="text-gray-700 font-medium">
+              Custom Navbar Content
+            </span>
           </label>
         </div>
       )}

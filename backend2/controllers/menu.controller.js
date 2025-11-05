@@ -266,48 +266,58 @@ export const getMenusByLocation = AsyncHandler(async (req, res) => {
 });
 
 export const updateMenuLogo = AsyncHandler(async (req, res) => {
-  const { logo } = req.body;
   const { location } = req.params;
+  let logoUrl = "";
 
-  let customContent = await CustomContent.findOne({ where: { section: location } });
-  
-  if (customContent) {
-    customContent.logo = logo || customContent.logo;
-    await customContent.save();
+  // ✅ If a file was uploaded via multer
+  if (req.file) {
+    logoUrl = `/uploads/${req.file.filename}`;
+  }
+  // ✅ If a logo URL or base64 string was sent in the body
+  else if (req.body.logo) {
+    logoUrl = req.body.logo;
   } else {
-    customContent = await CustomContent.create({ section: location, logo });
+    return res.status(400).json({ success: false, message: "No logo provided" });
   }
 
-  res.json({ message: "Menu logo updated", logo: customContent.logo });
+  // Save or update the record
+  let customContent = await CustomContent.findOne({ where: { section: location } });
+  if (customContent) {
+    customContent.logo = logoUrl;
+    await customContent.save();
+  } else {
+    customContent = await CustomContent.create({ section: location, logo: logoUrl });
+  }
+
+  res.json({
+    success: true,
+    message: "Menu logo updated successfully",
+    logo: customContent.logo,
+  });
 });
 
+
+// 🟢 Upload actual file with Multer
 export const menulogo = AsyncHandler(async (req, res) => {
   const { location } = req.params;
 
-  // ✅ Check if file is uploaded
   if (!req.file) {
-    return res.status(400).json({ message: "No logo uploaded" });
+    return res.status(400).json({ success: false, message: "No logo uploaded" });
   }
 
-  // ✅ Create public path for logo
   const logoPath = `/uploads/${req.file.filename}`;
 
-  // ✅ (Optional) Store logo path in your database
-  // Example: if you have a Menu or Page model with a `logo` field
-  // const updatedMenu = await Menu.findOneAndUpdate(
-  //   { location },
-  //   { logo: logoPath },
-  //   { new: true, upsert: true } // creates one if it doesn't exist
-  // );
+  // Optional: store in DB
+  const menu = await Menu.findOne({ where: { location } });
+  if (menu) {
+    menu.logo = logoPath;
+    await menu.save();
+  }
 
-  // ✅ Send success response
   res.json({
     success: true,
     message: "Logo uploaded successfully",
     location,
     logo: logoPath,
-    // menu: updatedMenu, // only if you save it in DB
   });
 });
-
-  

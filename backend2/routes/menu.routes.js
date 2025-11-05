@@ -14,6 +14,7 @@ import {
 import authMiddleware from "../middleware/auth.middleware.js";
 import upload from "../middleware/upload.js";
 import { menulogo } from "../controllers/menu.controller.js";
+import { updateMenuLogo } from "../controllers/menu.controller.js";
 const router = express.Router();
 
 // ---------------- PUBLIC ROUTES ---------------- //
@@ -50,8 +51,10 @@ router.delete("/custom-content/:section", authMiddleware, deleteCustomContent);
 // Set active menus for a section (supports multiple + custom)
 router.post("/set-active", authMiddleware, setActiveMenus);
 
-
-// POST /api/menu/logo/:location
+// Upload logo file
+// Upload logo file
 router.post("/logo/:location", upload.single("logo"), menulogo);
+router.put("/logo/:location", upload.single("logo"), updateMenuLogo);
+
 
 export default router;

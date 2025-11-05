@@ -15,6 +15,7 @@ import FooterPublic from "./components/Footerpages";
 import AdminSettings from "./Pages/AdminSettings";
 import PublicPage from "../componentsPublic/PublicPage";
 import Navbarmenu from "./Pages/Navbarmenu";
+import BlogPage from "./Pages/BlogPage";
 // import Footermenu from "./Pages/Footermenu";
 
 
@@ -138,6 +139,17 @@ function App() {
               <ProtectedRoute>
                 <AdminLayout>
                   <Dashboard />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+            <Route
+            path="/admin/blog"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <BlogPage/>
                 </AdminLayout>
               </ProtectedRoute>
             }

@@ -11,7 +11,8 @@ import {
   SquareChartGantt,
   LogOut,
   ChevronDown,
-  ChevronRight, // ✅ Added
+  ChevronRight, 
+  BookOpenText // ✅ Added
 } from "lucide-react";
 import { RxComponent2 } from "react-icons/rx";
 import { IoDocumentsOutline } from "react-icons/io5";
@@ -178,7 +179,13 @@ const Navbar = () => {
               </div>
             )}
           </div>
-
+  <Link
+            to="/admin/blog"
+            onClick={closeSidebar}
+            className="p-2 rounded flex items-center gap-2 hover:bg-gray-700 font-semibold transition"
+          >
+            <BookOpenText size={20} /> Blog
+          </Link>
           <Link
             to="/admin/pages"
             onClick={closeSidebar}
