@@ -8,7 +8,7 @@ import authRouter from "./routes/auth.routes.js";
 import pageRouter from "./routes/page.routes.js";
 import menuRouter from "./routes/menu.routes.js";
 import componentRouter from "./routes/component.routes.js";
-import blogRoutes from "./routes/blog.routes.js";
+import blogRouter from "./routes/blog.routes.js";
 import { ApiError } from "./utils/ApiHelpers.js";
 
 dotenv.config();
@@ -33,8 +33,7 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use("/uploads", express.static(path.join("./uploads")));
 
 // ------------------- Routes -------------------
-
-app.use("/api/blog", blogRoutes);
+app.use("/api/blogs", blogRouter);
 
 app.use("/api/auth", authRouter);
 app.use("/api/pages", pageRouter);
@@ -72,7 +71,7 @@ const startServer = async () => {
     await sequelize.authenticate();
     console.log("✅ Database connected via Sequelize");
 
-    await sequelize.sync({  }); // This will automatically adjust columns
+    await sequelize.sync({}); // This will automatically adjust columns
     // // just ensure models exist, no altering
     console.log("✅ Sequelize models synced");
 

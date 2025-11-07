@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { Menu, X, ChevronDown, ChevronRight } from "lucide-react";
-
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -19,6 +18,7 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
     html: "",
     css: "",
     js: "",
+    logoUrl: "",
   });
   const [activeMenuIds, setActiveMenuIds] = useState([]);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -37,12 +37,16 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
         const fetchedActiveIds = (menuRes.data?.activeMenuIds || []).map(
           String
         );
+        const content = contentRes.data?.content || {};
 
         setMenus(nestedMenus);
         setActiveMenuIds(fetchedActiveIds);
-        setCustomContent(
-          contentRes.data?.content || { html: "", css: "", js: "" }
-        );
+        setCustomContent({
+          html: content.html || "",
+          css: content.css || "",
+          js: content.js || "",
+          logoUrl: content.logoUrl || "",
+        });
       } catch (err) {
         console.error(`❌ Failed to load ${menuType} menus:`, err);
       }
@@ -101,6 +105,7 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
             }`}
           >
             {menu.title}
+            
           </Link>
           {hasChildren && (
             <button
@@ -146,9 +151,17 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
   return (
     <nav className="custom-navbar w-full bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between h-16">
-        {/* Logo */}
-        <Link to="/" className="text-xl font-bold text-blue-600">
-          {Logo}
+        {/* Logo Section */}
+        <Link to="/" className="flex items-center gap-2">
+          {customContent.logoUrl ? (
+            <img
+              src={customContent.logoUrl}
+              alt="Logo"
+              className="h-10 w-auto object-contain"
+            />
+          ) : (
+            <span className="text-xl font-bold text-blue-600">MySite</span>
+          )}
         </Link>
 
         {/* Hamburger (mobile) */}
@@ -209,7 +222,7 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
         className={`md:hidden bg-white border-t border-gray-200 transition-all duration-300 overflow-hidden ${
           mobileOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
         }`}
-      >.
+      >
         <ul className="flex flex-col p-2 space-y-1">
           {filterActiveMenus(menus).map((menu) => renderMenu(menu))}
         </ul>

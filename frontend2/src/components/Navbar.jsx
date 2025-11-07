@@ -150,8 +150,8 @@ const Navbar = () => {
               onClick={() => setMenuOpen(!menuOpen)}
               className="w-full flex items-center justify-between p-2 rounded hover:bg-gray-700 font-semibold transition"
             >
-              <span className="flex items-center gap-2">
-                <SquareChartGantt size={20} /> Menu Management
+              <span className="flex items-center gap-1 ">
+                <SquareChartGantt size={20} />Menu Management
               </span>
               {menuOpen ? (
                 <ChevronDown size={18} />

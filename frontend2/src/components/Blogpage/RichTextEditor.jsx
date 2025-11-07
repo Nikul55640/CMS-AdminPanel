@@ -1,63 +1,98 @@
-import { useState } from "react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Link from "@tiptap/extension-link";
+import Image from "@tiptap/extension-image";
+import { Button } from "../ui/button";
+import { Separator } from "../ui/separator";
 import {
   Bold,
   Italic,
   List,
   ListOrdered,
-  Link,
-  Image,
   Quote,
   Code,
+  Link as LinkIcon,
+  Image as ImageIcon,
 } from "lucide-react";
-import { Button } from "../ui/button";
-import { Textarea } from "../ui/textarea";
-import { Separator } from "../ui/separator";
+import { SimpleEditor } from "../tiptap-templates/simple/simple-editor";
 
 const RichTextEditor = ({ value, onChange, placeholder }) => {
-  const [isFocused, setIsFocused] = useState(false);
+  const editor = useEditor({
+    extensions: [StarterKit, Link, Image],
+    content: value,
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+    },
+    editorProps: {
+      attributes: {
+        class:
+          "min-h-[400px] p-3 outline-none prose prose-sm max-w-none dark:prose-invert",
+      },
+    },
+  });
+
+  if (!editor) return null;
+
+  const setLink = () => {
+    const url = prompt("Enter URL:");
+    if (url) editor.chain().focus().setLink({ href: url }).run();
+  };
+
+  const addImage = () => {
+    const url = prompt("Enter Image URL:");
+    if (url) editor.chain().focus().setImage({ src: url }).run();
+  };
 
   const toolbarButtons = [
-    { icon: Bold, label: "Bold", action: () => {} },
-    { icon: Italic, label: "Italic", action: () => {} },
-    { icon: List, label: "Bullet List", action: () => {} },
-    { icon: ListOrdered, label: "Numbered List", action: () => {} },
-    { icon: Link, label: "Insert Link", action: () => {} },
-    { icon: Image, label: "Insert Image", action: () => {} },
-    { icon: Quote, label: "Quote", action: () => {} },
-    { icon: Code, label: "Code", action: () => {} },
+    { icon: Bold, action: () => editor.chain().focus().toggleBold().run() },
+    { icon: Italic, action: () => editor.chain().focus().toggleItalic().run() },
+    {
+      icon: List,
+      action: () => editor.chain().focus().toggleBulletList().run(),
+    },
+    {
+      icon: ListOrdered,
+      action: () => editor.chain().focus().toggleOrderedList().run(),
+    },
+    {
+      icon: Quote,
+      action: () => editor.chain().focus().toggleBlockquote().run(),
+    },
+    {
+      icon: Code,
+      action: () => editor.chain().focus().toggleCodeBlock().run(),
+    },
+    { icon: LinkIcon, action: setLink },
+    { icon: ImageIcon, action: addImage },
   ];
 
   return (
-    <div className={`border rounded-lg ${isFocused ? "ring-2 ring-ring" : ""}`}>
+    <div className= "flex bg-white">
       {/* Toolbar */}
-      <div className="flex items-center gap-1 p-2 border-b bg-muted/30">
-        {toolbarButtons.map((button, index) => (
-          <div key={index} className="flex items-center">
+      <SimpleEditor editor={editor} className="" />
+      {/* <div className="flex items-center gap-1 p-2 border-b bg-muted/30 flex-wrap">
+        {toolbarButtons.map((btn, i) => (
+          <div key={i} className="flex items-center">
             <Button
-              type="button"
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
-              onClick={button.action}
+              type="button"
+              className={`h-8 w-8 ${
+                editor.isActive(btn.label?.toLowerCase()) ? "bg-accent" : ""
+              }`}
+              onClick={btn.action}
             >
-              <button.icon className="w-4 h-4" />
+              <btn.icon className="w-4 h-4" />
             </Button>
-            {(index === 1 || index === 3 || index === 5) && (
+            {(i === 1 || i === 3 || i === 5) && (
               <Separator orientation="vertical" className="h-6 mx-1" />
             )}
           </div>
         ))}
-      </div>
+      </div> */}
 
-      {/* Editor Area */}
-      <Textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        placeholder={placeholder}
-        className="min-h-[400px] border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none"
-      />
+      Editor Area
+      <EditorContent editor={editor} />
     </div>
   );
 };

@@ -13,8 +13,7 @@ import {
 } from "../controllers/menu.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import upload from "../middleware/upload.js";
-import { menulogo } from "../controllers/menu.controller.js";
-import { updateMenuLogo } from "../controllers/menu.controller.js";
+import { manuallogoupload } from "../controllers/menu.controller.js";
 const router = express.Router();
 
 // ---------------- PUBLIC ROUTES ---------------- //
@@ -52,9 +51,6 @@ router.delete("/custom-content/:section", authMiddleware, deleteCustomContent);
 router.post("/set-active", authMiddleware, setActiveMenus);
 
 // Upload logo file
-// Upload logo file
-router.post("/logo/:location", upload.single("logo"), menulogo);
-router.put("/logo/:location", upload.single("logo"), updateMenuLogo);
-
+router.post("/logo/:location", upload.single("logo"), manuallogoupload);
 
 export default router;

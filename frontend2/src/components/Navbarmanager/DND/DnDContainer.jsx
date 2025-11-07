@@ -5,32 +5,38 @@ import {
   useSensor,
   useSensors,
   PointerSensor,
+  DragOverlay,
 } from "@dnd-kit/core";
 import {
   SortableContext,
+  arrayMove,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import SortableItem from "./SortableItem.jsx";
+import SortableItem from "./SortableItem";
+import ActiveMenuSelector from "./ActiveMenuSelector";
 
-// 🔧 Helper to remove an item recursively
-const removeItem = (items, id) => {
+// 🔧 --- Helper: Find item path recursively ---
+const findItemPath = (items, id, path = []) => {
   for (let i = 0; i < items.length; i++) {
-    if (items[i].id === id) return items.splice(i, 1)[0];
-    if (items[i].children?.length) {
-      const found = removeItem(items[i].children, id);
-      if (found) return found;
+    const item = items[i];
+    if (item.id === id) return [...path, i];
+    if (item.children?.length) {
+      const result = findItemPath(item.children, id, [...path, i, "children"]);
+      if (result) return result;
     }
   }
+  return null;
 };
 
-// 🔧 Helper to find parent
-const findParent = (items, id) => {
-  for (let item of items) {
-    if (item.children?.some((child) => child.id === id)) return item;
-    const deep = findParent(item.children || [], id);
-    if (deep) return deep;
-  }
-  return null;
+// 🔧 --- Helper: Get item by path ---
+const getItemByPath = (items, path) =>
+  path.reduce((acc, key) => acc[key], items);
+
+// 🔧 --- Helper: Remove item by path ---
+const removeItemByPath = (items, path) => {
+  const lastKey = path.pop();
+  const parent = path.length ? getItemByPath(items, path) : items;
+  return parent.splice(lastKey, 1)[0];
 };
 
 const DnDContainer = () => {
@@ -53,40 +59,76 @@ const DnDContainer = () => {
     },
   ]);
 
+  const [activeMenus, setActiveMenus] = useState(["1"]);
+  const [activeDragItem, setActiveDragItem] = useState(null);
   const sensors = useSensors(useSensor(PointerSensor));
 
+  // 🟢 Toggle menu active
+  const handleToggleActiveMenu = (id) => {
+    setActiveMenus((prev) =>
+      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
+    );
+  };
+
+  // 🔵 Handle drag start
+  const handleDragStart = (event) => {
+    const { active } = event;
+    const path = findItemPath(items, active.id);
+    if (!path) return;
+    const draggedItem = getItemByPath(items, [...path]);
+    setActiveDragItem(draggedItem);
+  };
+
+  // 🟣 Handle drag end
   const handleDragEnd = (event) => {
     const { active, over } = event;
-    if (!over) return;
+    if (!over || active.id === over.id) {
+      setActiveDragItem(null);
+      return;
+    }
 
-    if (active.id === over.id) return;
+    setItems((prev) => {
+      const updated = structuredClone(prev);
 
-    setItems((prevItems) => {
-      const cloned = JSON.parse(JSON.stringify(prevItems));
-      const draggedItem = removeItem(cloned, active.id);
+      // 1️⃣ Remove dragged item
+      const fromPath = findItemPath(updated, active.id);
+      const draggedItem = removeItemByPath(updated, [...fromPath]);
 
-      if (!draggedItem) return prevItems;
+      // 2️⃣ Find drop target
+      const toPath = findItemPath(updated, over.id);
 
-      const parent = findParent(cloned, over.id);
-
-      if (parent) {
-        // 🟢 dropped inside → become child
-        parent.children.push(draggedItem);
+      if (!toPath) {
+        // Drop to root level
+        updated.push(draggedItem);
       } else {
-        // 🔵 dropped outside → become root
-        cloned.push(draggedItem);
+        // Drop *before* or *after* over item (same level)
+        const parentPath = [...toPath];
+        const overIndex = parentPath.pop();
+        const parent = parentPath.length
+          ? getItemByPath(updated, parentPath)
+          : updated;
+
+        parent.splice(overIndex + 1, 0, draggedItem);
       }
 
-      return cloned;
+      return updated;
     });
+
+    setActiveDragItem(null);
+  };
+
+  const handleSaveActiveMenus = () => {
+    console.log("✅ Saved Active Menus:", activeMenus);
   };
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">Nested Drag & Drop Menu</h2>
+    <div className="p-6 bg-gray-50 rounded-lg shadow">
+      <h2 className="text-xl font-semibold mb-4">Navbar Manager</h2>
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         <SortableContext
@@ -99,10 +141,28 @@ const DnDContainer = () => {
               item={item}
               onEdit={() => console.log("Edit", item.id)}
               onDelete={() => console.log("Delete", item.id)}
+              onToggleActiveMenu={handleToggleActiveMenu}
+              activeMenus={activeMenus}
             />
           ))}
         </SortableContext>
+
+        <DragOverlay>
+          {activeDragItem ? (
+            <div className="p-2 bg-blue-100 border border-blue-400 rounded-lg shadow">
+              {activeDragItem.title}
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
+
+      {/* Active menu section */}
+      <ActiveMenuSelector
+        menus={items}
+        activeMenus={activeMenus}
+        onToggle={handleToggleActiveMenu}
+        onSave={handleSaveActiveMenus}
+      />
     </div>
   );
 };

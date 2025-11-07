@@ -16,13 +16,11 @@ import {
 
 import SortableItem from "../components/Navbarmanager/DND/SortableItem";
 import CustomContentDialog from "../components/Navbarmanager/CustomContentDialog";
-import ActiveMenuSelector from "../components/Navbarmanager/ActiveMenuSelector";
 import MenuForm from "../Components/Navbarmanager/Navmenuform.jsx";
 import {
   findMenuById,
   getAllMenuIds,
 } from "../components/Navbarmanager/MenuTreeUtils.jsx";
-import ManualCss from "@/components/Navbarmanager/ManualCss";
 import MenuStyleEditor from "@/components/Navbarmanager/MenustyleChanger";
 
 const API = "http://localhost:5000/api";
@@ -45,6 +43,49 @@ const NavbarManager = () => {
   const token = localStorage.getItem("token");
   const menuType = "navbar";
 
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [showSearch, setShowSearch] = useState(true); // toggle for search bar
+
+  // const handleLogoUpload = (e) => {
+  //   const file = e.target.files?.[0];
+  //   if (!file) return;
+  //   const reader = new FileReader();
+  //   reader.onload = () => setLogoPreview(reader.result);
+  //   reader.readAsDataURL(file);
+  // };
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const localURL = URL.createObjectURL(file);
+    setLogoPreview(localURL);
+    
+    try {
+      const formData = new FormData();
+      formData.append("logo", file);
+
+      const res = await axios.post(
+        "http://localhost:5000/api/menus/logo/navbar",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
+      const serverURL = res.data?.logoUrl || localURL;
+      setLogoPreview(serverURL);
+      localStorage.setItem("menu_logo", serverURL);
+    } catch (err) {
+      console.error("❌ Logo upload failed:", err);
+      alert("Logo upload failed");
+    } finally {
+      setUploading(false);
+    }
+    
+  };
+
   // ✅ Utility: find item and its parent by ID recursively
   const findItemAndParent = (items, id, parent = null) => {
     for (const item of items) {
@@ -64,16 +105,6 @@ const NavbarManager = () => {
       activationConstraint: { distance: 8 },
     })
   );
-
-  const [logoPreview, setLogoPreview] = useState(null);
-  const handleLogoUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setLogoPreview(reader.result);
-    reader.readAsDataURL(file);
-  };
-
   // Build HTML preview
   const buildPreviewHTML = useCallback((items, activeIds) => {
     if (!items?.length) return "";
@@ -81,9 +112,8 @@ const NavbarManager = () => {
       .filter((item) => !item.hiddenInFrontend)
       .map(
         (item) => `<li style="position:relative;">
-          <a href="${item.url || "#"}" target="${
-          item.openInNewTab ? "_blank" : "_self"
-        }" style="text-decoration:none;color:${
+          <a href="${item.url || "#"}" \
+        style="text-decoration:none;color:${
           activeIds.includes(String(item.id)) ? "#fff" : "#111"
         }; background:${
           activeIds.includes(String(item.id)) ? "#2563eb" : "transparent"
@@ -111,62 +141,99 @@ const NavbarManager = () => {
         ${customContent?.html || "<p style='color:#999;'>No custom HTML</p>"}
         <script>${customContent?.js || ""}<\/script>
       `);
-      } else {
-        // ✅ apply menu style dynamically
-        const {
-          backgroundColor = "#ffffff",
-          textColor = "#000000",
-          hoverColor = "#1d4ed8",
-          fontSize = "16",
-          fontFamily = "Arial, sans-serif",
-          alignment = "left",
-        } = menuStyle || {};
-
-        const justify =
-          alignment === "center"
-            ? "center"
-            : alignment === "right"
-            ? "flex-end"
-            : "flex-start";
-
-        // inject dynamic CSS for hover + font
-        const styleBlock = `
-        <style>
-          .menu-container {
-            background: ${backgroundColor};
-            display: flex;
-            justify-content: ${justify};
-            gap: 1rem;
-            padding: 10px 20px;
-            font-family: ${fontFamily};
-            font-size: ${fontSize}px;
-          }
-          .menu-container {
-  background: ${backgroundColor};
-  display: flex;
-  justify-content: ${justify};
-  gap: 1rem;
-  padding: 10px 20px;
-  font-family: ${fontFamily};
-  font-size: ${fontSize}px;
-  position: ${menuStyle?.sticky ? "sticky" : "relative"};
-  top: ${menuStyle?.sticky ? "0" : "auto"};
-}
-         .menu-container a:hover {
-            color: ${hoverColor};
-          }
-        </style>
-      `;
-
-        const menuHTML = `<nav class="menu-container">${buildPreviewHTML(
-          menus,
-          activeMenus
-        )}</nav>`;
-
-        setPreviewHTML(styleBlock + menuHTML);
+        return;
       }
+
+      const {
+        backgroundColor = "#ffffff",
+        textColor = "#000000",
+        hoverColor = "#1d4ed8",
+        fontSize = "16",
+        fontFamily = "Arial, sans-serif",
+        alignment = "left",
+        sticky = false,
+      } = menuStyle || {};
+
+      const justify =
+        alignment === "center"
+          ? "center"
+          : alignment === "right"
+          ? "flex-end"
+          : "flex-start";
+
+      // ✅ Include logo + search bar in preview
+      const styleBlock = `
+      <style>
+        .navbar-container {
+          background: ${backgroundColor};
+          display: flex;
+          align-items: center;
+          justify-content: ${justify};
+          gap: 1rem;
+          padding: 10px 20px;
+          font-family: ${fontFamily};
+          font-size: ${fontSize}px;
+          position: ${sticky ? "sticky" : "relative"};
+          top: ${sticky ? "0" : "auto"};
+          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .navbar-container a {
+          color: ${textColor};
+          text-decoration: none;
+          transition: color 0.2s;
+          font-weight: 500;
+        }
+        .navbar-container a:hover {
+          color: ${hoverColor};
+        }
+        .navbar-logo img {
+          height: 40px;
+          object-fit: contain;
+        }
+        .navbar-search {
+          margin-left: auto;
+        }
+        .navbar-search input {
+          padding: 6px 10px;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          font-size: 14px;
+        }
+      </style>
+    `;
+
+      const menuItemsHTML = buildPreviewHTML(menus, activeMenus);
+
+      const logoHTML = logoPreview
+        ? `<div class="navbar-logo"><img src="${logoPreview}" alt="Logo" /></div>`
+        : "";
+
+      const searchHTML = showSearch
+        ? `<div class="navbar-search"><input type="text" placeholder="Search..." /></div>`
+        : "";
+
+      // Combine all in correct order
+      const menuHTML = `
+      <nav class="navbar-container">
+        ${
+          alignment === "left" ? `${logoHTML}${menuItemsHTML}${searchHTML}` : ""
+        }
+        ${
+          alignment === "center"
+            ? `${logoHTML}<div style="flex:1;text-align:center;">${menuItemsHTML}</div>${searchHTML}`
+            : ""
+        }
+        ${
+          alignment === "right"
+            ? `${searchHTML}${menuItemsHTML}${logoHTML}`
+            : ""
+        }
+      </nav>
+    `;
+
+      setPreviewHTML(styleBlock + menuHTML);
     },
-    [buildPreviewHTML]
+    [buildPreviewHTML, logoPreview, showSearch]
   );
 
   // Fetch Menus
@@ -446,17 +513,17 @@ const NavbarManager = () => {
   // active item for overlay
   const activeItem = activeId ? findMenuById(menus, activeId) : null;
 
-  const newLocal = (
-    <ActiveMenuSelector
-      menus={menus}
-      customHTML={customHTML}
-      activeMenus={activeMenus}
-      onToggle={handleToggleActiveMenu}
-      onSave={handleSaveActiveMenus}
-    />
-  );
+  // const newLocal = (
+  //   <ActiveMenuSelector
+  //     menus={menus}
+  //     customHTML={customHTML}
+  //     activeMenus={activeMenus}
+  //     onToggle={handleToggleActiveMenu}
+  //     onSave={handleSaveActiveMenus}
+  //   />
+  // );
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <div className="max-w-6xl mx-auto mt-8 px-8 py-6 rounded-t-2xl bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg">
         <h1 className="text-3xl font-bold tracking-wide">
           Navbar Menu Manager
@@ -466,7 +533,7 @@ const NavbarManager = () => {
         </p>
       </div>
 
-      <div className="p-6 max-w-6xl mx-auto bg-white border border-gray-200 rounded-b-2xl shadow-lg">
+      <div className="p-6 max-w-6xl mx-auto bg-white border border-gray-400 rounded-b-2xl shadow-lg">
         <div className="mb-6 flex justify-end gap-3">
           <button
             onClick={handleAdd}
@@ -522,9 +589,39 @@ const NavbarManager = () => {
             </DragOverlay>
           </DndContext>
         )}
-        <MenuStyleEditor onStyleChange={setMenuStyle} />
+        <div className="flex justify-between items-center gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-600">
+              Upload Logo:
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleLogoUpload}
+              className="border border-gray-300 p-2 rounded-md"
+            />
+            {logoPreview && (
+              <img
+                src={logoPreview}
+                alt="Logo Preview"
+                className="mt-2 h-12 object-contain"
+              />
+            )}
+          </div>
 
-        {/* {newLocal} */}
+          <div>
+            <label className="flex items-center gap-2 text-gray-600">
+              <input
+                type="checkbox"
+                checked={showSearch}
+                onChange={(e) => setShowSearch(e.target.checked)}
+              />
+              Show Search Bar
+            </label>
+          </div>
+        </div>
+
+        <MenuStyleEditor onStyleChange={setMenuStyle} />
 
         {selectedMenu && (
           <MenuForm

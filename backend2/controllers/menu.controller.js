@@ -1,19 +1,16 @@
-// controllers/menu.controller.js
 import Menu from "../models/menu.model.js";
-import CustomContent from "../models/custommenu.model.js"; // fixed import
+import CustomContent from "../models/custommenu.model.js";
 import { sequelize } from "../db/sequelize.js";
 import { Op } from "sequelize";
 import { AsyncHandler } from "../utils/ApiHelpers.js";
 
 // ---------------- PUBLIC ROUTES ---------------- //
 
-// Get all menus (flat)
 export const getMenus = AsyncHandler(async (req, res) => {
   const menus = await Menu.findAll({ order: [["order", "ASC"]] });
   res.json(menus);
 });
 
-// Create menu
 export const createMenu = AsyncHandler(async (req, res) => {
   const { title, url, location, parentId, pageId, icon, openInNewTab } =
     req.body;
@@ -39,7 +36,6 @@ export const createMenu = AsyncHandler(async (req, res) => {
   res.status(201).json(menu);
 });
 
-// Update menu
 export const updateMenu = AsyncHandler(async (req, res) => {
   const { id } = req.params;
   const { title, url, location, parentId, pageId, icon, openInNewTab } =
@@ -61,14 +57,12 @@ export const updateMenu = AsyncHandler(async (req, res) => {
   res.json(menu);
 });
 
-// Delete menu recursively
 export const deleteMenu = AsyncHandler(async (req, res) => {
   const { id } = req.params;
 
   const deleteRecursive = async (menuId) => {
     const children = await Menu.findAll({ where: { parentId: menuId } });
     for (const child of children) await deleteRecursive(child.id);
-
     const menu = await Menu.findByPk(menuId);
     if (menu) await menu.destroy();
   };
@@ -77,7 +71,6 @@ export const deleteMenu = AsyncHandler(async (req, res) => {
   res.json({ message: "Menu and its children deleted" });
 });
 
-// Update menu hierarchy (drag & drop)
 export const updateMenuHierarchy = AsyncHandler(async (req, res) => {
   const { menuTree, location } = req.body;
   if (!Array.isArray(menuTree))
@@ -106,26 +99,33 @@ export const updateMenuHierarchy = AsyncHandler(async (req, res) => {
 
 // ---------------- CUSTOM CONTENT ---------------- //
 
-// Save custom content
 export const saveCustomContent = AsyncHandler(async (req, res) => {
-  const { section, html, css, js } = req.body;
+  const { section, html, css, js, menuType, logo } = req.body;
   if (!section) return res.status(400).json({ message: "Section is required" });
 
   let content = await CustomContent.findOne({ where: { section } });
 
   if (content) {
-    content.html = html || content.html;
-    content.css = css || content.css;
-    content.js = js || content.js;
+    content.html = html ?? content.html;
+    content.css = css ?? content.css;
+    content.js = js ?? content.js;
+    content.menuType = menuType ?? content.menuType;
+    content.logo = logo ?? content.logo;
     await content.save();
   } else {
-    content = await CustomContent.create({ section, html, css, js });
+    content = await CustomContent.create({
+      section,
+      html,
+      css,
+      js,
+      logo: logo || null,
+      menuType: menuType || "manual",
+    });
   }
 
-  res.json({ message: "Custom content saved", content });
+  res.json({ message: "Custom content saved successfully", content });
 });
 
-// Get custom content
 export const getCustomContent = AsyncHandler(async (req, res) => {
   const { section } = req.query;
   if (!section) return res.status(400).json({ message: "Section is required" });
@@ -147,8 +147,37 @@ export const deleteCustomContent = AsyncHandler(async (req, res) => {
   res.json({ message: "Custom content deleted" });
 });
 
+// ---------------- LOGO UPLOAD ---------------- //
+
+// export const uploadMenuLogo = AsyncHandler(async (req, res) => {
+//   const { location } = req.params;
+//   let logoPath = "";
+
+//   if (req.file) {
+//     logoPath = `/uploads/${req.file.filename}`;
+//   } else if (req.body.logo) {
+//     logoPath = req.body.logo;
+//   } else {
+//     return res.status(400).json({ message: "No logo provided" });
+//   }
+
+//   let custom = await CustomContent.findOne({ where: { section: location } });
+//   if (custom) {
+//     custom.logo = logoPath;
+//     await custom.save();
+//   } else {
+//     custom = await CustomContent.create({ section: location, logo: logoPath });
+//   }
+
+//   res.json({
+//     success: true,
+//     message: "Logo uploaded successfully",
+//     logo: custom.logo,
+//   });
+// });
+
 // ---------------- ACTIVE MENUS ---------------- //
-// Get Active Menu
+
 export const getActiveMenu = AsyncHandler(async (req, res) => {
   const { section } = req.query;
   if (!section) return res.status(400).json({ message: "Section is required" });
@@ -160,7 +189,6 @@ export const getActiveMenu = AsyncHandler(async (req, res) => {
   if (customMenu?.activeMenuId)
     return res.json({ activeMenuId: customMenu.activeMenuId });
 
-  // Fallback: check if any Menu is active
   const activeMenu = await Menu.findOne({
     where: { isActive: true, location: section },
   });
@@ -169,31 +197,23 @@ export const getActiveMenu = AsyncHandler(async (req, res) => {
   res.status(404).json({ message: "No active menu found" });
 });
 
-// Set Active Menus (supports multiple)
 export const setActiveMenus = AsyncHandler(async (req, res) => {
   const { menuIds = [], section } = req.body;
 
   if (!section) return res.status(400).json({ message: "Section is required" });
 
-  // Deactivate all menus in this section first
   await Menu.update({ isActive: false }, { where: { location: section } });
-
-  // Activate menus from menuIds (skip "custom")
   const validMenuIds = menuIds.filter((id) => id !== "custom");
-  if (validMenuIds.length) {
+  if (validMenuIds.length)
     await Menu.update({ isActive: true }, { where: { id: validMenuIds } });
-  }
 
-  // Handle "custom" separately
   if (menuIds.includes("custom")) {
     const customMenu = await CustomContent.findOne({ where: { section } });
-    if (customMenu && customMenu.html.trim()) {
-      // Only store "custom" as active if HTML exists
+    if (customMenu && customMenu.html?.trim()) {
       customMenu.activeMenuId = "custom";
       await customMenu.save();
     }
   } else {
-    // If user deselected "custom", remove activeMenuId
     const customMenu = await CustomContent.findOne({ where: { section } });
     if (customMenu) {
       customMenu.activeMenuId = null;
@@ -201,13 +221,10 @@ export const setActiveMenus = AsyncHandler(async (req, res) => {
     }
   }
 
-  // Rebuild activeMenuIds to return
   const updatedMenus = await Menu.findAll({
     where: { location: section, isActive: true },
   });
   const activeIds = updatedMenus.map((m) => String(m.id));
-
-  // Include custom only if it has HTML and was selected
   const customMenu = await CustomContent.findOne({ where: { section } });
   if (customMenu?.activeMenuId === "custom") activeIds.push("custom");
 
@@ -224,33 +241,26 @@ export const getMenusByLocation = AsyncHandler(async (req, res) => {
     where: { location },
     order: [["order", "ASC"]],
     raw: true,
-    nested: true,
   });
 
-   // Build a map of all menus for easy lookup
-    const map = {};
-    flatMenus.forEach(menu => {
-      map[menu.id] = { ...menu, children: [] };
-    });
+  const map = {};
+  flatMenus.forEach((menu) => {
+    map[menu.id] = { ...menu, children: [] };
+  });
 
-    // Build hierarchy (attach children to parents)
-    const roots = [];
-    flatMenus.forEach(menu => {
-      if (menu.parentId) {
-        if (map[menu.parentId]) {
-          map[menu.parentId].children.push(map[menu.id]);
-        }
-      } else {
-        roots.push(map[menu.id]);
-      }
-    });
+  const roots = [];
+  flatMenus.forEach((menu) => {
+    if (menu.parentId && map[menu.parentId]) {
+      map[menu.parentId].children.push(map[menu.id]);
+    } else {
+      roots.push(map[menu.id]);
+    }
+  });
 
   const customContent = await CustomContent.findOne({
     where: { section: location },
     raw: true,
   });
-
-  // Get all active menus in this section
   const activeMenus = await Menu.findAll({
     where: { location, isActive: true },
     raw: true,
@@ -260,64 +270,44 @@ export const getMenusByLocation = AsyncHandler(async (req, res) => {
 
   res.json({
     menus: roots,
-    customContent: customContent || { html: "", css: "", js: "" },
+    customContent: customContent || {
+      html: "",
+      css: "",
+      js: "",
+      logo: null,
+      menuType: "manual",
+    },
     activeMenuIds,
   });
 });
 
-export const updateMenuLogo = AsyncHandler(async (req, res) => {
-  const { location } = req.params;
-  let logoUrl = "";
+export const manuallogoupload = async (req, res) => {
+  try {
+    const { location } = req.params; // e.g., navbar or footer
 
-  // ✅ If a file was uploaded via multer
-  if (req.file) {
-    logoUrl = `/uploads/${req.file.filename}`;
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const logoUrl = `/uploads/${req.file.filename}`;
+
+    // Update existing record or create new one
+    const [record, created] = await CustomContent.findOrCreate({
+      where: { section: location },
+      defaults: { logo: logoUrl },
+    });
+
+    if (!created) {
+      record.logo = logoUrl;
+      await record.save();
+    }
+
+    res.status(200).json({
+      message: "✅ Logo uploaded successfully",
+      logoUrl: `http://localhost:5000${logoUrl}`,
+    });
+  } catch (error) {
+    console.error("❌ Logo upload error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
-  // ✅ If a logo URL or base64 string was sent in the body
-  else if (req.body.logo) {
-    logoUrl = req.body.logo;
-  } else {
-    return res.status(400).json({ success: false, message: "No logo provided" });
-  }
-
-  // Save or update the record
-  let customContent = await CustomContent.findOne({ where: { section: location } });
-  if (customContent) {
-    customContent.logo = logoUrl;
-    await customContent.save();
-  } else {
-    customContent = await CustomContent.create({ section: location, logo: logoUrl });
-  }
-
-  res.json({
-    success: true,
-    message: "Menu logo updated successfully",
-    logo: customContent.logo,
-  });
-});
-
-
-// 🟢 Upload actual file with Multer
-export const menulogo = AsyncHandler(async (req, res) => {
-  const { location } = req.params;
-
-  if (!req.file) {
-    return res.status(400).json({ success: false, message: "No logo uploaded" });
-  }
-
-  const logoPath = `/uploads/${req.file.filename}`;
-
-  // Optional: store in DB
-  const menu = await Menu.findOne({ where: { location } });
-  if (menu) {
-    menu.logo = logoPath;
-    await menu.save();
-  }
-
-  res.json({
-    success: true,
-    message: "Logo uploaded successfully",
-    location,
-    logo: logoPath,
-  });
-});
+};

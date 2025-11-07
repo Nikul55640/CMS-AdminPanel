@@ -16,6 +16,8 @@ import AdminSettings from "./Pages/AdminSettings";
 import PublicPage from "../componentsPublic/PublicPage";
 import Navbarmenu from "./Pages/Navbarmenu";
 import BlogPage from "./Pages/BlogPage";
+import AddBlog from "./Pages/AddBlog";
+import Footermenu from "./Pages/Footermenu";
 // import Footermenu from "./Pages/Footermenu";
 
 
@@ -63,6 +65,16 @@ function App() {
               </ProtectedRoute>
             }
           />
+             <Route
+            path="/admin/blog/addblog"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <AddBlog />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
            <Route
             path="/admin/settings"
             element={
@@ -88,7 +100,7 @@ function App() {
             element={
               <ProtectedRoute>
                 <AdminLayout>
-                
+                <Footermenu/>
                 </AdminLayout>
               </ProtectedRoute>
             }
