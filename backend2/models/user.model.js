@@ -18,11 +18,24 @@ const User = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    refresh_token: {
+      type: DataTypes.TEXT, // store long JWTs safely
+      allowNull: true, // null when user logged out
+       underscored: false,
+    },
   },
   {
     tableName: "users",
     timestamps: true, // adds createdAt and updatedAt automatically
+   
+    indexes: [
+      {
+        unique: true,
+        fields: ["username"],
+      },
+    ],
   }
+
 );
 
 export default User;

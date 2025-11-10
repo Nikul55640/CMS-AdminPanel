@@ -98,13 +98,13 @@ const AddBlog = () => {
 
     try {
       if (id) {
-        await axios.put(`${API}/${id}`, payload);
+        await axios.put(`${API}/${blog.id}`, payload);
         toast.success("Blog post updated!");
       } else {
         await axios.post(`${API}/`, payload);
         toast.success("Blog post created!");
       }
-      navigate("/admin/blogs");
+      navigate("/admin/blog");
     } catch (error) {
       toast.error("Failed to save post");
       console.error(error);

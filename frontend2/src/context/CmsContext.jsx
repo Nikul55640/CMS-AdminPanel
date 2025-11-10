@@ -2,24 +2,32 @@
 import { createContext, useState, useEffect } from "react";
 import axios from "axios";
 
-const  CmsContext = createContext();
-
+const CmsContext = createContext();
 const API_BASE = "http://localhost:5000/api";
 
 export const CmsProvider = ({ children }) => {
   // Auth
-  const [token, setToken] = useState(localStorage.getItem("cmsToken") || "");
+  const [token, setTokenState] = useState(
+    localStorage.getItem("cmsToken") || ""
+  );
   const [loggedIn, setLoggedIn] = useState(!!token);
-  const [menus, setMenus] = useState([]);
-  // Pages
+
+  // Sidebar
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
+
+  // Pages & menus
   const [pages, setPages] = useState([]);
   const [currentPage, setCurrentPage] = useState(null);
   const [showEditor, setShowEditor] = useState(false);
+  const [menus, setMenus] = useState([]);
+
+  // Components
+  const [components, setComponents] = useState([]);
 
   // Page content for editor
   const [pageContent, setPageContent] = useState({ html: "", css: "", js: "" });
   const [jsCode, setJsCode] = useState("// Write custom JS here...");
-  // Form data for page editing/creation
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -29,27 +37,42 @@ export const CmsProvider = ({ children }) => {
     keywords: "",
   });
 
-  // Fetch menus by location
-  const fetchMenus = async (location) => {
-    if (!token) return;
-    try {
-      const res = await axios.get(`${API_BASE}/menus/location/${location}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setMenus(res.data);
-    } catch (err) {
-      console.error(
-        "❌ Failed to fetch menus:",
-        err.response?.data || err.message
-      );
+  // --- Token handlers ---
+  const setToken = (newToken) => {
+    setTokenState(newToken);
+    if (newToken) {
+      localStorage.setItem("cmsToken", newToken);
+      axios.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+      setLoggedIn(true);
+      fetchPages();
+      fetchComponents();
+      fetchMenus();
+    } else {
+      localStorage.removeItem("cmsToken");
+      delete axios.defaults.headers.common["Authorization"];
+      setLoggedIn(false);
+      setPages([]);
+      setComponents([]);
+      setMenus([]);
+      setCurrentPage(null);
+      setShowEditor(false);
     }
   };
-  // Sidebar state
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
 
-  // Components
-  const [components, setComponents] = useState([]);
+  const setRefreshToken = (refreshToken) => {
+    if (refreshToken) {
+      localStorage.setItem("cmsRefreshToken", refreshToken);
+      axios.defaults.headers.common["x-refresh-token"] = refreshToken;
+    } else {
+      localStorage.removeItem("cmsRefreshToken");
+      delete axios.defaults.headers.common["x-refresh-token"];
+    }
+  };
+
+  const logout = () => {
+    setToken(null);
+    setRefreshToken(null);
+  };
 
   // --- API calls ---
   const fetchPages = async () => {
@@ -59,9 +82,29 @@ export const CmsProvider = ({ children }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setPages(res.data);
+      console.log("✅ [fetchPages] Pages fetched:", res.data);
     } catch (err) {
       console.error(
         "❌ Failed to fetch pages:",
+        err.response?.data || err.message
+      );
+    }
+  };
+
+  const fetchMenus = async (location) => {
+    if (!token) return;
+    try {
+      const url = location
+        ? `${API_BASE}/menus/location/${location}`
+        : `${API_BASE}/menus`;
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setMenus(res.data);
+      console.log("✅ [fetchMenus] Menus fetched:", res.data);
+    } catch (err) {
+      console.error(
+        "❌ Failed to fetch menus:",
         err.response?.data || err.message
       );
     }
@@ -74,6 +117,7 @@ export const CmsProvider = ({ children }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setComponents(res.data);
+      console.log("✅ [fetchComponents] Components fetched:", res.data);
     } catch (err) {
       console.error(
         "❌ Failed to fetch components:",
@@ -82,34 +126,10 @@ export const CmsProvider = ({ children }) => {
     }
   };
 
-  // Add/remove component
-  const addComponent = (component) => {
+  const addComponent = (component) =>
     setComponents((prev) => [...prev, component]);
-  };
-  const removeComponent = (id) => {
+  const removeComponent = (id) =>
     setComponents((prev) => prev.filter((c) => c.id !== id));
-  };
-
-  // --- Effects ---
-  // Sync token with localStorage
-  useEffect(() => {
-    if (token) {
-      localStorage.setItem("cmsToken", token);
-      setLoggedIn(true);
-      fetchPages();
-      fetchComponents();
-    } else {
-      localStorage.removeItem("cmsToken");
-      setLoggedIn(false);
-      setPages([]);
-      setComponents([]);
-      setCurrentPage(null);
-      setShowEditor(false);
-    }
-  }, [token]);
-
-  // Logout function
-  const logout = () => setToken("");
 
   return (
     <CmsContext.Provider
@@ -117,6 +137,7 @@ export const CmsProvider = ({ children }) => {
         // Auth
         token,
         setToken,
+        setRefreshToken,
         loggedIn,
         setLoggedIn,
         logout,
@@ -140,6 +161,7 @@ export const CmsProvider = ({ children }) => {
         menus,
         setMenus,
         fetchMenus,
+
         // Components
         components,
         setComponents,

@@ -13,13 +13,26 @@ import {
 const API = "http://localhost:5000/api";
 
 const NavbarPublic = ({ menuType = "navbar" }) => {
-  const [menus, setMenus] = useState([]);
+  const [menus, setMenus] = useState([]); // ✅ Always array
+  const [menuStyle, setMenuStyle] = useState({
+    textColor: "#000000",
+    hoverColor: "#1d4ed8",
+    fontSize: "16",
+    fontFamily: "Arial, sans-serif",
+    alignment: "left",
+    sticky: false,
+    customCSS: "",
+    showSearch: true,
+    logoUrl: "",
+    backgroundColor: "#ffffff",
+  });
+
   const [customContent, setCustomContent] = useState({
     html: "",
     css: "",
     js: "",
-    logoUrl: "",
   });
+
   const [activeMenuIds, setActiveMenuIds] = useState([]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [submenuOpenIds, setSubmenuOpenIds] = useState({});
@@ -41,18 +54,32 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
 
         setMenus(nestedMenus);
         setActiveMenuIds(fetchedActiveIds);
-        setCustomContent({
-          html: content.html || "",
-          css: content.css || "",
-          js: content.js || "",
-          logoUrl: content.logoUrl || "",
-        });
+
+        setCustomContent((prev) => ({
+          ...prev,
+          ...content,
+        }));
+
+        // ✅ Merge fetched logo/style data safely
+        setMenuStyle((prev) => ({
+          ...prev,
+          ...content,
+          logoUrl: content.logoUrl || prev.logoUrl,
+        }));
       } catch (err) {
         console.error(`❌ Failed to load ${menuType} menus:`, err);
       }
     };
     fetchData();
   }, [menuType]);
+
+  /* ---------------- Load Local Saved Style ---------------- */
+  useEffect(() => {
+    const savedStyle = JSON.parse(localStorage.getItem("menu_style") || "{}");
+    if (Object.keys(savedStyle).length > 0) {
+      setMenuStyle((prev) => ({ ...prev, ...savedStyle }));
+    }
+  }, []);
 
   /* ---------------- Inject Custom JS ---------------- */
   useEffect(() => {
@@ -64,15 +91,19 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
   }, [customContent.js]);
 
   /* ---------------- Recursive Filter for Active Menus ---------------- */
-  const filterActiveMenus = (menuList) =>
-    menuList
-      .map((menu) => {
-        const children = menu.children ? filterActiveMenus(menu.children) : [];
-        const isActive =
-          activeMenuIds.includes(String(menu.id)) || children.length > 0;
-        return isActive ? { ...menu, children } : null;
-      })
-      .filter(Boolean);
+  const filterActiveMenus = (menuList = []) =>
+    Array.isArray(menuList)
+      ? menuList
+          .map((menu) => {
+            const children = menu.children
+              ? filterActiveMenus(menu.children)
+              : [];
+            const isActive =
+              activeMenuIds.includes(String(menu.id)) || children.length > 0;
+            return isActive ? { ...menu, children } : null;
+          })
+          .filter(Boolean)
+      : [];
 
   const toggleSubmenu = (id) => {
     setSubmenuOpenIds((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -98,15 +129,16 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
         >
           <Link
             to={menu.url || "#"}
-            className={`text-sm font-medium ${
-              isMenuActive(menu)
-                ? "text-blue-600 font-semibold"
-                : "text-gray-700 hover:text-blue-600"
-            }`}
+            className="text-sm font-medium transition-colors duration-200"
+            style={{
+              color: isMenuActive(menu)
+                ? menuStyle.hoverColor
+                : menuStyle.textColor,
+            }}
           >
             {menu.title}
-            
           </Link>
+
           {hasChildren && (
             <button
               onClick={() => toggleSubmenu(menu.id)}
@@ -147,15 +179,35 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
     );
   }
 
-  /* ---------------- Standard Navbar ---------------- */
+  /* ---------------- Render Navbar ---------------- */
   return (
-    <nav className="custom-navbar w-full bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
+    <nav
+      className={`custom-navbar w-full border-b border-gray-200 shadow-sm z-50 ${
+        menuStyle.sticky ? "sticky top-0" : ""
+      }`}
+      style={{
+        backgroundColor: menuStyle.backgroundColor,
+        color: menuStyle.textColor,
+        fontFamily: menuStyle.fontFamily,
+        textAlign: menuStyle.alignment,
+        fontSize: `${menuStyle.fontSize}px`,
+        zIndex: menuStyle.sticky ? 999 : "auto",
+      }}
+    >
+      {/* Dynamic CSS for hover color + customCSS */}
+      <style>{`
+        .custom-navbar a:hover {
+          color: ${menuStyle.hoverColor} !important;
+        }
+        ${menuStyle.customCSS || ""}
+      `}</style>
+
       <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between h-16">
         {/* Logo Section */}
         <Link to="/" className="flex items-center gap-2">
-          {customContent.logoUrl ? (
+          {menuStyle.logoUrl ? (
             <img
-              src={customContent.logoUrl}
+              src={menuStyle.logoUrl}
               alt="Logo"
               className="h-10 w-auto object-contain"
             />
@@ -180,7 +232,7 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
                 <NavigationMenuItem key={menu.id}>
                   {menu.children && menu.children.length > 0 ? (
                     <>
-                      <NavigationMenuTrigger className="text-gray-700 hover:text-blue-600 font-medium">
+                      <NavigationMenuTrigger className=" ">
                         {menu.title}
                       </NavigationMenuTrigger>
                       <NavigationMenuContent className="bg-white border border-gray-200 rounded-lg shadow-lg p-2 mt-1">
@@ -201,10 +253,10 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
                   ) : (
                     <Link
                       to={menu.url || "#"}
-                      className={`text-gray-700 hover:text-blue-600 font-medium px-3 py-2 rounded-md ${
+                      className={`font-medium px-3 py-2 rounded-md ${
                         isMenuActive(menu)
-                          ? "text-blue-600 font-semibold"
-                          : "text-gray-700"
+                          ? menuStyle.textColor
+                          : "text-blue-300"
                       }`}
                     >
                       {menu.title}
@@ -222,8 +274,18 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
         className={`md:hidden bg-white border-t border-gray-200 transition-all duration-300 overflow-hidden ${
           mobileOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
         }`}
+            style={{
+        backgroundColor: menuStyle.backgroundColor,
+        color: menuStyle.textColor,
+        fontFamily: menuStyle.fontFamily,
+        textAlign: menuStyle.alignment,
+        fontSize: `${menuStyle.fontSize}px`,
+        zIndex: menuStyle.sticky ? 999 : "auto",
+        hoverColor: menuStyle.hoverColor 
+      }}
       >
         <ul className="flex flex-col p-2 space-y-1">
+          
           {filterActiveMenus(menus).map((menu) => renderMenu(menu))}
         </ul>
       </div>

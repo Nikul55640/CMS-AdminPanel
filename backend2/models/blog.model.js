@@ -6,14 +6,13 @@ const Blog = sequelize.define(
   "Blog",
   {
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.INTEGER.UNSIGNED,
       autoIncrement: true,
       primaryKey: true,
     },
     title: {
       type: DataTypes.STRING,
       allowNull: false,
-      trim: true,
     },
     slug: {
       type: DataTypes.STRING,
@@ -44,7 +43,7 @@ const Blog = sequelize.define(
       defaultValue: "General",
     },
     tags: {
-      type: DataTypes.JSON, // array of strings
+      type: DataTypes.JSON, // store array of strings directly
       allowNull: true,
       defaultValue: [],
     },
@@ -53,14 +52,15 @@ const Blog = sequelize.define(
       allowNull: false,
       defaultValue: "draft",
     },
-    published_At: {
+    publishedAt: {
       type: DataTypes.DATE,
       allowNull: true,
     },
   },
   {
     tableName: "blogs",
-    timestamps: true,
+    timestamps: true, // adds createdAt, updatedAt automatically
+    underscored: false, //
     hooks: {
       beforeValidate: (blog) => {
         if (!blog.slug && blog.title) {

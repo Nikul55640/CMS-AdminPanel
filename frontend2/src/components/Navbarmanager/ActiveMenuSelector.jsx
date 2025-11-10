@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 
 const ActiveMenuSelector = ({
   menus,
@@ -6,8 +6,15 @@ const ActiveMenuSelector = ({
   activeMenus,
   onToggle,
   onSave,
-  
 }) => {
+
+  useEffect(() => {
+    console.log("🔁 ActiveMenuSelector Rendered");
+    console.log("➡️ menus:", menus);
+ 
+    console.log("➡️ activeMenus:", activeMenus);
+  }, [menus, activeMenus]);
+
   const renderCheckboxes = (items, level = 0) => (
     <div style={{ marginLeft: `${level * 16}px` }}>
       {items.map((item) => (
@@ -16,7 +23,10 @@ const ActiveMenuSelector = ({
             <input
               type="checkbox"
               checked={activeMenus.includes(String(item.id))}
-              onChange={() => onToggle(String(item.id))}
+              onChange={() => {
+                console.log(`🟢 Toggle clicked for menu ID: ${item.id}`);
+                onToggle(String(item.id));
+              }}
             />
             <span className="text-gray-700 font-medium">{item.title}</span>
           </label>
@@ -33,18 +43,18 @@ const ActiveMenuSelector = ({
         Active Menu Visibility
       </h3>
 
-      {menus.length > 0 ? (
-        renderCheckboxes(menus)
-      ) : (
-        <p className="text-gray-500  text-sm">No menus available.</p>
-      )}
+    
+
       {customHTML?.trim() && (
         <div className="mt-3">
           <label className="flex justify-center gap-2">
             <input
               type="checkbox"
               checked={activeMenus.includes("custom")}
-              onChange={() => onToggle("custom")}
+            onChange={() => {
+                console.log("🟣 Custom Navbar toggled");
+                onToggle("custom");
+              }}
             />
             <span className="text-gray-700 font-medium">
               Custom Navbar Content
@@ -55,7 +65,11 @@ const ActiveMenuSelector = ({
 
       <div className="mt-4">
         <button
-          onClick={onSave}
+          onClick={() => {
+            console.log("💾 Save Active Menus clicked");
+            console.log("✅ Active menus being saved:", activeMenus);
+            onSave();
+          }}
           className="px-5 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600"
         >
           Save Active Menus

@@ -4,7 +4,7 @@ import authMiddleware from "../middleware/auth.middleware.js";
 import {
   loginUser,
   registerUser,
-  refreshToken,
+  refresh_token,
   getCurrentUser,
   updatePassword,
   deleteUser,
@@ -22,7 +22,7 @@ authRouter.post("/register", registerUser);
 authRouter.post("/login", loginUser);
 
 // Refresh JWT token
-authRouter.post("/refresh-token", refreshToken);
+authRouter.post("/refresh-token", refresh_token);
 
 // Logout user
 authRouter.post("/logout", authMiddleware, logoutUser);

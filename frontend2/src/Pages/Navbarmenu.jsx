@@ -23,6 +23,7 @@ import {
 } from "../components/Navbarmanager/MenuTreeUtils.jsx";
 import MenuStyleEditor from "@/components/Navbarmanager/MenustyleChanger";
 
+
 const API = "http://localhost:5000/api";
 
 const NavbarManager = () => {
@@ -61,7 +62,7 @@ const NavbarManager = () => {
     setUploading(true);
     const localURL = URL.createObjectURL(file);
     setLogoPreview(localURL);
-    
+
     try {
       const formData = new FormData();
       formData.append("logo", file);
@@ -83,7 +84,6 @@ const NavbarManager = () => {
     } finally {
       setUploading(false);
     }
-    
   };
 
   // ✅ Utility: find item and its parent by ID recursively
@@ -429,28 +429,53 @@ const NavbarManager = () => {
     setActiveId(null);
   };
 
-  const handleToggleActiveMenu = (id) => {
-    const menuItem =
-      id === "custom" ? { id: "custom" } : findMenuById(menus, id);
-    if (!menuItem) return;
 
-    const idsToToggle = getAllMenuIds([menuItem]); // get all ids from this subtree
 
-    setActiveMenus((prev) => {
-      const isActive = idsToToggle.every((i) => prev.includes(i));
-      const newState = isActive
-        ? prev.filter((i) => !idsToToggle.includes(i))
-        : [...prev, ...idsToToggle.filter((i) => !prev.includes(i))];
+const handleToggleActiveMenu = (id) => {
+  if (!id) return; // Safety check
 
-      generatePreview({
-        menus,
-        customContent: { html: customHTML, css: customCSS, js: customJS },
-        activeMenus: newState,
-      });
+  const menuItem =
+    id === "custom"
+      ? { id: "custom", title: "Custom Section" }
+      : findMenuById(menus, id);
 
-      return newState;
+  if (!menuItem) {
+    console.warn("⚠️ Menu not found for ID:", id);
+    return;
+  }
+
+  // Get all IDs for this menu and its children (and clean them)
+  const idsToToggle = getAllMenuIds([menuItem])
+    .filter((i) => i !== undefined && i !== null)
+    .map(String);
+
+    console.log("🟡 Menu item found:", menuItem);
+
+
+  setActiveMenus((prev) => {
+    const isActive = idsToToggle.every((i) => prev.includes(i));
+
+    const newState = isActive
+      ? prev.filter((i) => !idsToToggle.includes(i))
+      : [...prev, ...idsToToggle.filter((i) => !prev.includes(i))];
+
+
+
+    console.log("🟢 Menu Toggled:", menuItem.title);
+    console.log("🧭 Cleaned Active Menus →", newState);
+    console.log("🧾 IDs toggled:", idsToToggle);
+
+    generatePreview({
+      menus,
+      customContent: { html: customHTML, css: customCSS, js: customJS },
+      activeMenus: newState,
     });
-  };
+
+    return newState;
+  });
+};
+
+
 
   const handleSaveActiveMenus = async () => {
     const toastId = toast.loading("Saving active menus...");
@@ -458,6 +483,7 @@ const NavbarManager = () => {
       const idsToSend = activeMenus.filter(
         (id) => id !== "custom" || customHTML.trim() !== ""
       );
+      console.log("Active menu IDs sent to backend :",idsToSend)
       await axios.post(
         `${API}/menus/set-active`,
         { menuIds: idsToSend, section: menuType },
@@ -465,7 +491,7 @@ const NavbarManager = () => {
       );
       toast.success("Active menus updated", { id: toastId });
     } catch {
-      toast.error("Failed to save active menus", { id: toastId });
+      toast.error("Failed to save active menus", { id: toastId });     
     }
   };
 
@@ -513,15 +539,7 @@ const NavbarManager = () => {
   // active item for overlay
   const activeItem = activeId ? findMenuById(menus, activeId) : null;
 
-  // const newLocal = (
-  //   <ActiveMenuSelector
-  //     menus={menus}
-  //     customHTML={customHTML}
-  //     activeMenus={activeMenus}
-  //     onToggle={handleToggleActiveMenu}
-  //     onSave={handleSaveActiveMenus}
-  //   />
-  // );
+
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-6xl mx-auto mt-8 px-8 py-6 rounded-t-2xl bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg">
@@ -574,8 +592,10 @@ const NavbarManager = () => {
                   item={item}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
-                  onToggleActiveMenu={handleToggleActiveMenu} // ✅ new
-                  activeMenus={activeMenus} // ✅ new
+                  onToggle={handleToggleActiveMenu}
+                  onSave={handleSaveActiveMenus} // ✅ this triggers your backend save
+                  activeMenus={activeMenus}
+                  customHTML={customHTML}
                 />
               ))}
             </SortableContext>
@@ -590,25 +610,7 @@ const NavbarManager = () => {
           </DndContext>
         )}
         <div className="flex justify-between items-center gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-600">
-              Upload Logo:
-            </label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleLogoUpload}
-              className="border border-gray-300 p-2 rounded-md"
-            />
-            {logoPreview && (
-              <img
-                src={logoPreview}
-                alt="Logo Preview"
-                className="mt-2 h-12 object-contain"
-              />
-            )}
-          </div>
-
+      
           <div>
             <label className="flex items-center gap-2 text-gray-600">
               <input
@@ -620,7 +622,6 @@ const NavbarManager = () => {
             </label>
           </div>
         </div>
-
         <MenuStyleEditor onStyleChange={setMenuStyle} />
 
         {selectedMenu && (
