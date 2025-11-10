@@ -1,6 +1,7 @@
 import { DataTypes } from "sequelize";
 import { sequelize } from "../db/sequelize.js";
 
+
 const User = sequelize.define(
   "User",
   {
@@ -19,9 +20,9 @@ const User = sequelize.define(
       allowNull: false,
     },
     refresh_token: {
-      type: DataTypes.TEXT, // store long JWTs safely
-      allowNull: true, // null when user logged out
-       underscored: false,
+      type: DataTypes.STRING,
+      allowNull: true,
+
     },
   },
   {

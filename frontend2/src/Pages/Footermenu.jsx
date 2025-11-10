@@ -174,7 +174,6 @@ const FooterMenuManager = () => {
   const [customActiveTab, setCustomActiveTab] = useState("HTML");
   const [isLoading, setIsLoading] = useState(false);
 
-  const token = localStorage.getItem("token");
   const menuType = "footer";
   
   const sensors = useSensors(
@@ -227,7 +226,7 @@ const FooterMenuManager = () => {
     setIsLoading(true);
     try {
       const res = await axios.get(`${API}/menus/location/${menuType}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,  
       });
       const data = res.data;
 
@@ -257,7 +256,7 @@ const FooterMenuManager = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [token, generatePreview]);
+  }, [ generatePreview]);
 
   useEffect(() => {
     fetchMenus();
@@ -265,7 +264,7 @@ const FooterMenuManager = () => {
 
   const handleAdd = () => setSelectedMenu({ location: menuType });
   
-  const handleEdit = (item) => setSelectedMenu(item);
+  const handleEdit = (item) => etSelectedMenu(item);
   
   const handleDelete = async (item) => {
     if (!window.confirm(`Are you sure you want to delete "${item.title}"? This action cannot be undone.`)) return;
@@ -273,7 +272,7 @@ const FooterMenuManager = () => {
     const loadingToast = toast.loading("Deleting menu...");
     try {
       await axios.delete(`${API}/menus/${item.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
       toast.success("Menu deleted successfully", { id: loadingToast });
       fetchMenus();
@@ -287,11 +286,11 @@ const FooterMenuManager = () => {
     try {
       if (menuData.id) {
         await axios.put(`${API}/menus/${menuData.id}`, menuData, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
       } else {
         await axios.post(`${API}/menus`, menuData, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
       }
       toast.success("Menu saved successfully", { id: loadingToast });
@@ -312,7 +311,7 @@ const FooterMenuManager = () => {
       await axios.post(
         `${API}/menus/hierarchy`,
         { menuTree: newMenus, location: menuType },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { withCredentials: true, }
       );
       toast.success("Menu order updated");
     } catch (err) {
@@ -353,7 +352,7 @@ const FooterMenuManager = () => {
       await axios.post(
         `${API}/menus/set-active`,
         { menuIds: idsToSend, section: menuType },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { withCredentials: true, }
       );
 
       toast.success("Active menus updated successfully!", { id: loadingToast });
@@ -368,7 +367,7 @@ const FooterMenuManager = () => {
       await axios.post(
         `${API}/menus/custom-content`,
         { section: menuType, html: customHTML, css: customCSS, js: customJS },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { withCredentials: true, }
       );
       toast.success("Custom content saved successfully!", { id: loadingToast });
       setCustomDialogOpen(false);
@@ -384,7 +383,7 @@ const FooterMenuManager = () => {
     const loadingToast = toast.loading("Deleting custom content...");
     try {
       await axios.delete(`${API}/menus/custom-content/${menuType}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
       toast.success("Custom content deleted successfully!", { id: loadingToast });
       setCustomHTML("");

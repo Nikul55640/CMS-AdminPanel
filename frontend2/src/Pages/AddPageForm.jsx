@@ -17,7 +17,6 @@ const AddPageForm = () => {
   const {
     pages = [],
     setPages,
-    token,
     pageContent,
     setPageContent,
     formData,
@@ -57,7 +56,7 @@ const AddPageForm = () => {
           css: pageContent.css,
           js: pageContent.js,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { withCredentials: true }
       );
 
       setPages([...pages, res.data]);

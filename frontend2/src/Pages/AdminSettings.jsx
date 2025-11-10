@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
-import { UserRound, Eye, EyeOff } from "lucide-react"; // 👀 Import icons
+import { UserRound, Eye, EyeOff } from "lucide-react";
 
 const API_URL = "http://localhost:5000/api/auth";
 
@@ -12,30 +11,36 @@ const AdminSettings = () => {
     currentPassword: "",
     newPassword: "",
   });
-
   const [loading, setLoading] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false); // 🔑 toggle
-  const [showNewPassword, setShowNewPassword] = useState(false); // 🔑 toggle
-  const token = localStorage.getItem("token");
-  const navigate = useNavigate();
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await axios.get(`${API_URL}/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await axios.get(`${API_URL}/me`, { withCredentials: true });
         setProfile((prev) => ({ ...prev, username: res.data.username }));
       } catch (err) {
+        console.error(err);
         toast.error("Failed to load admin data");
       }
     };
     fetchUser();
-  }, [token]);
+  }, []);
 
   const handleSaveProfile = async () => {
+    if (!profile.username) return toast.error("Username cannot be empty");
+
     setLoading(true);
     try {
+      // Update username
+      await axios.put(
+        `${API_URL}/update-profile`,
+        { username: profile.username },
+        { withCredentials: true }
+      );
+
+      // Update password if provided
       if (profile.currentPassword && profile.newPassword) {
         await axios.put(
           `${API_URL}/update-password`,
@@ -43,13 +48,14 @@ const AdminSettings = () => {
             currentPassword: profile.currentPassword,
             newPassword: profile.newPassword,
           },
-          { headers: { Authorization: `Bearer ${token}` } }
+          { withCredentials: true }
         );
       }
 
       toast.success("Profile updated successfully!");
-      setProfile({ ...profile, currentPassword: "", newPassword: "" });
+      setProfile((prev) => ({ ...prev, currentPassword: "", newPassword: "" }));
     } catch (err) {
+      console.error(err.response?.data || err);
       toast.error(err.response?.data?.message || "Update failed");
     } finally {
       setLoading(false);
@@ -67,58 +73,67 @@ const AdminSettings = () => {
         <div className="flex flex-col gap-4">
           {/* Username */}
           <div>
-            <label className="block mb-1 font-semibold">Username :-</label>
+            <label className="block mb-1 font-semibold">Username:</label>
             <input
               type="text"
               value={profile.username}
-              className="border px-3 py-2 rounded w-full focus:ring-2 focus:ring-blue-400"
+              onChange={(e) =>
+                setProfile((prev) => ({ ...prev, username: e.target.value }))
+              }
+              className="border px-3 py-2 rounded w-full text-black focus:ring-2 focus:ring-blue-400"
             />
           </div>
 
           {/* Current Password */}
           <div>
             <label className="block mb-1 font-semibold">
-              Current Password :-
+              Current Password:
             </label>
             <div className="relative">
               <input
-                type={showCurrentPassword ? "text" : "password"} // 🔑 toggle
+                type={showCurrentPassword ? "text" : "password"}
                 value={profile.currentPassword}
                 onChange={(e) =>
-                  setProfile({ ...profile, currentPassword: e.target.value })
+                  setProfile((prev) => ({
+                    ...prev,
+                    currentPassword: e.target.value,
+                  }))
                 }
                 placeholder="Enter current password to change"
-                className="border px-3 py-2 rounded w-full focus:ring-2 focus:ring-blue-400"
+                className="border px-3 py-2 rounded w-full text-black focus:ring-2 focus:ring-blue-400"
               />
               <button
                 type="button"
                 onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                 className="absolute right-3 top-2.5 text-gray-500"
               >
-                {!showCurrentPassword ? <EyeOff size={18}  className="text-white"/> : <Eye size={18}  className="text-white"/>}
+                {showCurrentPassword ? <Eye size={18} /> : <EyeOff size={18} />}
               </button>
             </div>
           </div>
 
           {/* New Password */}
           <div>
-            <label className="block mb-1 font-semibold">New Password :-</label>
+            <label className="block mb-1 font-semibold">New Password:</label>
             <div className="relative">
               <input
-                type={showNewPassword ? "text" : "password"} //
+                type={showNewPassword ? "text" : "password"}
                 value={profile.newPassword}
                 onChange={(e) =>
-                  setProfile({ ...profile, newPassword: e.target.value })
+                  setProfile((prev) => ({
+                    ...prev,
+                    newPassword: e.target.value,
+                  }))
                 }
                 placeholder="Enter new password"
-                className="border px-3 py-2 rounded w-full focus:ring-2 focus:ring-blue-400"
+                className="border px-3 py-2 rounded w-full text-black focus:ring-2 focus:ring-blue-400"
               />
               <button
                 type="button"
                 onClick={() => setShowNewPassword(!showNewPassword)}
                 className="absolute right-3 top-2.5 text-gray-500"
               >
-                {!showNewPassword ? <EyeOff size={18} className=" text-white" /> : <Eye size={18} className="text-white" />}
+                {showNewPassword ? <Eye size={18} /> : <EyeOff size={18} />}
               </button>
             </div>
           </div>

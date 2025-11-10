@@ -22,7 +22,7 @@ import axios from "axios";
 
 const EditorPage = () => {
   const { slug } = useParams();
-  const { pages, setPages, token } = useContext(CmsContext);
+  const { pages, setPages } = useContext(CmsContext);
   const page = pages.find((p) => p.slug === slug);
   const navigate = useNavigate();
 
@@ -57,7 +57,7 @@ const EditorPage = () => {
         `http://localhost:5000/api/pages/${page.slug}`,
         { ...formData, html, css },
         {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         }
       );
 
@@ -77,7 +77,7 @@ const EditorPage = () => {
 
     try {
       const res = await axios.get("http://localhost:5000/api/components", {
-        headers: { Authorization: `Bearer ${token}` },
+      withCredentials: true,
       });
 
       const bm = editorRef.current.BlockManager;

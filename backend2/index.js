@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import path from "path";
 import { sequelize } from "./db/sequelize.js";
-
+import cookieParser from "cookie-parser";
 import authRouter from "./routes/auth.routes.js";
 import pageRouter from "./routes/page.routes.js";
 import menuRouter from "./routes/menu.routes.js";
@@ -22,9 +22,12 @@ app.use(
   cors({
     origin: "http://localhost:5173", // frontend URL
     credentials: true,
+
   })
+
 );
 
+app.use(cookieParser());
 // Parse JSON and URL-encoded payloads
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -34,7 +37,6 @@ app.use("/uploads", express.static(path.join("./uploads")));
 
 // ------------------- Routes -------------------
 app.use("/api/blogs", blogRouter);
-
 app.use("/api/auth", authRouter);
 app.use("/api/pages", pageRouter);
 app.use("/api/menus", menuRouter);

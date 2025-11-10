@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 const PageManager = () => {
-  const { pages, setPages, token } = useContext(CmsContext);
+  const { pages, setPages } = useContext(CmsContext);
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -55,7 +55,7 @@ const PageManager = () => {
         selectedPages.map((slug) =>
           fetch(`http://localhost:5000/api/pages/${slug}`, {
             method: "DELETE",
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { withCredentials: true },
           })
         )
       );
@@ -72,7 +72,7 @@ const PageManager = () => {
     try {
       await fetch(`http://localhost:5000/api/pages/${slug}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { withCredentials: true },
       });
       setPages(pages.filter((p) => p.slug !== slug));
       toast.success("✅ Page deleted!");
@@ -215,7 +215,7 @@ const PageManager = () => {
                                   method: "PUT",
                                   headers: {
                                     "Content-Type": "application/json",
-                                    Authorization: `Bearer ${token}`,
+                                    withCredentials: true,
                                   },
                                   body: JSON.stringify({ status: newStatus }),
                                 }

@@ -24,7 +24,7 @@ import axios from "axios";
 const EditorAdd = () => {
   const editorRef = useRef(null);
   const [editorKey] = useState(Date.now());
-  const { setPageContent, token } = useContext(CmsContext);
+  const { setPageContent } = useContext(CmsContext);
   const navigate = useNavigate();
 
   // Cleanup editor on unmount
@@ -55,7 +55,7 @@ const EditorAdd = () => {
       const res = await axios.post(
         "http://localhost:5000/api/components",
         { name: componentName, html, css, category: "Reusable" },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { withCredentials: true }
       );
 
       const bm = editorRef.current.BlockManager;
@@ -95,7 +95,7 @@ const EditorAdd = () => {
 
       // ✅ Get all components from backend (no second API needed)
       const res = await axios.get("http://localhost:5000/api/components", {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
 
       if (!res.data || res.data.length === 0) {

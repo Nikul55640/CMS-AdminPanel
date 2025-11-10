@@ -1,62 +1,52 @@
-import axios from "axios";
+// src/pages/Login.jsx
 import { useState, useContext } from "react";
-import CmsContext from "../context/CmsContext";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import axios from "axios";
+import CmsContext from "../context/CmsContext";
 
 const Login = () => {
-  const { setToken, setRefreshToken, setLoggedIn } = useContext(CmsContext);
+
+  const { setLoggedIn } = useContext(CmsContext);
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    try {
-      console.log("==========================================");
-      console.log("🟡 [Login] Attempting login...");
-      console.log("👤 Username:", username);
-      console.log("==========================================");
+    if (!username.trim() || !password.trim()) {
+      toast.error("Please enter username and password");
+      return;
+    }
 
-      const res = await axios.post("http://localhost:5000/api/auth/login", {
-        username,
-        password,
+    setLoading(true);
+
+    try {
+      // Login request (backend sets HttpOnly cookie)
+      await axios.post(
+        "http://localhost:5000/api/auth/login",
+        { username, password },
+        { withCredentials: true } // important for cookies
+      );
+
+      // Fetch current user to confirm login
+      const meRes = await axios.get("http://localhost:5000/api/auth/me", {
+        withCredentials: true,
       });
 
-      console.log("🟢 [Login] Raw response:", res.data);
-
-      const accessToken = res.data.accessToken;
-      const refreshToken = res.data.refreshToken;
-
-      if (!accessToken || !refreshToken) {
-        console.error("❌ [Login] Missing tokens in response!");
-        toast.error("Login failed: no tokens received!");
-        return;
+      if (meRes.data) {
+        setLoggedIn(true); // update context
+        toast.success("Login successful!");
+        navigate("/admin"); // navigate after successful login
+      } else {
+        toast.error("Login failed: unable to verify user");
       }
-
-      // 🧹 Clear any previous tokens before saving new ones
-      console.log("🧹 [Login] Clearing old tokens from localStorage...");
-      localStorage.removeItem("cmsToken");
-      localStorage.removeItem("cmsRefreshToken");
-
-      // 💾 Save new tokens
-      localStorage.setItem("cmsToken", accessToken);
-      localStorage.setItem("cmsRefreshToken", refreshToken);
-
-      // 🧠 Update Context
-      setToken(accessToken);
-      setRefreshToken(refreshToken);
-      setLoggedIn(true);
-
-      console.log("✅ [Login] Tokens saved successfully!");
-      console.log("🔑 Access Token (partial):", accessToken.slice(0, 30) + "...");
-      console.log("♻️ Refresh Token (partial):", refreshToken.slice(0, 30) + "...");
-      console.log("==========================================");
-
-      toast.success("Login successful!");
-      navigate("/admin");
     } catch (err) {
-      console.error("❌ [Login] Error during login:", err.response?.data || err.message);
+      console.error(err.response?.data || err.message);
       toast.error(err.response?.data?.message || "Login failed!");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -67,7 +57,10 @@ const Login = () => {
           Admin Login
         </h2>
 
-        <label className="text-white text-xl font-semibold mt-8">Username:</label>
+        <label className="text-white text-xl font-semibold mt-8">
+          Username:
+        </label>
+
         <input
           type="text"
           placeholder="Username"
@@ -87,9 +80,10 @@ const Login = () => {
 
         <button
           onClick={handleLogin}
-          className="w-full py-2 bg-blue-500 text-white rounded hover:bg-blue-800 cursor-pointer"
+          disabled={loading}
+          className="w-full py-2 bg-blue-500 text-white rounded hover:bg-blue-800 cursor-pointer disabled:opacity-50"
         >
-          Login
+          {loading ? "Logging in..." : "Login"}
         </button>
       </div>
     </div>

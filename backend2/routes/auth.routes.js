@@ -4,16 +4,14 @@ import authMiddleware from "../middleware/auth.middleware.js";
 import {
   loginUser,
   registerUser,
-  refresh_token,
+  refreshTokenController,
   getCurrentUser,
   updatePassword,
   deleteUser,
-  logoutUser
+  logoutUser,
 } from "../controllers/auth.controller.js";
 
 const authRouter = express.Router();
-
-
 
 // Register new user
 authRouter.post("/register", registerUser);
@@ -21,18 +19,15 @@ authRouter.post("/register", registerUser);
 // Login user
 authRouter.post("/login", loginUser);
 
-// Refresh JWT token
-authRouter.post("/refresh-token", refresh_token);
+
+authRouter.post("/refresh-token", refreshTokenController);
+
 
 // Logout user
 authRouter.post("/logout", authMiddleware, logoutUser);
 
-
-
 // Get current logged-in user
 authRouter.get("/me", authMiddleware, getCurrentUser);
-
-
 
 // Update user password
 authRouter.put("/update-password", authMiddleware, updatePassword);

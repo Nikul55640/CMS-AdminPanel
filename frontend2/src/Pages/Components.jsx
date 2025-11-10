@@ -2,18 +2,19 @@ import { useContext, useState, useEffect } from "react";
 import CmsContext from "../context/CmsContext";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { Save ,Eye ,Pencil ,Trash } from "lucide-react";
+import { Save, Eye, Pencil, Trash } from "lucide-react";
 
 const ComponentForm = () => {
-  const { token, addComponent, components, fetchComponents, removeComponent } =
+  const { addComponent, components, fetchComponents, removeComponent } =
     useContext(CmsContext);
 
   const [form, setForm] = useState({ name: "", html: "", css: "", js: "" });
   const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
-    if (token) fetchComponents();
-  }, [token]);
+    // Fetch components on mount
+    fetchComponents();
+  }, []);
 
   const handleSave = async () => {
     if (!form.name) return toast.error("⚠️ Enter a component name!");
@@ -23,7 +24,7 @@ const ComponentForm = () => {
         await axios.put(
           `http://localhost:5000/api/components/${editingId}`,
           form,
-          { headers: { Authorization: `Bearer ${token}` } }
+          { withCredentials: true } // send cookies automatically
         );
         toast.success("✅ Component updated!");
         fetchComponents();
@@ -32,7 +33,7 @@ const ComponentForm = () => {
         const res = await axios.post(
           "http://localhost:5000/api/components",
           form,
-          { headers: { Authorization: `Bearer ${token}` } }
+          { withCredentials: true } // send cookies automatically
         );
         addComponent(res.data);
         toast.success("✅ Component created!");
@@ -47,7 +48,7 @@ const ComponentForm = () => {
   const handleDelete = async (id) => {
     try {
       await axios.delete(`http://localhost:5000/api/components/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true, // send cookies automatically
       });
       removeComponent(id);
       toast.success("✅ Component deleted!");
@@ -111,7 +112,7 @@ const ComponentForm = () => {
             placeholder="Header Component"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-4 py-2  transition"
+            className="w-full border border-gray-300 rounded-lg px-4 py-2 transition"
           />
         </div>
 
@@ -121,7 +122,7 @@ const ComponentForm = () => {
             placeholder="<div>Hello World</div>"
             value={form.html}
             onChange={(e) => setForm({ ...form, html: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-4 py-2  min-h-[100px] transition"
+            className="w-full border border-gray-300 rounded-lg px-4 py-2 min-h-[100px] transition"
           />
         </div>
 
@@ -131,7 +132,7 @@ const ComponentForm = () => {
             placeholder="div { color: red; }"
             value={form.css}
             onChange={(e) => setForm({ ...form, css: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-4 py-2  min-h-[80px] transition"
+            className="w-full border border-gray-300 rounded-lg px-4 py-2 min-h-[80px] transition"
           />
         </div>
 
@@ -141,7 +142,7 @@ const ComponentForm = () => {
             placeholder="console.log('Hello');"
             value={form.js}
             onChange={(e) => setForm({ ...form, js: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-4 py-2   min-h-[80px] transition"
+            className="w-full border border-gray-300 rounded-lg px-4 py-2 min-h-[80px] transition"
           />
         </div>
 
@@ -153,7 +154,7 @@ const ComponentForm = () => {
               : "bg-purple-600 hover:bg-purple-700"
           }`}
         >
-        <Save />{editingId ? "Update Component" : " Save Component"}
+          <Save /> {editingId ? "Update Component" : "Save Component"}
         </button>
       </div>
 
@@ -182,21 +183,21 @@ const ComponentForm = () => {
               <div className="flex flex-wrap gap-2 mt-3 sm:mt-0">
                 <button
                   onClick={() => handlePreview(cmp)}
-                  className="bg-blue-500 text-white px-3 py-1 flex gap-1  hover:cursor-pointer rounded-lg hover:bg-blue-600 text-sm transition"
+                  className="bg-blue-500 text-white px-3 py-1 flex gap-1 hover:cursor-pointer rounded-lg hover:bg-blue-600 text-sm transition"
                 >
-                 <Eye size={20} /> Preview
+                  <Eye size={20} /> Preview
                 </button>
                 <button
                   onClick={() => handleEdit(cmp)}
-                  className="bg-yellow-500 hover:cursor-pointer flex gap-1  text-white px-3 py-1 rounded-lg hover:bg-yellow-600 text-sm transition"
+                  className="bg-yellow-500 hover:cursor-pointer flex gap-1 text-white px-3 py-1 rounded-lg hover:bg-yellow-600 text-sm transition"
                 >
-                <Pencil size={20} />  Edit
+                  <Pencil size={20} /> Edit
                 </button>
                 <button
                   onClick={() => handleDelete(cmp.id)}
-                  className="bg-red-500 text-white px-3 py-1 flex gap-1  hover:cursor-pointer rounded-lg hover:bg-red-600 text-sm transition"
+                  className="bg-red-500 text-white px-3 py-1 flex gap-1 hover:cursor-pointer rounded-lg hover:bg-red-600 text-sm transition"
                 >
-                <Trash  size={20}/>  Delete
+                  <Trash size={20} /> Delete
                 </button>
               </div>
             </li>

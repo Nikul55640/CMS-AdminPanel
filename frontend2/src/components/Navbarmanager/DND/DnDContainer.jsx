@@ -13,7 +13,6 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import SortableItem from "./SortableItem";
-import ActiveMenuSelector from "./ActiveMenuSelector";
 
 // 🔧 --- Helper: Find item path recursively ---
 const findItemPath = (items, id, path = []) => {

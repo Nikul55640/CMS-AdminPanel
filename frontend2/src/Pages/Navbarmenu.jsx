@@ -41,7 +41,6 @@ const NavbarManager = () => {
 
   const [activeId, setActiveId] = useState(null); // <-- active drag id
 
-  const token = localStorage.getItem("token");
   const menuType = "navbar";
 
   const [logoPreview, setLogoPreview] = useState(null);
@@ -71,7 +70,7 @@ const NavbarManager = () => {
         "http://localhost:5000/api/menus/logo/navbar",
         formData,
         {
-          headers: { "Content-Type": "multipart/form-data" },
+            headers: { "Content-Type": "multipart/form-data" },
         }
       );
 
@@ -241,7 +240,7 @@ const NavbarManager = () => {
     setIsLoading(true);
     try {
       const res = await axios.get(`${API}/menus/location/${menuType}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
       const data = res.data;
 
@@ -269,7 +268,7 @@ const NavbarManager = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [token, generatePreview]);
+  }, [ generatePreview]);
 
   useEffect(() => {
     fetchMenus();
@@ -301,7 +300,7 @@ const NavbarManager = () => {
     const toastId = toast.loading("Deleting...");
     try {
       await axios.delete(`${API}/menus/${item.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
       toast.success("Deleted", { id: toastId });
       fetchMenus();
@@ -315,11 +314,11 @@ const NavbarManager = () => {
     try {
       if (menuData.id) {
         await axios.put(`${API}/menus/${menuData.id}`, menuData, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
       } else {
         await axios.post(`${API}/menus`, menuData, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
       }
       toast.success("Saved successfully", { id: toastId });
@@ -339,7 +338,7 @@ const NavbarManager = () => {
       await axios.post(
         `${API}/menus/hierarchy`,
         { menuTree: newMenus, location: menuType },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { withCredentials: true, }
       );
       toast.success("Menu structure updated", { id: toastId });
     } catch (err) {
@@ -487,7 +486,7 @@ const handleToggleActiveMenu = (id) => {
       await axios.post(
         `${API}/menus/set-active`,
         { menuIds: idsToSend, section: menuType },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { withCredentials: true, }
       );
       toast.success("Active menus updated", { id: toastId });
     } catch {
@@ -501,7 +500,7 @@ const handleToggleActiveMenu = (id) => {
       await axios.post(
         `${API}/menus/custom-content`,
         { section: menuType, html: customHTML, css: customCSS, js: customJS },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { withCredentials: true, }
       );
       toast.success("Saved custom content", { id: toastId });
       setCustomDialogOpen(false);
@@ -516,7 +515,7 @@ const handleToggleActiveMenu = (id) => {
     const toastId = toast.loading("Deleting custom content...");
     try {
       await axios.delete(`${API}/menus/custom-content/${menuType}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
       toast.success("Deleted custom content", { id: toastId });
       setCustomHTML("");
