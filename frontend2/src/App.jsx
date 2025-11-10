@@ -18,8 +18,7 @@ import Navbarmenu from "./Pages/Navbarmenu";
 import BlogPage from "./Pages/BlogPage";
 import AddBlog from "./Pages/AddBlog";
 import Footermenu from "./Pages/Footermenu";
-
-import ProtectedRoute from "./components/ProtectedRoutes.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";  
 
 function AdminLayout({ children }) {
   return (

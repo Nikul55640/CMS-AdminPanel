@@ -78,7 +78,6 @@ const AddBlog = () => {
     }
   }, [id]);
 
-
   // Save or Publish Blog
   const handleSave = async (saveType) => {
     const payload = {
@@ -136,7 +135,12 @@ const AddBlog = () => {
             >
               Save Draft
             </Button>
-            <Button variant ="outline" size="sm" className="bg-green-600 text-white cursor-pointer"  onClick={() => handleSave("published")}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-green-600 text-white cursor-pointer"
+              onClick={() => handleSave("published")}
+            >
               Publish
             </Button>
           </div>
@@ -228,7 +232,7 @@ const AddBlog = () => {
               <CardHeader>
                 <CardTitle>Featured Image</CardTitle>
               </CardHeader>
-              <CardContent  className="bg-white">
+              <CardContent className="bg-white">
                 {!imageUrl ? (
                   <div className="border-2 border-dashed rounded-lg p-8 text-center">
                     <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
@@ -275,9 +279,15 @@ const AddBlog = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem  className="bg-gray-200" value="draft">Draft</SelectItem>
-                    <SelectItem className="bg-green-600" value="published">Published</SelectItem>
-                    <SelectItem  className="bg-yellow-600 "value="scheduled">Scheduled</SelectItem>
+                    <SelectItem className="bg-gray-200" value="draft">
+                      Draft
+                    </SelectItem>
+                    <SelectItem className="bg-green-600" value="published">
+                      Published
+                    </SelectItem>
+                    <SelectItem className="bg-yellow-600 " value="scheduled">
+                      Scheduled
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 {status === "scheduled" && (
