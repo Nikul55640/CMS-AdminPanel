@@ -289,7 +289,7 @@ export const manuallogoupload = async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const logoUrl = `/uploads/${req.file.filename}`;
+    const logoUrl = `http://localhost:5000/uploads/${req.file.filename}`;
 
     // Update existing record or create new one
     const [record, created] = await CustomContent.findOrCreate({

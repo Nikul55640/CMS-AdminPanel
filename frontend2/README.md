@@ -1348,3 +1348,136 @@ const SortableItem = memo(
 );
 
 export default SortableItem;
+
+
+
+
+  //  <div className="flex flex-wrap gap-2 mb-2 border-b pb-2">
+  //       {/* Undo / Redo */}
+  //       <Button
+  //         onClick={() => editor.chain().focus().undo().run()}
+  //         icon={Undo2}
+  //         title="Undo"
+  //       />
+  //       <Button
+  //         onClick={() => editor.chain().focus().redo().run()}
+  //         icon={Redo2}
+  //         title="Redo"
+  //       />
+  //       <span className="border-r h-6 mx-1" />
+
+  //       {/* Text styles */}
+  //       <Button
+  //         onClick={() => editor.chain().focus().toggleBold().run()}
+  //         icon={Bold}
+  //         active={editor.isActive("bold")}
+  //         title="Bold"
+  //       />
+  //       <Button
+  //         onClick={() => editor.chain().focus().toggleItalic().run()}
+  //         icon={Italic}
+  //         active={editor.isActive("italic")}
+  //         title="Italic"
+  //       />
+  //       <Button
+  //         onClick={() => editor.chain().focus().toggleHighlight().run()}
+  //         icon={Highlighter}
+  //         active={editor.isActive("highlight")}
+  //         title="Highlight"
+  //       />
+  //       <span className="border-r h-6 mx-1" />
+
+  //       {/* Heading / Quote / Lists */}
+  //       <Button
+  //         onClick={() =>
+  //           editor.chain().focus().toggleHeading({ level: 2 }).run()
+  //         }
+  //         icon={Heading2}
+  //         active={editor.isActive("heading", { level: 2 })}
+  //         title="Heading"
+  //       />
+  //       <Button
+  //         onClick={() => editor.chain().focus().toggleBulletList().run()}
+  //         icon={List}
+  //         active={editor.isActive("bulletList")}
+  //         title="Bullet List"
+  //       />
+  //       <Button
+  //         onClick={() => editor.chain().focus().toggleTaskList().run()}
+  //         icon={ListChecks}
+  //         active={editor.isActive("taskList")}
+  //         title="Task List"
+  //       />
+  //       <Button
+  //         onClick={() => editor.chain().focus().toggleBlockquote().run()}
+  //         icon={Quote}
+  //         active={editor.isActive("blockquote")}
+  //         title="Quote"
+  //       />
+  //       <span className="border-r h-6 mx-1" />
+
+  //       {/* Alignment */}
+  //       <Button
+  //         onClick={() => editor.chain().focus().setTextAlign("left").run()}
+  //         icon={AlignLeft}
+  //         active={editor.isActive({ textAlign: "left" })}
+  //         title="Align Left"
+  //       />
+  //       <Button
+  //         onClick={() => editor.chain().focus().setTextAlign("center").run()}
+  //         icon={AlignCenter}
+  //         active={editor.isActive({ textAlign: "center" })}
+  //         title="Align Center"
+  //       />
+  //       <Button
+  //         onClick={() => editor.chain().focus().setTextAlign("right").run()}
+  //         icon={AlignRight}
+  //         active={editor.isActive({ textAlign: "right" })}
+  //         title="Align Right"
+  //       />
+  //       <span className="border-r h-6 mx-1" />
+
+  //       {/* Sub/Sup */}
+  //       <Button
+  //         onClick={() => editor.chain().focus().toggleSubscript().run()}
+  //         icon={SubIcon}
+  //         active={editor.isActive("subscript")}
+  //         title="Subscript"
+  //       />
+  //       <Button
+  //         onClick={() => editor.chain().focus().toggleSuperscript().run()}
+  //         icon={SupIcon}
+  //         active={editor.isActive("superscript")}
+  //         title="Superscript"
+  //       />
+  //       <span className="border-r h-6 mx-1" />
+
+  //       {/* Divider & Image */}
+  //       <Button
+  //         onClick={() => editor.chain().focus().setHorizontalRule().run()}
+  //         icon={Minus}
+  //         title="Divider"
+  //       />
+  //       <Button onClick={handleImageClick} icon={ImageIcon} title="Add Image" />
+  //       <input
+  //         type="file"
+  //         accept="image/*"
+  //         ref={fileInputRef}
+  //         onChange={handleImageUpload}
+  //         className="hidden"
+  //       />
+  //     </div>
+
+<!-- 
+   <div className="flex">
+        <label className="block font-medium mb-1">
+          Content
+        </label>
+        <SimpleEditor
+          value={content}
+          setContent={(val) => {
+            console.log("🖋️ Content Updated:", val);
+            setContent(val);
+          }}
+        />
+      </div> -->

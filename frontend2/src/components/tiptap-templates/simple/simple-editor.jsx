@@ -13,8 +13,6 @@ import { Highlight } from "@tiptap/extension-highlight"
 import { Subscript } from "@tiptap/extension-subscript"
 import { Superscript } from "@tiptap/extension-superscript"
 import { Selection } from "@tiptap/extensions"
-
-// --- UI Primitives ---
 import { Button } from "@/components/tiptap-ui-primitive/button"
 import { Spacer } from "@/components/tiptap-ui-primitive/spacer"
 import {
@@ -53,7 +51,6 @@ import {
 import { MarkButton } from "@/components/tiptap-ui/mark-button"
 import { TextAlignButton } from "@/components/tiptap-ui/text-align-button"
 import { UndoRedoButton } from "@/components/tiptap-ui/undo-redo-button"
-
 // --- Icons ---
 import { ArrowLeftIcon } from "@/components/tiptap-icons/arrow-left-icon"
 import { HighlighterIcon } from "@/components/tiptap-icons/highlighter-icon"
@@ -64,16 +61,11 @@ import { useIsMobile } from "@/hooks/use-mobile"
 import { useWindowSize } from "@/hooks/use-window-size"
 import { useCursorVisibility } from "@/hooks/use-cursor-visibility"
 
-// --- Components ---
-import { ThemeToggle } from "@/components/tiptap-templates/simple/theme-toggle"
-
 // --- Lib ---
 import { handleImageUpload, MAX_FILE_SIZE } from "@/lib/tiptap-utils"
 
 // --- Styles ---
 import "@/components/tiptap-templates/simple/simple-editor.scss"
-
-import content from "@/components/tiptap-templates/simple/data/content.json"
 
 const MainToolbarContent = ({
   onHighlighterClick,
@@ -82,53 +74,91 @@ const MainToolbarContent = ({
 }) => {
   return (
     <>
-      <Spacer />
-      <ToolbarGroup>
-        <UndoRedoButton action="undo" />
-        <UndoRedoButton action="redo" />
-      </ToolbarGroup>
-      <ToolbarSeparator />
-      <ToolbarGroup>
-        <HeadingDropdownMenu levels={[1, 2, 3, 4]} portal={isMobile} />
-        <ListDropdownMenu types={["bulletList", "orderedList", "taskList"]} portal={isMobile} />
-        <BlockquoteButton />
-        <CodeBlockButton />
-      </ToolbarGroup>
-      <ToolbarSeparator />
-      <ToolbarGroup>
-        <MarkButton type="bold" />
-        <MarkButton type="italic" />
-        <MarkButton type="strike" />
-        <MarkButton type="code" />
-        <MarkButton type="underline" />
-        {!isMobile ? (
-          <ColorHighlightPopover />
-        ) : (
-          <ColorHighlightPopoverButton onClick={onHighlighterClick} />
-        )}
-        {!isMobile ? <LinkPopover /> : <LinkButton onClick={onLinkClick} />}
-      </ToolbarGroup>
-      <ToolbarSeparator />
-      <ToolbarGroup>
-        <MarkButton type="superscript" />
-        <MarkButton type="subscript" />
-      </ToolbarGroup>
-      <ToolbarSeparator />
-      <ToolbarGroup>
-        <TextAlignButton align="left" />
-        <TextAlignButton align="center" />
-        <TextAlignButton align="right" />
-        <TextAlignButton align="justify" />
-      </ToolbarGroup>
-      <ToolbarSeparator />
-      <ToolbarGroup>
-        <ImageUploadButton text="Add" />
-      </ToolbarGroup>
-      <Spacer />
-      {isMobile && <ToolbarSeparator />}
-      <ToolbarGroup>
-        <ThemeToggle />
-      </ToolbarGroup>
+      {isMobile ? (
+        // Mobile Compact Layout
+        <>
+          <Spacer />
+          <ToolbarGroup>
+            <UndoRedoButton action="undo" title="Undo" />
+            <UndoRedoButton action="redo" title="Redo" />
+          </ToolbarGroup>
+          
+          <ToolbarGroup>
+            <HeadingDropdownMenu levels={[1, 2, 3]} portal={isMobile} />
+            <ListDropdownMenu types={["bulletList", "orderedList"]} portal={isMobile} />
+          </ToolbarGroup>
+          
+          <ToolbarGroup>
+            <MarkButton type="bold" title="Bold" />
+            <MarkButton type="italic" title="Italic" />
+            <MarkButton type="strike" title="Strike" />
+          </ToolbarGroup>
+          
+          <ToolbarGroup>
+            <ColorHighlightPopoverButton onClick={onHighlighterClick} title="Color" />
+            <LinkButton onClick={onLinkClick} title="Link" />
+          </ToolbarGroup>
+          
+          <Spacer />
+        </>
+      ) : (
+        // Desktop Full Layout
+        <>
+          <Spacer />
+          
+          {/* Undo/Redo Group */}
+          <ToolbarGroup>
+            <UndoRedoButton action="undo" title="Undo (Ctrl+Z)" />
+            <UndoRedoButton action="redo" title="Redo (Ctrl+Y)" />
+          </ToolbarGroup>
+          <ToolbarSeparator />
+          
+          {/* Headings & Lists Group */}
+          <ToolbarGroup>
+            <HeadingDropdownMenu levels={[1, 2, 3, 4]} portal={isMobile} />
+            <ListDropdownMenu types={["bulletList", "orderedList", "taskList"]} portal={isMobile} />
+            <BlockquoteButton title="Quote (Ctrl+Shift+B)" />
+            <CodeBlockButton title="Code Block (Ctrl+Alt+C)" />
+          </ToolbarGroup>
+          <ToolbarSeparator />
+          
+          {/* Text Formatting Group */}
+          <ToolbarGroup>
+            <MarkButton type="bold" title="Bold (Ctrl+B)" />
+            <MarkButton type="italic" title="Italic (Ctrl+I)" />
+            <MarkButton type="strike" title="Strikethrough (Ctrl+Shift+X)" />
+            <MarkButton type="code" title="Inline Code (Ctrl+`)" />
+            <MarkButton type="underline" title="Underline (Ctrl+U)" />
+            <ColorHighlightPopover />
+            <LinkPopover />
+          </ToolbarGroup>
+          
+          <ToolbarSeparator />
+          
+          {/* Advanced Group */}
+          <ToolbarGroup>
+            <MarkButton type="superscript" title="Superscript" />
+            <MarkButton type="subscript" title="Subscript" />
+          </ToolbarGroup>
+          <ToolbarSeparator />
+          
+          {/* Alignment Group */}
+          <ToolbarGroup>
+            <TextAlignButton align="left" title="Align Left" />
+            <TextAlignButton align="center" title="Align Center" />
+            <TextAlignButton align="right" title="Align Right" />
+            <TextAlignButton align="justify" title="Justify" />
+          </ToolbarGroup>
+          <ToolbarSeparator />
+          
+          {/* Media Group */}
+          <ToolbarGroup>
+            <ImageUploadButton text="Add Image" title="Upload Image" />
+          </ToolbarGroup>
+          
+          <Spacer />
+        </>
+      )}
     </>
   );
 }
@@ -159,7 +189,7 @@ const MobileToolbarContent = ({
   </>
 )
 
-export function SimpleEditor() {
+export function SimpleEditor( {setContent ,content}) {
   const isMobile = useIsMobile()
   const { height } = useWindowSize()
   const [mobileView, setMobileView] = useState("main")
@@ -217,31 +247,61 @@ export function SimpleEditor() {
     }
   }, [isMobile, mobileView])
 
+  useEffect(() => {
+    if (editor) {
+      editor.on("update", ({ editor }) => {
+        setContent(editor.getJSON())
+      })
+    }
+  }, [editor, setContent])
+
   return (
-    <div className="simple-editor-wrapper">
+    <div className={`simple-editor-wrapper ${isMobile ? 'mobile-view' : 'desktop-view'}`}>
       <EditorContext.Provider value={{ editor }}>
         <Toolbar
           ref={toolbarRef}
+          className={`simple-editor-toolbar ${isMobile ? 'mobile' : 'desktop'}`}
           style={{
             ...(isMobile
               ? {
                   bottom: `calc(100% - ${height - rect.y}px)`,
+                  flexWrap: 'wrap',
+                  gap: '0.375rem',
+                  maxHeight: height <= 600 ? '240px' : '300px',
+                  overflowY: 'auto',
+                  overflowX: 'hidden',
+                  padding: '0.625rem',
+                  backgroundColor: '#ffffff',
+                  borderBottom: '1px solid #e5e7eb',
+                  boxShadow: '0 -2px 8px rgba(0, 0, 0, 0.05)',
                 }
-              : {}),
-          }}>
+              : {
+                  flexWrap: 'wrap',
+                  gap: '0.5rem',
+                  padding: '0.75rem',
+                  minHeight: '52px',
+                }),
+          }}
+        >
           {mobileView === "main" ? (
             <MainToolbarContent
               onHighlighterClick={() => setMobileView("highlighter")}
               onLinkClick={() => setMobileView("link")}
-              isMobile={isMobile} />
+              isMobile={isMobile}
+            />
           ) : (
             <MobileToolbarContent
               type={mobileView === "highlighter" ? "highlighter" : "link"}
-              onBack={() => setMobileView("main")} />
+              onBack={() => setMobileView("main")}
+            />
           )}
         </Toolbar>
 
-        <EditorContent editor={editor} role="presentation" className="simple-editor-content" />
+        <EditorContent
+          editor={editor}
+          role="presentation"
+          className={`simple-editor-content ${isMobile ? 'mobile' : 'desktop'}`}
+        />
       </EditorContext.Provider>
     </div>
   );

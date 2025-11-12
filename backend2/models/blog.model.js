@@ -24,10 +24,12 @@ const Blog = sequelize.define(
       allowNull: true,
     },
     content: {
-      type: DataTypes.TEXT("long"),
+      type: DataTypes.JSON, // ✅ allows object/array content
       allowNull: false,
+      defaultValue: {}, // optional but helpful
     },
-    image_url: {
+
+    imageUrl: {
       type: DataTypes.STRING,
       allowNull: true,
       defaultValue: "",
@@ -43,7 +45,7 @@ const Blog = sequelize.define(
       defaultValue: "General",
     },
     tags: {
-      type: DataTypes.JSON, // store array of strings directly
+      type: DataTypes.JSON, // ✅ array of strings
       allowNull: true,
       defaultValue: [],
     },
@@ -56,18 +58,42 @@ const Blog = sequelize.define(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    // ✅ SEO + URL Handle fields
+    seoTitle: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    seoDescription: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    urlHandle: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true,
+    },
   },
   {
     tableName: "blogs",
-    timestamps: true, // adds createdAt, updatedAt automatically
-    underscored: false, //
+    timestamps: true,
+    underscored: false,
     hooks: {
       beforeValidate: (blog) => {
-        if (!blog.slug && blog.title) {
-          blog.slug = blog.title
+        // ✅ Auto-generate slug from title or urlHandle
+        if (!blog.slug && (blog.title || blog.urlHandle)) {
+          const base = blog.urlHandle || blog.title;
+          blog.slug = base
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "-")
             .replace(/(^-|-$)+/g, "");
+        }
+
+        // ✅ Auto-generate SEO title/desc if missing
+        if (!blog.seoTitle && blog.title) {
+          blog.seoTitle = `${blog.title} | My Blog`;
+        }
+        if (!blog.seoDescription && blog.description) {
+          blog.seoDescription = blog.description.substring(0, 160);
         }
       },
     },

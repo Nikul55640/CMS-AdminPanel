@@ -225,14 +225,14 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
         </button>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:block">
+        <div className="hidden md:flex items-center gap-4">
           <NavigationMenu>
             <NavigationMenuList className="flex gap-4">
               {filterActiveMenus(menus).map((menu) => (
                 <NavigationMenuItem key={menu.id}>
                   {menu.children && menu.children.length > 0 ? (
                     <>
-                      <NavigationMenuTrigger className=" ">
+                      <NavigationMenuTrigger>
                         {menu.title}
                       </NavigationMenuTrigger>
                       <NavigationMenuContent className="bg-white border border-gray-200 rounded-lg shadow-lg p-2 mt-1">
@@ -266,28 +266,48 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
               ))}
             </NavigationMenuList>
           </NavigationMenu>
+
+          {/* ✅ Conditional Search Bar */}
+          {menuStyle.showSearch && (
+            <div className="ml-4">
+              <input
+                type="text"
+                placeholder="Search..."
+                className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          )}
         </div>
       </div>
 
+      {/* Mobile Dropdown */}
       {/* Mobile Dropdown */}
       <div
         className={`md:hidden bg-white border-t border-gray-200 transition-all duration-300 overflow-hidden ${
           mobileOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
         }`}
-            style={{
-        backgroundColor: menuStyle.backgroundColor,
-        color: menuStyle.textColor,
-        fontFamily: menuStyle.fontFamily,
-        textAlign: menuStyle.alignment,
-        fontSize: `${menuStyle.fontSize}px`,
-        zIndex: menuStyle.sticky ? 999 : "auto",
-        hoverColor: menuStyle.hoverColor 
-      }}
+        style={{
+          backgroundColor: menuStyle.backgroundColor,
+          color: menuStyle.textColor,
+          fontFamily: menuStyle.fontFamily,
+          textAlign: menuStyle.alignment,
+          fontSize: `${menuStyle.fontSize}px`,
+        }}
       >
         <ul className="flex flex-col p-2 space-y-1">
-          
           {filterActiveMenus(menus).map((menu) => renderMenu(menu))}
         </ul>
+
+        {/* ✅ Conditional Search Bar for Mobile */}
+        {menuStyle.showSearch && (
+          <div className="p-3 border-t border-gray-200">
+            <input
+              type="text"
+              placeholder="Search..."
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
       </div>
     </nav>
   );

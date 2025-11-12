@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
-import { AsyncHandler } from "../utils/ApiHelpers.js";
+import {AsyncHandler} from "../utils/ApiHelpers.js";
 
 import ms from "ms";
 
@@ -75,24 +75,22 @@ export const loginUser = AsyncHandler(async (req, res) => {
   const accessMaxAge = ms(process.env.JWT_EXPIRES_IN) || 900000; // default 15 min
   const refreshMaxAge = ms(process.env.JWT_REFRESH_EXPIRES_IN) || 604800000; // default 7 days
 
-  // Set cookies
-  res
-    .cookie("accessToken", accessToken, {
-      ...COOKIE_OPTIONS,
-      maxAge: accessMaxAge,
-      httpOnly: false, // frontend might need access
-    })
-    .cookie("refreshToken", refreshToken, {
-      ...COOKIE_OPTIONS,
-      maxAge: refreshMaxAge,
-      httpOnly: true, // secure refresh token
-    })
-    .json({
-      message: "Login successful",
-      user: { id: user.id, username: user.username },
-      refreshToken,
-      accessToken,
-    });
+ res
+  .cookie("accessToken", accessToken, {
+    ...COOKIE_OPTIONS,
+    maxAge: accessMaxAge,
+    httpOnly: true, // now frontend can't read it via JS
+  })
+  .cookie("refreshToken", refreshToken, {
+    ...COOKIE_OPTIONS,
+    maxAge: refreshMaxAge,
+    httpOnly: true, // secure refresh token
+  })
+  .json({
+    message: "Login successful",
+    user: { id: user.id, username: user.username },
+    // Remove tokens from response JSON
+  });
 });
 
 // --- Refresh token ---
@@ -116,7 +114,7 @@ export const refreshTokenController = AsyncHandler(async (req, res) => {
     res.cookie("accessToken", newAccessToken, {
       ...COOKIE_OPTIONS,
       maxAge: 15 * 60 * 1000, // 15 minutes
-      httpOnly: false,
+      httpOnly: true,
     });
     res.cookie("refreshToken", newRefreshToken, {
       ...COOKIE_OPTIONS,

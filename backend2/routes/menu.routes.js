@@ -12,7 +12,7 @@ import {
   setActiveMenus,
 } from "../controllers/menu.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
-import upload from "../middleware/upload.js";
+import { upload } from "../middleware/upload.js";
 import { manuallogoupload } from "../controllers/menu.controller.js";
 const router = express.Router();
 

@@ -14,41 +14,40 @@ const Login = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) {
-      toast.error("Please enter username and password");
-      return;
+const handleLogin = async () => {
+  console.log("🔹 [Login] Attempting login for username:", username);
+  if (!username.trim() || !password.trim()) {
+    toast.error("Please enter username and password");
+    return;
+  }
+  setLoading(true);
+
+  try {
+    const loginRes = await axios.post(
+      "http://localhost:5000/api/auth/login",
+      { username, password },
+      { withCredentials: true }
+    );
+    console.log("✅ [Login] Login response:", loginRes.data);
+
+    const meRes = await axios.get("http://localhost:5000/api/auth/me", { withCredentials: true });
+    console.log("✅ [Login] /auth/me response:", meRes.data);
+
+    if (meRes.data) {
+      setLoggedIn(true);
+      toast.success("Login successful!");
+      navigate("/admin");
+    } else {
+      toast.error("Login failed: unable to verify user");
+      console.warn("⚠️ [Login] /auth/me returned empty data");
     }
-
-    setLoading(true);
-
-    try {
-      // Login request (backend sets HttpOnly cookie)
-      await axios.post(
-        "http://localhost:5000/api/auth/login",
-        { username, password },
-        { withCredentials: true } // important for cookies
-      );
-
-      // Fetch current user to confirm login
-      const meRes = await axios.get("http://localhost:5000/api/auth/me", {
-        withCredentials: true,
-      });
-
-      if (meRes.data) {
-        setLoggedIn(true); // update context
-        toast.success("Login successful!");
-        navigate("/admin"); // navigate after successful login
-      } else {
-        toast.error("Login failed: unable to verify user");
-      }
-    } catch (err) {
-      console.error(err.response?.data || err.message);
-      toast.error(err.response?.data?.message || "Login failed!");
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (err) {
+    console.error("❌ [Login] Login error:", err.response?.data || err.message);
+    toast.error(err.response?.data?.message || "Login failed!");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="flex items-center justify-center h-screen bg-gray-200">

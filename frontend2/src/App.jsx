@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-
 import { CmsProvider, default as CmsContext } from "./context/CmsContext";
-
+import { Toaster } from "react-hot-toast";
 import { useContext } from "react";
 
 import Login from "./Pages/Login";
@@ -20,8 +19,7 @@ import Navbarmenu from "./Pages/Navbarmenu";
 import BlogPage from "./Pages/BlogPage";
 import AddBlog from "./Pages/AddBlog";
 import Footermenu from "./Pages/Footermenu";
-
-
+import ViewBlog from "./components/Blogpage/ViewBlog";
 
 function AdminLayout({ children }) {
   return (
@@ -32,15 +30,24 @@ function AdminLayout({ children }) {
   );
 }
 
-
 // --- Protected Route ---
 const ProtectedRoute = ({ children }) => {
-  const { loggedIn } = useContext(CmsContext);
+  const { loggedIn, authChecked, user } = useContext(CmsContext);
+  console.log(
+    "🔹 [ProtectedRoute] loggedIn:",
+    loggedIn,
+    "authChecked:",
+    authChecked,
+    "user:",
+    user?.username
+  );
+  if (!authChecked) return children;
   return loggedIn ? children : <Navigate to="/admin/login" />;
 };
 
-
 function AppRoutes() {
+  console.log("🧠 [AppRoutes] Rendering routes...");
+
   return (
     <Routes>
       {/* Admin Routes */}
@@ -65,11 +72,33 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/admin/blog/addblog"
+        path="/admin/blog/new"
         element={
           <ProtectedRoute>
             <AdminLayout>
               <AddBlog />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/blog/:id"
+        element={
+          <ProtectedRoute>
+            <AdminLayout>
+              <AddBlog />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/blog/view/:slug"
+        element={
+          <ProtectedRoute>
+            <AdminLayout>
+              <ViewBlog />
             </AdminLayout>
           </ProtectedRoute>
         }
@@ -166,13 +195,22 @@ function AppRoutes() {
       />
 
       {/* Login */}
-      <Route path="/admin/login" element={<Login />} />
+      <Route
+        path="/admin/login"
+        element={
+          <>
+            {console.log("🧠 [AppRoutes] Rendering Login page")}
+            <Login />
+          </>
+        }
+      />
 
       {/* Public Pages */}
       <Route
         path="/pages/:slug"
         element={
           <>
+            {console.log("🧠 [AppRoutes] Rendering public page")}
             <NavbarPublic />
             <PublicPage />
             <FooterPublic />
@@ -181,20 +219,37 @@ function AppRoutes() {
       />
 
       {/* Default */}
-      <Route path="/" element={<Navigate to="/pages/home" />} />
+      <Route
+        path="/"
+        element={
+          <>
+            {console.log("🧠 [AppRoutes] Redirecting '/' to /pages/home")}
+            <Navigate to="/pages/home" />
+          </>
+        }
+      />
 
       {/* 404 */}
-      <Route path="*" element={<p className="p-4">Page not found</p>} />
+      <Route
+        path="*"
+        element={
+          <>
+            {console.log("🧠 [AppRoutes] 404 page")}
+            <p className="p-4">Page not found</p>
+          </>
+        }
+      />
     </Routes>
   );
 }
 
 function App() {
-  return (
+  console.log("🧠 [App] App starting...");
 
+  return (
     <CmsProvider>
       <BrowserRouter>
-        <AppRoutes />git 
+        <AppRoutes />
         <Toaster />
       </BrowserRouter>
     </CmsProvider>

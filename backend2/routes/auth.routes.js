@@ -15,14 +15,10 @@ const authRouter = express.Router();
 
 // Register new user
 authRouter.post("/register", registerUser);
-
 // Login user
 authRouter.post("/login", loginUser);
 
-
 authRouter.post("/refresh-token", refreshTokenController);
-
-
 // Logout user
 authRouter.post("/logout", authMiddleware, logoutUser);
 
