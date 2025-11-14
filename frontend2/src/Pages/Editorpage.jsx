@@ -77,7 +77,7 @@ const EditorPage = () => {
 
     try {
       const res = await axios.get("http://localhost:5000/api/components", {
-      withCredentials: true,
+        withCredentials: true,
       });
 
       const bm = editorRef.current.BlockManager;
@@ -117,6 +117,16 @@ const EditorPage = () => {
               initialHtml: page.html || "<div>Start editing...</div>",
               initialCss: page.css || "",
               style: { height: "100%", width: "100%" },
+              cssManager: {
+                clearProperties: true, // optional: clear default CSS on reset
+                sectors: [
+                  {
+                    name: "Manual CSS", // Panel title
+                    open: true,
+                    buildProps: [], // leave empty, user can type anything
+                  },
+                ],
+              },
               plugins: [
                 // Google Fonts
                 googleFontsAssetProvider.init({
@@ -440,3 +450,205 @@ const EditorPage = () => {
 };
 
 export default EditorPage;
+
+
+
+
+
+// import { useContext, useState, useEffect, useRef } from "react";
+// import { useParams, useNavigate } from "react-router-dom";
+// import CmsContext from "../context/CmsContext";
+// import StudioEditor from "@grapesjs/studio-sdk/react";
+// import "@grapesjs/studio-sdk/style";
+// import toast from "react-hot-toast";
+// import axios from "axios";
+
+// const EditorPage = () => {
+//   const { slug } = useParams();
+//   const { pages, setPages } = useContext(CmsContext);
+//   const page = pages.find((p) => p.slug === slug);
+//   const navigate = useNavigate();
+
+//   const editorRef = useRef(null);
+//   const [isSaving, setIsSaving] = useState(false);
+//   const [formData, setFormData] = useState({
+//     title: page?.title || "",
+//     slug: page?.slug || "",
+//     description: page?.description || "",
+//     metaTitle: page?.metaTitle || "",
+//     metaDescription: page?.metaDescription || "",
+//     keywords: page?.keywords || "",
+//     status: page?.status || "draft",
+//   });
+
+//   const [htmlContent, setHtmlContent] = useState(page?.html || "<div>Start editing...</div>");
+//   const [cssContent, setCssContent] = useState(page?.css || "");
+//   const [jsContent, setJsContent] = useState(page?.js || "");
+
+//   const handleChange = (field, value) => {
+//     setFormData((prev) => ({ ...prev, [field]: value }));
+//   };
+
+//   // Update GrapesJS editor when HTML/CSS/JS changes
+//   useEffect(() => {
+//     if (!editorRef.current) return;
+//     const editor = editorRef.current;
+
+//     // Combine HTML + JS
+//     const fullHtml = `
+//       ${htmlContent}
+//       <script>
+//         ${jsContent}
+//       </script>
+//     `;
+//     editor.setComponents(fullHtml);
+//     editor.setStyle(cssContent);
+//   }, [htmlContent, cssContent, jsContent]);
+
+//   const handleSave = async () => {
+//     if (!editorRef.current || !page) return toast("Editor not ready!");
+//     if (!htmlContent.trim()) return toast("⚠️ Page content cannot be empty!");
+
+//     const payload = { ...formData, html: htmlContent, css: cssContent, js: jsContent };
+//     setIsSaving(true);
+//     try {
+//       const res = await axios.put(
+//         `http://localhost:5000/api/pages/${page.slug}`,
+//         payload,
+//         { withCredentials: true }
+//       );
+//       setPages(pages.map((p) => (p.slug === page.slug ? res.data : p)));
+//       toast.success("✅ Page updated successfully!");
+//       navigate("/admin/pages");
+//     } catch (err) {
+//       console.error(err);
+//       toast.error("Failed to save page");
+//     } finally {
+//       setIsSaving(false);
+//     }
+//   };
+
+//   if (!page) return <p>Page not found</p>;
+
+//   return (
+//     <div className="flex flex-col h-screen">
+//       <div className="flex flex-1 overflow-hidden">
+//         {/* Left Panel: HTML / CSS / JS */}
+//         <div className="w-1/4 p-2 bg-gray-50 border-r overflow-y-auto">
+//           <h2 className="text-lg font-semibold mb-2">HTML</h2>
+//           <textarea
+//             value={htmlContent}
+//             onChange={(e) => setHtmlContent(e.target.value)}
+//             className="border p-2 rounded w-full h-1/3 font-mono mb-2"
+//           />
+
+//           <h2 className="text-lg font-semibold mb-2">CSS</h2>
+//           <textarea
+//             value={cssContent}
+//             onChange={(e) => setCssContent(e.target.value)}
+//             className="border p-2 rounded w-full h-1/3 font-mono mb-2"
+//           />
+
+//           <h2 className="text-lg font-semibold mb-2">JS</h2>
+//           <textarea
+//             value={jsContent}
+//             onChange={(e) => setJsContent(e.target.value)}
+//             className="border p-2 rounded w-full h-1/3 font-mono"
+//           />
+//         </div>
+
+//         {/* Center Panel: StudioEditor */}
+//         <div className="w-3/4 p-2 bg-white overflow-y-auto">
+//           <StudioEditor
+//             key={slug}
+//             options={{
+//               initialHtml: htmlContent,
+//               initialCss: cssContent,
+//               style: { height: "80vh", width: "100%" },
+//             }}
+//             onReady={(editor) => {
+//               editorRef.current = editor;
+
+//               // Load saved content
+//               editor.DomComponents.clear();
+//               editor.CssComposer.clear();
+//               editor.setComponents(htmlContent);
+//               editor.setStyle(cssContent);
+//             }}
+//           />
+//         </div>
+
+//         {/* Right Panel: Page Info & SEO */}
+//         <div className="w-1/4 p-4 bg-gray-50 border-l overflow-y-auto">
+//           <h2 className="text-lg font-semibold mb-2">Page Info</h2>
+//           <input
+//             type="text"
+//             placeholder="Title"
+//             className="border p-2 rounded mb-2 w-full"
+//             value={formData.title}
+//             onChange={(e) => handleChange("title", e.target.value)}
+//           />
+//           <input
+//             type="text"
+//             placeholder="Slug"
+//             className="border p-2 rounded mb-2 w-full"
+//             value={formData.slug}
+//             onChange={(e) => handleChange("slug", e.target.value)}
+//           />
+//           <textarea
+//             placeholder="Description"
+//             className="border p-2 rounded mb-2 w-full"
+//             value={formData.description}
+//             onChange={(e) => handleChange("description", e.target.value)}
+//           />
+
+//           <h2 className="text-lg font-semibold mt-4 mb-2">SEO</h2>
+//           <input
+//             type="text"
+//             placeholder="Meta Title"
+//             className="border p-2 rounded mb-2 w-full"
+//             value={formData.metaTitle}
+//             onChange={(e) => handleChange("metaTitle", e.target.value)}
+//           />
+//           <textarea
+//             placeholder="Meta Description"
+//             className="border p-2 rounded mb-2 w-full"
+//             value={formData.metaDescription}
+//             onChange={(e) => handleChange("metaDescription", e.target.value)}
+//           />
+//           <input
+//             type="text"
+//             placeholder="Keywords"
+//             className="border p-2 rounded mb-2 w-full"
+//             value={formData.keywords}
+//             onChange={(e) => handleChange("keywords", e.target.value)}
+//           />
+
+//           <h2 className="text-lg font-semibold mt-4 mb-2">Status</h2>
+//           <select
+//             className="border p-2 rounded w-full mb-4"
+//             value={formData.status}
+//             onChange={(e) => handleChange("status", e.target.value)}
+//           >
+//             <option value="draft">Draft</option>
+//             <option value="published">Published</option>
+//           </select>
+
+//           <button
+//             onClick={handleSave}
+//             disabled={isSaving}
+//             className={`px-4 py-2 rounded text-white ${
+//               isSaving
+//                 ? "bg-gray-400 cursor-not-allowed"
+//                 : "bg-green-500 hover:bg-green-600"
+//             }`}
+//           >
+//             {isSaving ? "Saving..." : "Save & Close"}
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default EditorPage;

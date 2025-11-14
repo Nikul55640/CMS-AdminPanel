@@ -1,16 +1,18 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
-import {AsyncHandler} from "../utils/ApiHelpers.js";
+import { AsyncHandler } from "../utils/ApiHelpers.js";
 
 import ms from "ms";
 
 // Cookie options
 const COOKIE_OPTIONS = {
-  httpOnly: true, // refresh token should be httpOnly
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "strict",
+  httpOnly: true,
+  secure: false,    // must be false in localhost
+  sameSite: "lax",  // allow cookies between 5173 ↔ 5000
+  path: "/",        // <--- VERY IMPORTANT!
 };
+
 
 // --- Helper to create JWT ---
 const createToken = (user) => {
@@ -28,7 +30,6 @@ const createRefreshToken = (user) => {
     { expiresIn: "7d" } // refresh token
   );
 };
-
 
 export const registerUser = AsyncHandler(async (req, res) => {
   console.log("\n🟢 [registerUser] Incoming request:", req.body);
@@ -50,7 +51,6 @@ export const registerUser = AsyncHandler(async (req, res) => {
   const { password: _, ...userData } = newUser.toJSON();
   res.status(201).json({ message: "User registered", user: userData });
 });
-
 
 // --- Login user ---
 export const loginUser = AsyncHandler(async (req, res) => {
@@ -75,28 +75,29 @@ export const loginUser = AsyncHandler(async (req, res) => {
   const accessMaxAge = ms(process.env.JWT_EXPIRES_IN) || 900000; // default 15 min
   const refreshMaxAge = ms(process.env.JWT_REFRESH_EXPIRES_IN) || 604800000; // default 7 days
 
- res
-  .cookie("accessToken", accessToken, {
-    ...COOKIE_OPTIONS,
-    maxAge: accessMaxAge,
-    httpOnly: true, // now frontend can't read it via JS
-  })
-  .cookie("refreshToken", refreshToken, {
-    ...COOKIE_OPTIONS,
-    maxAge: refreshMaxAge,
-    httpOnly: true, // secure refresh token
-  })
-  .json({
-    message: "Login successful",
-    user: { id: user.id, username: user.username },
-    // Remove tokens from response JSON
-  });
+  res
+    .cookie("accessToken", accessToken, {
+      ...COOKIE_OPTIONS,
+      maxAge: accessMaxAge,
+      httpOnly: true, // now frontend can't read it via JS
+    })
+    .cookie("refreshToken", refreshToken, {
+      ...COOKIE_OPTIONS,
+      maxAge: refreshMaxAge,
+      httpOnly: true, // secure refresh token
+    })
+    .json({
+      message: "Login successful",
+      user: { id: user.id, username: user.username },
+      // Remove tokens from response JSON
+    });
 });
 
 // --- Refresh token ---
 export const refreshTokenController = AsyncHandler(async (req, res) => {
   const token = req.cookies.refreshToken;
-  if (!token) return res.status(401).json({ message: "No refresh token provided" });
+  if (!token)
+    return res.status(401).json({ message: "No refresh token provided" });
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
@@ -128,7 +129,6 @@ export const refreshTokenController = AsyncHandler(async (req, res) => {
   }
 });
 
-
 // --- Logout ---
 export const logoutUser = AsyncHandler(async (req, res) => {
   const token = req.cookies.refreshToken;
@@ -151,7 +151,6 @@ export const logoutUser = AsyncHandler(async (req, res) => {
   res.json({ message: "Logout successful" });
 });
 
-
 export const getCurrentUser = AsyncHandler(async (req, res) => {
   const user = req.user;
   if (!user) return res.status(401).json({ message: "Unauthorized" });
@@ -159,7 +158,6 @@ export const getCurrentUser = AsyncHandler(async (req, res) => {
   const { password, refresh_token, ...userData } = user.toJSON();
   res.json(userData);
 });
-
 
 export const updatePassword = AsyncHandler(async (req, res) => {
   const user = req.user;
@@ -180,10 +178,7 @@ export const updatePassword = AsyncHandler(async (req, res) => {
   res.json({ message: "Password updated successfully" });
 });
 
-
 export const deleteUser = AsyncHandler(async (req, res) => {
   await req.user.destroy();
   res.json({ message: "User account deleted" });
 });
-
-

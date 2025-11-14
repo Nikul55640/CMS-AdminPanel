@@ -55,7 +55,7 @@ const PageManager = () => {
         selectedPages.map((slug) =>
           fetch(`http://localhost:5000/api/pages/${slug}`, {
             method: "DELETE",
-            headers: { withCredentials: true },
+            credentials: "include", // <-- THIS sends cookies!
           })
         )
       );
@@ -69,11 +69,13 @@ const PageManager = () => {
 
   const handleDelete = async (slug) => {
     if (!window.confirm("Are you sure you want to delete this page?")) return;
+
     try {
       await fetch(`http://localhost:5000/api/pages/${slug}`, {
         method: "DELETE",
-        headers: { withCredentials: true },
+        credentials: "include", // <-- THIS sends cookies!
       });
+
       setPages(pages.filter((p) => p.slug !== slug));
       toast.success("✅ Page deleted!");
     } catch {
@@ -110,9 +112,7 @@ const PageManager = () => {
   return (
     <div className="min-h-screen p-6">
       <div className="mt-6 text-center text-white bg-gradient-to-r from-blue-500 to-purple-500 rounded-t-2xl   h-18  ">
-        <h2 className="text-4xl font-bold text-center  w-auto  ">
-          Pages
-        </h2>
+        <h2 className="text-4xl font-bold text-center  w-auto  ">Pages</h2>
         <p className="mt-1 text-sm opacity-90">
           Build reusable components for your website. Clean, fast, and
           intuitive.
@@ -215,11 +215,12 @@ const PageManager = () => {
                                   method: "PUT",
                                   headers: {
                                     "Content-Type": "application/json",
-                                    withCredentials: true,
                                   },
+                                  credentials: "include", // <-- fix here
                                   body: JSON.stringify({ status: newStatus }),
                                 }
                               );
+
                               setPages((prev) =>
                                 prev.map((page) =>
                                   page.slug === p.slug
@@ -331,4 +332,3 @@ const PageManager = () => {
 };
 
 export default PageManager;
-

@@ -22,7 +22,7 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
     alignment: "left",
     sticky: false,
     customCSS: "",
-    showSearch: true,
+    showSearch: false,
     logoUrl: "",
     backgroundColor: "#ffffff",
   });
@@ -281,7 +281,35 @@ const NavbarPublic = ({ menuType = "navbar" }) => {
       </div>
 
       {/* Mobile Dropdown */}
-      {/* Mobile Dropdown */}
+      {/* Mobile Dropdown */}{/* Mobile Dropdown */}
+<div
+  className={`md:hidden bg-white border-t border-gray-200 transition-all duration-300 overflow-hidden ${
+    mobileOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+  }`}
+  style={{
+    backgroundColor: menuStyle.backgroundColor,
+    color: menuStyle.textColor,
+    fontFamily: menuStyle.fontFamily,
+    textAlign: menuStyle.alignment,
+    fontSize: `${menuStyle.fontSize}px`,
+  }}
+>
+  <ul className="flex flex-col p-2 space-y-1">
+    {filterActiveMenus(menus).map((menu) => renderMenu(menu))}
+  </ul>
+
+  {/* ✅ Conditional Search Bar for Mobile */}
+  {menuStyle.showSearch && (
+    <div className="p-3 border-t border-gray-200">
+      <input
+        type="text"
+        placeholder="Search..."
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+    </div>
+  )}
+</div>
+
       <div
         className={`md:hidden bg-white border-t border-gray-200 transition-all duration-300 overflow-hidden ${
           mobileOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"

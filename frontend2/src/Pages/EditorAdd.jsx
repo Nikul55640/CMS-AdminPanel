@@ -20,7 +20,6 @@ import toast from "react-hot-toast";
 import CmsContext from "../context/CmsContext";
 import axios from "axios";
 
-
 const EditorAdd = () => {
   const editorRef = useRef(null);
   const [editorKey] = useState(Date.now());
@@ -72,8 +71,6 @@ const EditorAdd = () => {
     }
   };
 
-
-
   // Save current page content
   const handleSaveContent = () => {
     if (!editorRef.current) return;
@@ -123,32 +120,39 @@ const EditorAdd = () => {
   };
 
   return (
-    <div className="flex h-screen">
+    <div className="flex flex-col md:flex-row h-screen">
+      {/* Sidebar can go here if you have one */}
+
+      {/* Main editor area */}
       <div className="flex-1 flex flex-col">
-        <div className="flex justify-between items-center p-4 border-b bg-white shadow">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border-b bg-white shadow gap-2">
           <h1 className="text-xl font-bold">Editor PRO</h1>
-          <button
-            onClick={handleSaveAsComponent}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 "
-          >
-            Save as Component
-          </button>
-          <button
-            onClick={handleSaveContent}
-            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-          >
-            Save Content
-          </button>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <button
+              onClick={handleSaveAsComponent}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-full sm:w-auto"
+            >
+              Save as Component
+            </button>
+            <button
+              onClick={handleSaveContent}
+              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 w-full sm:w-auto"
+            >
+              Save Content
+            </button>
+          </div>
         </div>
 
-        <div className="flex-grow">
+        {/* Editor */}
+        <div className="flex-1 min-h-0">
           <StudioEditor
             key={editorKey}
             options={{
               storageManager: { autoload: false, autosave: false },
               initialHtml: "<div>Start editing...</div>",
               initialCss: "",
-              style: { height: "100%", width: "100%" },
+              style: { width: "100%", height: "100%" },
               plugins: [
                 googleFontsAssetProvider.init({
                   apiKey: "GOOGLE_FONTS_API_KEY",
@@ -164,8 +168,17 @@ const EditorAdd = () => {
                 tableComponent.init(),
                 dialogComponent.init(),
                 layoutSidebarButtons.init(),
-
               ],
+              cssManager: {
+                clearProperties: true, // optional: clear default CSS on reset
+                sectors: [
+                  {
+                    name: "Manual CSS", // Panel title
+                    open: true,
+                    buildProps: [], // leave empty, user can type anything
+                  },
+                ],
+              },
             }}
             onReady={(editor) => {
               editorRef.current = editor;
@@ -176,30 +189,27 @@ const EditorAdd = () => {
               editor.setComponents("<div>Start editing...</div>");
               editor.setStyle("");
 
-            
               loadSavedComponents();
 
-              // Add default blocks
+              // Default blocks
               const bm = editor.BlockManager;
               bm.add("section", {
                 label: "Section",
                 content: `<section style="padding: 20px; border: 1px solid #ccc;">
-                  <h2>Section Title</h2>
-                  <p>Section content...</p>
-                </section>`,
+              <h2>Section Title</h2>
+              <p>Section content...</p>
+            </section>`,
               });
               bm.add("text", {
                 label: "Text",
-                content: '<div data-gjs-type="text">Insert your text here</div>',
+                content:
+                  '<div data-gjs-type="text">Insert your text here</div>',
               });
-              bm.add("image", {
-                label: "Image",
-                content: { type: "image" },
-              });
+              bm.add("image", { label: "Image", content: { type: "image" } });
               bm.add("link", {
                 label: "Link",
                 content: '<a href="#">Insert link</a>',
-              }); 
+              });
             }}
           />
         </div>
@@ -209,3 +219,318 @@ const EditorAdd = () => {
 };
 
 export default EditorAdd;
+
+// import { useRef, useEffect, useContext } from "react";
+// import { useNavigate } from "react-router-dom";
+// import grapesjs from "grapesjs";
+// import "grapesjs/dist/css/grapes.min.css";
+// import "grapesjs-preset-webpage";
+// import "grapesjs-custom-code";
+// import "grapesjs-blocks-basic";
+// import "grapesjs-code-manager";
+
+// import CmsContext from "../context/CmsContext";
+// import axios from "axios";
+// import toast from "react-hot-toast";
+
+// const EditorAdd = () => {
+//   const editorRef = useRef(null);
+//   const editorContainer = useRef(null);
+//   const { setPageContent } = useContext(CmsContext);
+//   const navigate = useNavigate();
+
+//   const extractScripts = (html) => {
+//     const scripts = [];
+//     const div = document.createElement("div");
+//     div.innerHTML = html;
+//     div.querySelectorAll("script").forEach((s) => {
+//       scripts.push(s.innerText);
+//       s.remove();
+//     });
+//     return { cleanHtml: div.innerHTML, scripts };
+//   };
+
+//   const loadSavedComponents = async (editor) => {
+//     try {
+//       const res = await axios.get("http://localhost:5000/api/components", {
+//         withCredentials: true,
+//       });
+//       const bm = editor.BlockManager;
+//       res.data.forEach((cmp) => {
+//         bm.add(cmp.name, {
+//           label: cmp.name,
+//           category: cmp.category || "Saved Components",
+//           content: `
+//             ${cmp.html}
+//             <style>${cmp.css}</style>
+//             ${cmp.js ? `<script>${cmp.js}</script>` : ""}
+//           `,
+//         });
+//       });
+//     } catch (err) {
+//       console.error("Component load failed", err);
+//     }
+//   };
+
+//   const handleSaveAsComponent = async () => {
+//     const editor = editorRef.current;
+//     if (!editor) return;
+//     const rawHtml = editor.getHtml();
+//     const css = editor.getCss();
+//     const { cleanHtml, scripts } = extractScripts(rawHtml);
+//     const name = prompt("Enter component name:");
+//     if (!name) return;
+//     try {
+//       await axios.post(
+//         "http://localhost:5000/api/components",
+//         {
+//           name,
+//           html: cleanHtml,
+//           css,
+//           js: scripts.join("\n"),
+//           category: "Reusable",
+//         },
+//         { withCredentials: true }
+//       );
+//       toast.success("Component saved!");
+//     } catch (err) {
+//       toast.error("Saving failed");
+//     }
+//   };
+
+//   const handleSaveContent = () => {
+//     const editor = editorRef.current;
+//     if (!editor) return;
+//     const rawHtml = editor.getHtml();
+//     const css = editor.getCss();
+//     const { cleanHtml, scripts } = extractScripts(rawHtml);
+//     setPageContent({ html: cleanHtml, css, js: scripts.join("\n") });
+//     toast.success("Page saved!");
+//     navigate("/admin/addPage");
+//   };
+
+//   useEffect(() => {
+//     const editor = grapesjs.init({
+//       container: editorContainer.current,
+//       height: "100vh",
+//       storageManager: false,
+//       plugins: [
+//         "grapesjs-preset-webpage",
+//         "grapesjs-custom-code",
+//         "grapesjs-blocks-basic",
+//         "grapesjs-code-manager",
+//       ],
+//       canvas: { styles: [] },
+//       assetManager: {
+//         upload: "http://localhost:5000/api/upload/image",
+//         uploadName: "image",
+//         multiUpload: true,
+//         headers: { "Access-Control-Allow-Origin": "*" },
+//       },
+//       panels: {
+//         defaults: [
+//           {
+//             id: "main-panel",
+//             buttons: [
+//               { id: "undo", command: "core:undo", className: "fa fa-undo" },
+//               { id: "redo", command: "core:redo", className: "fa fa-repeat" },
+//               {
+//                 id: "clear",
+//                 command: "core:canvas-clear",
+//                 className: "fa fa-trash",
+//               },
+//               {
+//                 id: "export",
+//                 command: "export-template",
+//                 className: "fa fa-code",
+//               },
+//               {
+//                 id: "fullscreen",
+//                 command: "fullscreen",
+//                 className: "fa fa-arrows-alt",
+//               },
+//               { id: "preview", command: "preview", className: "fa fa-eye" },
+//               {
+//                 id: "open-code",
+//                 command: "open-code",
+//                 className: "fa fa-terminal",
+//               },
+//             ],
+//           },
+//         ],
+//       },
+//       layerManager: { appendTo: ".layers-container" },
+//       styleManager: {
+//         appendTo: ".styles-container",
+//         sectors: [
+//           {
+//             name: "General",
+//             open: false,
+//             buildProps: [
+//               "float",
+//               "display",
+//               "position",
+//               "top",
+//               "right",
+//               "left",
+//               "bottom",
+//             ],
+//           },
+//           {
+//             name: "Typography",
+//             open: false,
+//             buildProps: [
+//               "font-family",
+//               "font-size",
+//               "font-weight",
+//               "color",
+//               "line-height",
+//               "letter-spacing",
+//             ],
+//           },
+//           {
+//             name: "Decorations",
+//             open: false,
+//             buildProps: [
+//               "background-color",
+//               "border-radius",
+//               "border",
+//               "box-shadow",
+//             ],
+//           },
+//           {
+//             name: "Extra",
+//             open: false,
+//             buildProps: [
+//               "width",
+//               "height",
+//               "max-width",
+//               "min-height",
+//               "margin",
+//               "padding",
+//             ],
+//           },
+//         ],
+//       },
+//       traitManager: { appendTo: ".traits-container" },
+//       deviceManager: {
+//         devices: [
+//           { name: "Desktop", width: "" },
+//           { name: "Tablet", width: "768px" },
+//           { name: "Mobile", width: "375px" },
+//         ],
+//       },
+//       codeManager: {
+//         appendTo: ".code-editor-container",
+//         codeViewOptions: {
+//           open: true,
+//         },
+//       },
+//     });
+
+//     editorRef.current = editor;
+
+//     const bm = editor.BlockManager;
+//     bm.add("hero-section", {
+//       label: "Hero Section",
+//       category: "Layouts",
+//       content: `<section style="background-color:#1a1a1a; color:white; padding:50px; text-align:center;">
+//                   <h1 style="font-size:36px; font-weight:bold;">Welcome to Our Website</h1>
+//                   <p style="margin-top:10px; font-size:18px;">Build anything visually with our CMS.</p>
+//                   <button style="margin-top:20px; background-color:#007BFF; color:white; padding:10px 20px; border:none; border-radius:5px;">Get Started</button>
+//                 </section>`,
+//     });
+//     bm.add("card-layout", {
+//       label: "Card Grid",
+//       category: "Layouts",
+//       content: `<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; padding:40px;">
+//                   <div style="padding:20px; border:1px solid #ccc; border-radius:5px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">Card 1</div>
+//                   <div style="padding:20px; border:1px solid #ccc; border-radius:5px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">Card 2</div>
+//                   <div style="padding:20px; border:1px solid #ccc; border-radius:5px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">Card 3</div>
+//                 </div>`,
+//     });
+//     bm.add("footer", {
+//       label: "Footer",
+//       category: "Layouts",
+//       content: `<footer style="background-color:black; color:white; text-align:center; padding:20px;">
+//                   <p>© 2025 My Website</p>
+//                 </footer>`,
+//     });
+
+//     loadSavedComponents(editor);
+
+//     return () => editor.destroy();
+//   }, []);
+
+//   return (
+//     <div style={{ display: "flex", height: "100vh" }}>
+//       {/* Sidebar panels */}
+//       <div
+//         style={{
+//           width: "300px",
+//           borderRight: "1px solid #ddd",
+//           display: "flex",
+//           flexDirection: "column",
+//         }}
+//       >
+//         <div
+//           style={{ flex: 1, overflow: "auto" }}
+//           className="layers-container"
+//         />
+//         <div
+//           style={{ flex: 1, overflow: "auto" }}
+//           className="styles-container"
+//         />
+//         <div
+//           style={{ flex: 1, overflow: "auto" }}
+//           className="traits-container"
+//         />
+//         <div
+//           style={{ flex: 1, overflow: "auto" }}
+//           className="code-editor-container"
+//         />
+//       </div>
+
+//       {/* Main editor */}
+//       <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+//         <div
+//           style={{
+//             padding: "10px",
+//             borderBottom: "1px solid #ddd",
+//             background: "#f5f5f5",
+//             display: "flex",
+//             gap: "10px",
+//           }}
+//         >
+//           <button
+//             onClick={handleSaveAsComponent}
+//             style={{
+//               padding: "8px 16px",
+//               backgroundColor: "#007BFF",
+//               color: "white",
+//               border: "none",
+//               borderRadius: "5px",
+//             }}
+//           >
+//             Save as Component
+//           </button>
+//           <button
+//             onClick={handleSaveContent}
+//             style={{
+//               padding: "8px 16px",
+//               backgroundColor: "#28A745",
+//               color: "white",
+//               border: "none",
+//               borderRadius: "5px",
+//             }}
+//           >
+//             Save Page
+//           </button>
+//         </div>
+//         <div ref={editorContainer} style={{ flexGrow: 1 }} />
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default EditorAdd;

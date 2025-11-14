@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CmsProvider, default as CmsContext } from "./context/CmsContext";
 import { Toaster } from "react-hot-toast";
 import { useContext } from "react";
-
 import Login from "./Pages/Login";
 import Dashboard from "./Pages/Dashboard";
 import AddPageForm from "./Pages/AddPageForm";
@@ -211,9 +210,9 @@ function AppRoutes() {
         element={
           <>
             {console.log("🧠 [AppRoutes] Rendering public page")}
-            <NavbarPublic />
+            {/* <NavbarPublic /> */}
             <PublicPage />
-            <FooterPublic />
+            {/* <FooterPublic /> */}
           </>
         }
       />
