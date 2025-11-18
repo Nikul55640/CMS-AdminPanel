@@ -193,6 +193,17 @@ const EditorAdd = () => {
 
               // Default blocks
               const bm = editor.BlockManager;
+              
+  bm.add("custom-js", {
+    label: "Custom JS",
+    category: "Extra",
+    content: {
+      type: "script",
+      script: function () {
+        alert("Hello from GrapesJS editor JS!");
+      },
+    },
+  });
               bm.add("section", {
                 label: "Section",
                 content: `<section style="padding: 20px; border: 1px solid #ccc;">
@@ -219,6 +230,25 @@ const EditorAdd = () => {
 };
 
 export default EditorAdd;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // import { useRef, useEffect, useContext } from "react";
 // import { useNavigate } from "react-router-dom";

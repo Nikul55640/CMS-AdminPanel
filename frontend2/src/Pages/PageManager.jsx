@@ -263,13 +263,18 @@ const PageManager = () => {
                           Edit
                         </button>
                         <button
-                          onClick={() =>
-                            window.open(`/pages/${p.slug}`, "_blank")
-                          }
+                          onClick={() => {
+                            const url =
+                              p.status === "published"
+                                ? `/pages/${p.slug}`
+                                : `/pages/${p.slug}?preview=1`;
+                            window.open(url, "_blank");
+                          }}
                           className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-700 cursor-pointer text-sm"
                         >
                           Preview
                         </button>
+
                         <button
                           onClick={() => handleDelete(p.slug)}
                           className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-700 cursor-pointer text-sm"

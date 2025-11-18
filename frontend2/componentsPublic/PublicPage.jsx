@@ -1,137 +1,143 @@
-// import { useParams } from "react-router-dom";
-// import { useContext } from "react";
-// import CmsContext from "../src/context/CmsContext";
-
-// const PublicPage = () => {
-//   const { pages } = useContext(CmsContext);
-//   const { slug } = useParams();
-
-//   const page = pages?.find(p => p.slug === slug);
-
-//   if (!page) return <p className="p-4">Page not found</p>;
-
-
-
-//   return (
-//       <div className="p-4 bg-white rounded shadow min-h-[500px]">
-     
-
-//       {/* Render saved HTML */}
-//       <div dangerouslySetInnerHTML={{ __html: page.html }}></div>
-
-//       {/* Inject saved CSS */}
-//       <style dangerouslySetInnerHTML={{ __html: page.css }}></style>
-
-//       {/* Inject saved JS */}
-
-//       <script dangerouslySetInnerHTML={{ __html: page.js }}></script>
-//     </div>
-//   );
-  
-// };
-
-// export default PublicPage;
-
-
-
-
-
 import { useParams } from "react-router-dom";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext } from "react";
 import CmsContext from "../src/context/CmsContext";
+
 
 const PublicPage = () => {
   const { pages } = useContext(CmsContext);
   const { slug } = useParams();
-  const containerRef = useRef(null);
 
-  // State to capture logs (for debugging)
-  const [consoleOutput, setConsoleOutput] = useState([]);
+  const urlParams = new URLSearchParams(window.location.search);
+  const isPreview = urlParams.get("preview") === "1";
 
-  const page = pages?.find((p) => p.slug === slug);
+  const page = pages?.find((p) =>
+    isPreview ? p.slug === slug : p.slug === slug && p.status === "published"
+  );
 
-  useEffect(() => {
-    if (!page) return;
+  if (!page)
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center">
+        <img
 
-    const container = containerRef.current;
-    if (!container) return;
-
-    // Clear previously injected scripts
-    const existingScripts = container.querySelectorAll("script.injected");
-    existingScripts.forEach((s) => s.remove());
-
-    // Helper to inject script with debug log
-    const injectScript = (jsCode, label = "Page JS") => {
-      const script = document.createElement("script");
-      script.className = "injected";
-      script.async = false;
-
-      // Wrap code in try-catch and add log
-      script.textContent = `
-        try {
-          console.log("🟢 [${label}] Script is running");
-          ${jsCode}
-        } catch(e) {
-          console.error("❌ [${label}] Error:", e);
-        }
-      `;
-      container.appendChild(script);
-    };
-
-    // Inject JS from page.js
-    if (page.js) injectScript(page.js, "page.js");
-
-    // Inject scripts inside HTML
-    const htmlScripts = container.querySelectorAll("script");
-    htmlScripts.forEach((oldScript, index) => {
-      injectScript(oldScript.innerHTML, `HTML script ${index + 1}`);
-      oldScript.remove();
-    });
-
-    // --- Override console safely ---
-    const originalLog = console.log;
-    const originalError = console.error;
-
-    console.log = (...args) => {
-      const msg = args.join(" ");
-      // Capture only page JS logs
-      if (msg.includes("[page.js]") || msg.includes("[HTML script")) {
-        queueMicrotask(() => setConsoleOutput((prev) => [...prev, msg]));
-      }
-      originalLog(...args);
-    };
-
-    console.error = (...args) => {
-      const msg = args.join(" ");
-      if (msg.includes("[page.js]") || msg.includes("[HTML script")) {
-        queueMicrotask(() => setConsoleOutput((prev) => [...prev, "ERROR: " + msg]));
-      }
-      originalError(...args);
-    };
-
-    // Cleanup on unmount
-    return () => {
-      console.log = originalLog;
-      console.error = originalError;
-    };
-  }, [page?.html, page?.js]);
-
-  if (!page) return <p className="p-4">Page not found</p>;
+          src="https://cdn-icons-png.flaticon.com/512/7486/7486802.png"
+          alt="Not Found"
+          className="w-40"
+        />
+        <h1 className="text-3xl font-bold mt-4">Oops! Page not found</h1>
+        <p className="text-gray-600">
+          This page is not published or doesn’t exist.
+        </p>
+        <a
+          href="/"
+          className="mt-5 px-5 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
+        >
+          Back to Home
+        </a>
+      </div>
+    );
 
   return (
-    <div>
-      {/* Page container */}
-      <div
-        ref={containerRef}
-        dangerouslySetInnerHTML={{ __html: page.html }}
-      ></div>
+    <div className="flex flex-col min-h-screen">
+      {/* Navbar */}
+    
+      {/* Page Content */}
+      <main className="flex-grow p-4 bg-white rounded shadow min-h-[500px]">
+        <div dangerouslySetInnerHTML={{ __html: page.html }} />
+        <style dangerouslySetInnerHTML={{ __html: page.css }} />
+        <script dangerouslySetInnerHTML={{ __html: page.js }} />
+      </main>
 
-      {/* Inject saved CSS */}
-      <style dangerouslySetInnerHTML={{ __html: page.css }}></style>
-
-      {/* Debug logs stored in state but not rendered */}
+      {/* Footer */}
     </div>
   );
 };
 
 export default PublicPage;
+
+
+
+
+// import { useParams } from "react-router-dom";
+// import { useEffect, useState } from "react";
+// import axios from "axios";
+
+// const API_BASE = "http://localhost:5000/api";
+
+// const PublicPage = () => {
+//   const { slug } = useParams();
+//   const [page, setPage] = useState(null);
+//   const [loading, setLoading] = useState(true);
+
+//   // 1️⃣ Fetch page
+//   useEffect(() => {
+//     let isMounted = true;
+
+//     const fetchPage = async () => {
+//       try {
+//         const res = await axios.get(`${API_BASE}/pages/${slug}`);
+//         if (isMounted) setPage(res.data);
+//       } catch {
+//         if (isMounted) setPage(null);
+//       } finally {
+//         if (isMounted) setLoading(false);
+//       }
+//     };
+
+//     fetchPage();
+
+//     return () => {
+//       isMounted = false;
+//     };
+//   }, [slug]);
+
+//   // 2️⃣ Inject JS NON-BLOCKING way
+//   useEffect(() => {
+//     const old = document.getElementById("dynamic-script");
+//     if (old) old.remove();
+
+//     if (page?.js) {
+//       const script = document.createElement("script");
+//       script.id = "dynamic-script";
+//       script.textContent = page.js;
+
+//       // Make JS load AFTER screen renders
+//       setTimeout(() => document.body.appendChild(script), 0);
+//     }
+
+//     return () => {
+//       const s = document.getElementById("dynamic-script");
+//       if (s) s.remove();
+//     };
+//   }, [page?.js]);
+
+//   // 3️⃣ Inject CSS in <head> (MUCH faster)
+//   useEffect(() => {
+//     const old = document.getElementById("dynamic-style");
+//     if (old) old.remove();
+
+//     if (page?.css) {
+//       const styleEl = document.createElement("style");
+//       styleEl.id = "dynamic-style";
+//       styleEl.textContent = page.css;
+//       document.head.appendChild(styleEl);
+//     }
+
+//     return () => {
+//       const s = document.getElementById("dynamic-style");
+//       if (s) s.remove();
+//     };
+//   }, [page?.css]);
+
+//   if (loading) return <p className="p-4">Loading...</p>;
+//   if (!page) return <p className="p-4">Page not found</p>;
+
+//   return (
+//     <div className="min-h-screen">
+//       {/* HTML renders instantly */}
+//       <div dangerouslySetInnerHTML={{ __html: page.html }} />
+
+//     </div>
+//   );
+// };
+
+// export default PublicPage;

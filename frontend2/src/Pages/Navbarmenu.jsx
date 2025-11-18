@@ -23,7 +23,6 @@ import {
 } from "../components/Navbarmanager/MenuTreeUtils.jsx";
 import MenuStyleEditor from "@/components/Navbarmanager/MenustyleChanger";
 
-
 const API = "http://localhost:5000/api";
 
 const NavbarManager = () => {
@@ -70,7 +69,7 @@ const NavbarManager = () => {
         "http://localhost:5000/api/menus/logo/navbar",
         formData,
         {
-            headers: { "Content-Type": "multipart/form-data" },
+          headers: { "Content-Type": "multipart/form-data" },
         }
       );
 
@@ -268,7 +267,7 @@ const NavbarManager = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [ generatePreview]);
+  }, [generatePreview]);
 
   useEffect(() => {
     fetchMenus();
@@ -338,7 +337,7 @@ const NavbarManager = () => {
       await axios.post(
         `${API}/menus/hierarchy`,
         { menuTree: newMenus, location: menuType },
-        { withCredentials: true, }
+        { withCredentials: true }
       );
       toast.success("Menu structure updated", { id: toastId });
     } catch (err) {
@@ -428,53 +427,46 @@ const NavbarManager = () => {
     setActiveId(null);
   };
 
+  const handleToggleActiveMenu = (id) => {
+    if (!id) return; // Safety check
 
+    const menuItem =
+      id === "custom"
+        ? { id: "custom", title: "Custom Section" }
+        : findMenuById(menus, id);
 
-const handleToggleActiveMenu = (id) => {
-  if (!id) return; // Safety check
+    if (!menuItem) {
+      console.warn("⚠️ Menu not found for ID:", id);
+      return;
+    }
 
-  const menuItem =
-    id === "custom"
-      ? { id: "custom", title: "Custom Section" }
-      : findMenuById(menus, id);
-
-  if (!menuItem) {
-    console.warn("⚠️ Menu not found for ID:", id);
-    return;
-  }
-
-  // Get all IDs for this menu and its children (and clean them)
-  const idsToToggle = getAllMenuIds([menuItem])
-    .filter((i) => i !== undefined && i !== null)
-    .map(String);
+    // Get all IDs for this menu and its children (and clean them)
+    const idsToToggle = getAllMenuIds([menuItem])
+      .filter((i) => i !== undefined && i !== null)
+      .map(String);
 
     console.log("🟡 Menu item found:", menuItem);
 
+    setActiveMenus((prev) => {
+      const isActive = idsToToggle.every((i) => prev.includes(i));
 
-  setActiveMenus((prev) => {
-    const isActive = idsToToggle.every((i) => prev.includes(i));
+      const newState = isActive
+        ? prev.filter((i) => !idsToToggle.includes(i))
+        : [...prev, ...idsToToggle.filter((i) => !prev.includes(i))];
 
-    const newState = isActive
-      ? prev.filter((i) => !idsToToggle.includes(i))
-      : [...prev, ...idsToToggle.filter((i) => !prev.includes(i))];
+      console.log("🟢 Menu Toggled:", menuItem.title);
+      console.log("🧭 Cleaned Active Menus →", newState);
+      console.log("🧾 IDs toggled:", idsToToggle);
 
+      generatePreview({
+        menus,
+        customContent: { html: customHTML, css: customCSS, js: customJS },
+        activeMenus: newState,
+      });
 
-
-    console.log("🟢 Menu Toggled:", menuItem.title);
-    console.log("🧭 Cleaned Active Menus →", newState);
-    console.log("🧾 IDs toggled:", idsToToggle);
-
-    generatePreview({
-      menus,
-      customContent: { html: customHTML, css: customCSS, js: customJS },
-      activeMenus: newState,
+      return newState;
     });
-
-    return newState;
-  });
-};
-
-
+  };
 
   const handleSaveActiveMenus = async () => {
     const toastId = toast.loading("Saving active menus...");
@@ -482,15 +474,15 @@ const handleToggleActiveMenu = (id) => {
       const idsToSend = activeMenus.filter(
         (id) => id !== "custom" || customHTML.trim() !== ""
       );
-      console.log("Active menu IDs sent to backend :",idsToSend)
+      console.log("Active menu IDs sent to backend :", idsToSend);
       await axios.post(
         `${API}/menus/set-active`,
         { menuIds: idsToSend, section: menuType },
-        { withCredentials: true, }
+        { withCredentials: true }
       );
       toast.success("Active menus updated", { id: toastId });
     } catch {
-      toast.error("Failed to save active menus", { id: toastId });     
+      toast.error("Failed to save active menus", { id: toastId });
     }
   };
 
@@ -500,7 +492,7 @@ const handleToggleActiveMenu = (id) => {
       await axios.post(
         `${API}/menus/custom-content`,
         { section: menuType, html: customHTML, css: customCSS, js: customJS },
-        { withCredentials: true, }
+        { withCredentials: true }
       );
       toast.success("Saved custom content", { id: toastId });
       setCustomDialogOpen(false);
@@ -538,7 +530,6 @@ const handleToggleActiveMenu = (id) => {
   // active item for overlay
   const activeItem = activeId ? findMenuById(menus, activeId) : null;
 
-
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-6xl mx-auto mt-8 px-8 py-6 rounded-t-2xl bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg">
@@ -570,6 +561,13 @@ const handleToggleActiveMenu = (id) => {
           >
             Custom Menu
           </button>
+          <button
+            onClick={handleSaveActiveMenus}
+            disabled={isLoading || activeMenus.length === 0}
+            className="px-5 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Save Active Menus
+          </button>
         </div>
         {isLoading ? (
           <div className="text-center py-8">Loading menus...</div>
@@ -585,16 +583,16 @@ const handleToggleActiveMenu = (id) => {
               items={getAllMenuIds(menus)}
               strategy={verticalListSortingStrategy}
             >
-              {menus.map((item) => (
+              {menus.map((item, index) => (
                 <SortableItem
                   key={item.id}
                   item={item}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                   onToggle={handleToggleActiveMenu}
-                  onSave={handleSaveActiveMenus} // ✅ this triggers your backend save
                   activeMenus={activeMenus}
-                  customHTML={customHTML}
+                  level={0}
+                  isFirstRoot={index === 0} // ✅ Only the first root menu shows the Custom Menu
                 />
               ))}
             </SortableContext>
@@ -609,7 +607,6 @@ const handleToggleActiveMenu = (id) => {
           </DndContext>
         )}
         <div className="flex justify-between items-center gap-4 mb-4">
-      
           <div>
             <label className="flex items-center gap-2 text-gray-600">
               <input

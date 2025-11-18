@@ -2,13 +2,17 @@ import Page from "../models/page.model.js";
 import slugify from "slugify";
 import { AsyncHandler } from "../utils/ApiHelpers.js";
 
-// ✅ Get all pages (admin only)
+// ======================================
+// ✅ ADMIN — Get ALL pages
+// ======================================
 export const getPages = AsyncHandler(async (req, res) => {
   const pages = await Page.findAll({ order: [["createdAt", "DESC"]] });
   res.json(pages);
 });
 
-// ✅ Get all published pages (public)
+// ======================================
+// ✅ PUBLIC — Get ONLY published pages
+// ======================================
 export const getPublishedPages = AsyncHandler(async (req, res) => {
   const pages = await Page.findAll({
     where: { status: "published" },
@@ -17,24 +21,33 @@ export const getPublishedPages = AsyncHandler(async (req, res) => {
   res.json(pages);
 });
 
-// ✅ Get a single page by slug (only if published or admin)
+// ======================================
+// ✅ PUBLIC + ADMIN — Get page by slug
+// PUBLIC: Only published
+// ADMIN: Can see draft + published
+// ======================================
 export const getPageBySlug = AsyncHandler(async (req, res) => {
   const { slug } = req.params;
   const page = await Page.findOne({ where: { slug } });
 
   if (!page) return res.status(404).json({ message: "Page not found" });
 
-  // Check if draft — block for public
-  if (page.status === "draft" && !req.user) {
-    return res
-      .status(403)
-      .json({ message: "Unauthorized access to draft page" });
+  // 🟡 If the page is draft → only admin can access
+  if (page.status === "draft") {
+    if (!req.user || req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized access to draft page" });
+    }
   }
 
+  // 🟢 For published pages → public can access
   res.json(page);
 });
 
-// ✅ Add a new page
+// ======================================
+// ✅ ADMIN — Add new page
+// ======================================
 export const addPage = AsyncHandler(async (req, res) => {
   const {
     title,
@@ -42,15 +55,15 @@ export const addPage = AsyncHandler(async (req, res) => {
     html = "",
     css = "",
     js = "",
-    status = "draft",
+    status = "draft", // default draft
   } = req.body;
 
   if (!title?.trim()) {
     return res.status(400).json({ message: "Title is required" });
   }
 
-  // Generate slug automatically
   const slug = slugify(title, { lower: true, strict: true });
+
   const existing = await Page.findOne({ where: { slug } });
   if (existing) return res.status(400).json({ message: "Slug already exists" });
 
@@ -67,7 +80,9 @@ export const addPage = AsyncHandler(async (req, res) => {
   res.status(201).json(page);
 });
 
-// ✅ Update page by slug
+// ======================================
+// ✅ ADMIN — Update page
+// ======================================
 export const updatePage = AsyncHandler(async (req, res) => {
   const { slug } = req.params;
   const {
@@ -86,7 +101,6 @@ export const updatePage = AsyncHandler(async (req, res) => {
   const page = await Page.findOne({ where: { slug } });
   if (!page) return res.status(404).json({ message: "Page not found" });
 
-  // Update fields dynamically
   if (title !== undefined) page.title = title;
   if (description !== undefined) page.description = description;
   if (html !== undefined) page.html = html.slice(0, 100000);
@@ -96,9 +110,10 @@ export const updatePage = AsyncHandler(async (req, res) => {
   if (metaTitle !== undefined) page.metaTitle = metaTitle;
   if (metaDescription !== undefined) page.metaDescription = metaDescription;
   if (keywords !== undefined) page.keywords = keywords;
+
+  // 🟡 Slug update
   if (newSlug !== undefined) {
-    const newSlugified = slugify(newSlug, { lower: true, strict: true });
-    page.slug = newSlugified;
+    page.slug = slugify(newSlug, { lower: true, strict: true });
   } else if (title) {
     page.slug = slugify(title, { lower: true, strict: true });
   }
@@ -107,17 +122,23 @@ export const updatePage = AsyncHandler(async (req, res) => {
   res.json(page);
 });
 
-// ✅ Delete page by slug
+// ======================================
+// ✅ ADMIN — Delete page
+// ======================================
 export const deletePage = AsyncHandler(async (req, res) => {
   const { slug } = req.params;
   const page = await Page.findOne({ where: { slug } });
+
   if (!page) return res.status(404).json({ message: "Page not found" });
 
   await page.destroy();
+
   res.json({ message: "Page deleted", slug });
 });
 
-
+// ======================================
+// ✅ ADMIN — Page Stats
+// ======================================
 export const getStats = AsyncHandler(async (req, res) => {
   const totalPages = await Page.count();
   const drafts = await Page.count({ where: { status: "draft" } });
