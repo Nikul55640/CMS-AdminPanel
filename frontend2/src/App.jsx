@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { CmsProvider } from "./context/CmsContext";
+
 import { Toaster } from "react-hot-toast";
 import { useContext } from "react";
 
@@ -20,6 +20,7 @@ import AddBlog from "./Pages/AddBlog";
 import Footermenu from "./Pages/Footermenu";
 import ViewBlog from "./components/Blogpage/ViewBlog";
 import CmsContext from "./context/CmsContext";
+import { CmsProvider } from "./context/CmsContext.jsx";
 
 /* ------------------- Admin Layout -------------------- */
 function AdminLayout({ children }) {
@@ -214,8 +215,11 @@ function AppRoutes() {
 function App() {
   return (
       <BrowserRouter>
+      <CmsProvider>
+
         <AppRoutes />
         <Toaster />
+        </CmsProvider>
       </BrowserRouter>
   );
 }

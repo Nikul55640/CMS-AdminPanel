@@ -1,34 +1,27 @@
 // src/context/CmsContext.jsx
 import { createContext, useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const CmsContext = createContext();
 const API_BASE = "http://localhost:5000/api";
 
 export const CmsProvider = ({ children }) => {
+  const navigate = useNavigate();
+
   // --- Auth ---
   const [loggedIn, setLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
 
-  console.log(
-    "🧩 [CmsProvider] Initial state -> loggedIn:",
-    loggedIn,
-    "user:",
-    user,
-    "authChecked:",
-    authChecked
-  );
-
-  // --- Menus ---
+  // --- Menus, Pages, Components ---
   const [menus, setMenus] = useState([]);
-
-  // --- Pages ---
   const [pages, setPages] = useState([]);
+  const [components, setComponents] = useState([]);
+
+  // --- Current page / editor ---
   const [currentPage, setCurrentPage] = useState(null);
   const [showEditor, setShowEditor] = useState(false);
-
-  // --- Page content for editor ---
   const [pageContent, setPageContent] = useState({ html: "", css: "", js: "" });
   const [jsCode, setJsCode] = useState("// Write custom JS here...");
 
@@ -44,74 +37,64 @@ export const CmsProvider = ({ children }) => {
 
   // --- Sidebar ---
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const toggleSidebar = () => {
-    console.log("🧩 [CmsProvider] Sidebar toggled ->", !isSidebarOpen);
-    setIsSidebarOpen((prev) => !prev);
-  };
+  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
 
-  // --- Components ---
-  const [components, setComponents] = useState([]);
-  const addComponent = (component) => {
-    console.log("🧩 [CmsProvider] Adding component:", component);
+  // --- Components management ---
+  const addComponent = (component) =>
     setComponents((prev) => [...prev, component]);
-  };
-  const removeComponent = (id) => {
-    console.log("🧩 [CmsProvider] Removing component with id:", id);
+  const removeComponent = (id) =>
     setComponents((prev) => prev.filter((c) => c.id !== id));
-  };
 
-  // --- Fetch functions ---
+  // --- Fetch functions with safe array checks ---
   const fetchPages = async () => {
-    console.log("🔹 [CmsProvider] Fetching pages...");
     try {
       const res = await axios.get(`${API_BASE}/pages`, {
         withCredentials: true,
       });
-      setPages(res.data);
-      console.log("✅ [CmsProvider] Pages fetched:", res.data.length);
+      setPages(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error(
-        "❌ [CmsProvider] Failed to fetch pages:",
+        "Failed to fetch pages:",
         err.response?.data || err.message
       );
+      setPages([]);
     }
   };
 
   const fetchComponents = async () => {
-    console.log("🔹 [CmsProvider] Fetching components...");
     try {
       const res = await axios.get(`${API_BASE}/components`, {
         withCredentials: true,
       });
-      setComponents(res.data);
-      console.log("✅ [CmsProvider] Components fetched:", res.data.length);
+      setComponents(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error(
-        "❌ [CmsProvider] Failed to fetch components:",
+        "Failed to fetch components:",
         err.response?.data || err.message
       );
+      setComponents([]);
     }
   };
 
   const fetchMenus = async (location) => {
-    console.log(`🔹 [CmsProvider] Fetching menus for location: ${location}...`);
     try {
       const res = await axios.get(`${API_BASE}/menus/location/${location}`, {
         withCredentials: true,
       });
-      setMenus(res.data);
-      console.log(
-        `✅ [CmsProvider] Menus fetched for location: ${location}`,
-        res.data.length
-      );
+      const data = Array.isArray(res.data) ? res.data : [];
+      setMenus((prev) => [
+        ...prev.filter((m) => m.location !== location),
+        ...data,
+      ]);
     } catch (err) {
       console.error(
-        "❌ [CmsProvider] Failed to fetch menus:",
+        `Failed to fetch menus (${location}):`,
         err.response?.data || err.message
       );
     }
   };
 
+  // --- Auth check ---
   const authCheckedRef = useRef(false); // prevent double execution in Strict Mode
 
   useEffect(() => {
@@ -119,34 +102,24 @@ export const CmsProvider = ({ children }) => {
     authCheckedRef.current = true;
 
     const checkAuth = async () => {
-      console.log("🔹 [Auth] Checking login status on app load...");
       let isLoggedIn = false;
 
       try {
-        console.log("🔹 [Auth] Attempting GET /auth/me ...");
         const res = await axios.get(`${API_BASE}/auth/me`, {
           withCredentials: true,
         });
         setUser(res.data);
         setLoggedIn(true);
         isLoggedIn = true;
-        console.log("✅ [Auth] Logged in via cookie, user:", res.data.username);
       } catch (err) {
-        console.warn(
-          "⚠️ [Auth] /auth/me failed:",
-          err.response?.data || err.message
-        );
+        console.warn("Auth check failed:", err.response?.data || err.message);
 
+        // Try refresh token
         try {
-          console.log("🔹 [Auth] Attempting POST /auth/refresh-token ...");
           await axios.post(
             `${API_BASE}/auth/refresh-token`,
             {},
             { withCredentials: true }
-          );
-
-          console.log(
-            "✅ [Auth] Refresh token succeeded, retrying /auth/me ..."
           );
           const res = await axios.get(`${API_BASE}/auth/me`, {
             withCredentials: true,
@@ -154,49 +127,41 @@ export const CmsProvider = ({ children }) => {
           setUser(res.data);
           setLoggedIn(true);
           isLoggedIn = true;
-          console.log(
-            "✅ [Auth] Logged in after refresh, user:",
-            res.data.username
-          );
-        } catch (refreshErr) {
-          console.error(
-            "❌ [Auth] Refresh token failed:",
-            refreshErr.response?.data || refreshErr.message
-          );
+        } catch {
+          // Failed refresh → redirect to login
           setLoggedIn(false);
           setUser(null);
-          console.log("🔹 [Auth] Not logged in after refresh attempt");
+          navigate("/admin/login", { replace: true });
+          return;
         }
       }
 
       if (isLoggedIn) {
-        console.log("🔹 [Auth] Fetching pages, components, menus...");
-        await fetchPages();
-        await fetchComponents();
-        await fetchMenus("navbar");
-        await fetchMenus("footer");
-      } else {
-        console.log("🔹 [Auth] Skipping fetch because user is not logged in");
+        // Fetch everything in parallel for fast performance
+        await Promise.all([
+          fetchPages(),
+          fetchComponents(),
+          fetchMenus("navbar"),
+          fetchMenus("footer"),
+        ]);
       }
 
-      setAuthChecked(true); // mark auth check complete
-      console.log("🔹 [Auth] Auth check completed -> loggedIn:", isLoggedIn);
+      setAuthChecked(true);
     };
+
     checkAuth();
   }, []);
 
   // --- Logout ---
   const logout = async () => {
-    console.log("🔹 [CmsProvider] Logging out user:", user?.username);
     try {
       await axios.post(
         `${API_BASE}/auth/logout`,
         {},
         { withCredentials: true }
       );
-      console.log("✅ [CmsProvider] Logout request sent");
     } catch (err) {
-      console.error("❌ Logout failed:", err.response?.data || err.message);
+      console.error("Logout failed:", err.response?.data || err.message);
     } finally {
       setLoggedIn(false);
       setUser(null);
@@ -205,7 +170,7 @@ export const CmsProvider = ({ children }) => {
       setMenus([]);
       setCurrentPage(null);
       setShowEditor(false);
-      console.log("🔹 [CmsProvider] State reset after logout");
+      navigate("/admin/login", { replace: true });
     }
   };
 

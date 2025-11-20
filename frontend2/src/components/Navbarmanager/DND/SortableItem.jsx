@@ -96,7 +96,7 @@ const SortableItem = memo(
           </div>
 
           {/* Render children recursively */}
-          {isOpen && item.children?.length > 0 && (
+          {isOpen && (
             <div ref={setDropRef} className="ml-4 mt-2">
               {item.children.map((child) => (
                 <SortableItem

@@ -1,465 +1,22 @@
-import { useContext, useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import CmsContext from "../context/CmsContext";
-import StudioEditor from "@grapesjs/studio-sdk/react";
-import "@grapesjs/studio-sdk/style";
-import {
-  layoutSidebarButtons,
-  dialogComponent,
-  tableComponent,
-  listPagesComponent,
-  lightGalleryComponent,
-  swiperComponent,
-  iconifyComponent,
-  accordionComponent,
-  animationComponent,
-  rteTinyMce,
-  canvasGridMode,
-  googleFontsAssetProvider,
-} from "@grapesjs/studio-sdk-plugins";
-import toast from "react-hot-toast";
-import axios from "axios";
-
-const EditorPage = () => {
-  const { slug } = useParams();
-  const { pages, setPages } = useContext(CmsContext);
-  const page = pages.find((p) => p.slug === slug);
-  const navigate = useNavigate();
-
-  const editorRef = useRef(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [formData, setFormData] = useState({
-    title: page?.title || "",
-    slug: page?.slug || "",
-    description: page?.description || "",
-    metaTitle: page?.metaTitle || "",
-    metaDescription: page?.metaDescription || "",
-    keywords: page?.keywords || "",
-    status: page?.status || "draft",
-  });
-
-  const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSave = async () => {
-    if (!editorRef.current || !page) return toast("Editor not ready!");
-
-    const html = editorRef.current.getHtml();
-    const css = editorRef.current.getCss();
-
-    if (!html.trim()) return toast("⚠️ Page content cannot be empty!");
-
-    console.log("Payload:", { ...formData, html, css });
-    setIsSaving(true);
-    try {
-      const res = await axios.put(
-        `http://localhost:5000/api/pages/${page.slug}`,
-        { ...formData, html, css },
-        {
-          withCredentials: true,
-        }
-      );
-
-      setPages(pages.map((p) => (p.slug === page.slug ? res.data : p)));
-      toast.success("✅ Page updated successfully!");
-      navigate("/admin/pages");
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to save page");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const loadSavedComponents = async () => {
-    if (!editorRef.current) return;
-
-    try {
-      const res = await axios.get("http://localhost:5000/api/components", {
-        withCredentials: true,
-      });
-
-      const bm = editorRef.current.BlockManager;
-      res.data.forEach((cmp) => {
-        bm.add(cmp.name, {
-          label: cmp.name,
-          category: cmp.category || "Reusable",
-          content: `<div>${cmp.html}</div><style>${cmp.css}</style>`,
-        });
-      });
-    } catch (err) {
-      console.error("Failed to load components:", err);
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (editorRef.current?.destroy) {
-        editorRef.current.destroy();
-        editorRef.current = null;
-      }
-    };
-  }, []);
-
-  if (!page) return <p>Page not found</p>;
-  console.log(loadSavedComponents);
-  return (
-    <div className="flex flex-col h-screen">
-      {/* Header */}
-
-      <div className="flex flex-1 overflow-hidden">
-        {/* Right panel - GrapesJS Editor */}
-        <div className="w-3/4 p-4 bg-gray-50 overflow-y-auto border-r">
-          <StudioEditor
-            key={slug}
-            options={{
-              initialHtml: page.html || "<div>Start editing...</div>",
-              initialCss: page.css || "",
-              style: { height: "100%", width: "100%" },
-              cssManager: {
-                clearProperties: true, // optional: clear default CSS on reset
-                sectors: [
-                  {
-                    name: "Manual CSS", // Panel title
-                    open: true,
-                    buildProps: [], // leave empty, user can type anything
-                  },
-                ],
-              },
-              plugins: [
-                // Google Fonts
-                googleFontsAssetProvider.init({
-                  apiKey: "GOOGLE_FONTS_API_KEY",
-                }),
-
-                // Canvas Grid
-                canvasGridMode?.init({ styleableGrid: true }),
-
-                // TinyMCE Rich Text Editor
-                rteTinyMce.init({
-                  enableOnClick: true,
-                  loadConfig: ({ component, config }) => {
-                    const demoRte = component.get("demorte");
-                    if (demoRte === "fixed") {
-                      return {
-                        toolbar:
-                          "bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | link image media",
-                        fixed_toolbar_container_target:
-                          document.querySelector(".rteContainer"),
-                      };
-                    }
-                    if (demoRte === "quickbar") {
-                      return {
-                        plugins: `${config.plugins} quickbars`,
-                        toolbar: false,
-                        quickbars_selection_toolbar:
-                          "bold italic underline strikethrough | quicklink image",
-                      };
-                    }
-                    return {};
-                  },
-                }),
-
-                // Animation Component
-                animationComponent.init({
-                  animations: ({ items }) => [
-                    ...items,
-                    {
-                      id: "customWiggle",
-                      name: "Custom Wiggle",
-                      css: `
-              @keyframes customWiggle {
-                0% { transform: rotate(0deg); }
-                15% { transform: rotate(-5deg); }
-                30% { transform: rotate(5deg); }
-                45% { transform: rotate(-5deg); }
-                60% { transform: rotate(3deg); }
-                75% { transform: rotate(-2deg); }
-                100% { transform: rotate(0deg); }
-              }
-            `,
-                    },
-                  ],
-                }),
-
-                // Accordions
-                accordionComponent.init({
-                  block: { category: "My Accordions" },
-                  blockGroup: { category: "My Accordions" },
-                }),
-
-                // Iconify
-                iconifyComponent.init({
-                  block: { category: "Extra", label: "Iconify" },
-                }),
-
-                // Swiper
-                swiperComponent?.init({ block: false }),
-                (editor) => {
-                  editor.Blocks.add("swiper", {
-                    label: "Swiper Slider",
-                    category: "Swiper example",
-                    media:
-                      '<svg viewBox="0 0 24 24"><path d="M22 7.6c0-1-.5-1.6-1.3-1.6H3.4C2.5 6 2 6.7 2 7.6v9.8c0 1 .5 1.6 1.3 1.6h17.4c.8 0 1.3-.6 1.3-1.6V7.6zM21 18H3V7h18v11z" fill-rule="nonzero"/><path d="M4 12.5L6 14v-3zM20 12.5L18 14v-3z"/></svg>',
-                    content: `
-            <div class="swiper" style="height:200px">
-              <div class="swiper-wrapper">
-                <div class="swiper-slide"><div>Slide 1</div></div>
-                <div class="swiper-slide"><div>Slide 2</div></div>
-                <div class="swiper-slide"><div>Slide 3</div></div>
-              </div>
-              <div class="swiper-button-next"></div>
-              <div class="swiper-button-prev"></div>
-            </div>
-          `,
-                  });
-                },
-
-                // LightGallery
-                lightGalleryComponent?.init({ block: false }),
-                (editor) => {
-                  // Gallery Images
-                  editor.Blocks.add("gallery-images", {
-                    label: "Gallery Images",
-                    category: "LightGallery examples",
-                    media:
-                      '<svg viewBox="0 0 24 24"><path d="M5,14L8.5,9.5L11,12.5L14.5,8L19,14M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4C22,2.89 21.1,2 20,2Z" /></svg>',
-                    content: {
-                      type: "lightGallery",
-                      components: [
-                        {
-                          type: "lightGallery-item",
-                          attributes: {
-                            href: "https://placehold.co/1500/777/white.png?text=Image+1+(Open)",
-                          },
-                          components: {
-                            type: "image",
-                            src: "https://placehold.co/100/777/white.png?text=Image+1",
-                          },
-                        },
-                        {
-                          type: "lightGallery-item",
-                          attributes: {
-                            href: "https://placehold.co/1500/777/white.png?text=Image+2+(Open)",
-                          },
-                          components: {
-                            type: "image",
-                            src: "https://placehold.co/100/777/white.png?text=Image+2",
-                          },
-                        },
-                      ],
-                    },
-                  });
-
-                  // Gallery Videos
-                  editor.Blocks.add("gallery-videos", {
-                    label: "Gallery Video",
-                    category: "LightGallery examples",
-                    media:
-                      '<svg viewBox="0 0 24 24"><path d="M18,14L14,10.8V14H6V6H14V9.2L18,6M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4C22,2.89 21.1,2 20,2Z" /></svg>',
-                    content: {
-                      type: "lightGallery",
-                      components: [
-                        {
-                          type: "lightGallery-item",
-                          attributes: {
-                            "data-src":
-                              "https://www.youtube.com/watch?v=EIUJfXk3_3w",
-                            "data-sub-html": "Video Caption 1",
-                          },
-                          components: {
-                            type: "image",
-                            src: "https://img.youtube.com/vi/EIUJfXk3_3w/maxresdefault.jpg",
-                            style: { width: "200px" },
-                          },
-                        },
-                        {
-                          type: "lightGallery-item",
-                          attributes: {
-                            "data-src": "https://vimeo.com/112836958",
-                            "data-sub-html": "Video Caption 2",
-                          },
-                          components: {
-                            type: "image",
-                            src: "https://i.vimeocdn.com/video/506427660-2e93a42675715090a52de8e6645d592c5f58c1a7e388231d801072c9b2d9843d-d?mw=300",
-                            style: { width: "200px" },
-                          },
-                        },
-                      ],
-                    },
-                  });
-                },
-
-                // Extra Components
-                listPagesComponent?.init({
-                  block: { category: "Extra", label: "My List Pages" },
-                }),
-                tableComponent.init({
-                  block: { category: "Extra", label: "My Table" },
-                }),
-                dialogComponent.init({
-                  block: { category: "Extra", label: "My Dialog" },
-                }),
-
-                // Layout Sidebar Buttons Customization
-                layoutSidebarButtons.init({
-                  sidebarButton: ({ id, buttonProps }) =>
-                    id === "panelGlobalStyles" ? null : buttonProps,
-                }),
-
-                // OnReady selection
-                (editor) =>
-                  editor.onReady(() => {
-                    const firstParagraph = editor.getWrapper().find("p")[0];
-                    if (firstParagraph) editor.select(firstParagraph);
-                  }),
-              ],
-            }}
-            onReady={(editor) => {
-              editorRef.current = editor;
-
-              // Reset editor content
-              editor.DomComponents.clear();
-              editor.CssComposer.clear();
-              editor.setComponents(page.html || "<div>Start editing...</div>");
-              editor.setStyle(page.css || "");
-
-              loadSavedComponents();
-
-              // Helper to add blocks
-              const addBlock = (id, opts) => {
-                if (!editor.Blocks.get(id)) editor.Blocks.add(id, opts);
-              };
-
-              // BASIC BLOCKS
-              addBlock("text-block", {
-                label: "Text",
-                content: '<p style="padding:10px;">Insert your text here</p>',
-                category: "Basic",
-              });
-              addBlock("heading-block", {
-                label: "Heading",
-                content:
-                  '<h2 style="font-size:2rem; font-weight:bold;">Heading Text</h2>',
-                category: "Basic",
-              });
-              addBlock("image-block", {
-                label: "Image",
-                content:
-                  '<img src="https://via.placeholder.com/600x300" style="max-width:100%"/>',
-                category: "Basic",
-              });
-
-              // LAYOUT BLOCKS
-              addBlock("2-columns", {
-                label: "2 Columns",
-                content: `
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-          <div style="background:#f3f4f6; padding:20px;">Column 1</div>
-          <div style="background:#f3f4f6; padding:20px;">Column 2</div>
-        </div>`,
-                category: "Layout",
-              });
-
-              // COMPONENTS BLOCKS
-              addBlock("card-block", {
-                label: "Card",
-                content: `
-        <div style="border:1px solid #e5e7eb; border-radius:8px; padding:20px; text-align:center; background:white;">
-          <img src="https://via.placeholder.com/150" style="border-radius:50%; margin-bottom:15px;" />
-          <h3 style="font-size:1.25rem; font-weight:bold;">Card Title</h3>
-          <p style="color:#6b7280;">This is a simple card description.</p>
-        </div>`,
-                category: "Components",
-              });
-
-              // Continue adding other custom blocks here...
-            }}
-          />
-        </div>
-        <div className="w-1/4 p-4 bg-gray-50 overflow-y-auto border-r">
-          <h2 className="text-lg font-semibold mb-2">Page Info</h2>
-          <input
-            type="text"
-            placeholder="Title"
-            className="border p-2 rounded mb-2 w-full"
-            value={formData.title}
-            onChange={(e) => handleChange("title", e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Slug"
-            className="border p-2 rounded mb-2 w-full"
-            value={formData.slug}
-            onChange={(e) => handleChange("slug", e.target.value)}
-          />
-          <textarea
-            placeholder="Description"
-            className="border p-2 rounded mb-2 w-full"
-            value={formData.description}
-            onChange={(e) => handleChange("description", e.target.value)}
-          />
-
-          <h2 className="text-lg font-semibold mt-4 mb-2">SEO</h2>
-          <input
-            type="text"
-            placeholder="Meta Title"
-            className="border p-2 rounded mb-2 w-full"
-            value={formData.metaTitle}
-            onChange={(e) => handleChange("metaTitle", e.target.value)}
-          />
-          <textarea
-            placeholder="Meta Description"
-            className="border p-2 rounded mb-2 w-full"
-            value={formData.metaDescription}
-            onChange={(e) => handleChange("metaDescription", e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Keywords"
-            className="border p-2 rounded mb-2 w-full"
-            value={formData.keywords}
-            onChange={(e) => handleChange("keywords", e.target.value)}
-          />
-
-          <h2 className="text-lg font-semibold mt-4 mb-2">Status</h2>
-          <select
-            className="border p-2 rounded w-full"
-            value={formData.status}
-            onChange={(e) => handleChange("status", e.target.value)}
-          >
-            <option value="draft">Draft</option>
-            <option value="published">Published</option>
-          </select>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className={`px-4 py-2 rounded text-white ${
-              isSaving
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-green-500 hover:bg-green-600"
-            }`}
-          >
-            {isSaving ? "Saving..." : "Save & Close"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default EditorPage;
-
-
-
-
-
 // import { useContext, useState, useEffect, useRef } from "react";
 // import { useParams, useNavigate } from "react-router-dom";
 // import CmsContext from "../context/CmsContext";
 // import StudioEditor from "@grapesjs/studio-sdk/react";
 // import "@grapesjs/studio-sdk/style";
+// import {
+//   layoutSidebarButtons,
+//   dialogComponent,
+//   tableComponent,
+//   listPagesComponent,
+//   lightGalleryComponent,
+//   swiperComponent,
+//   iconifyComponent,
+//   accordionComponent,
+//   animationComponent,
+//   rteTinyMce,
+//   canvasGridMode,
+//   googleFontsAssetProvider,
+// } from "@grapesjs/studio-sdk-plugins";
 // import toast from "react-hot-toast";
 // import axios from "axios";
 
@@ -481,42 +38,29 @@ export default EditorPage;
 //     status: page?.status || "draft",
 //   });
 
-//   const [htmlContent, setHtmlContent] = useState(page?.html || "<div>Start editing...</div>");
-//   const [cssContent, setCssContent] = useState(page?.css || "");
-//   const [jsContent, setJsContent] = useState(page?.js || "");
-
 //   const handleChange = (field, value) => {
 //     setFormData((prev) => ({ ...prev, [field]: value }));
 //   };
 
-//   // Update GrapesJS editor when HTML/CSS/JS changes
-//   useEffect(() => {
-//     if (!editorRef.current) return;
-//     const editor = editorRef.current;
-
-//     // Combine HTML + JS
-//     const fullHtml = `
-//       ${htmlContent}
-//       <script>
-//         ${jsContent}
-//       </script>
-//     `;
-//     editor.setComponents(fullHtml);
-//     editor.setStyle(cssContent);
-//   }, [htmlContent, cssContent, jsContent]);
-
 //   const handleSave = async () => {
 //     if (!editorRef.current || !page) return toast("Editor not ready!");
-//     if (!htmlContent.trim()) return toast("⚠️ Page content cannot be empty!");
 
-//     const payload = { ...formData, html: htmlContent, css: cssContent, js: jsContent };
+//     const html = editorRef.current.getHtml();
+//     const css = editorRef.current.getCss();
+
+//     if (!html.trim()) return toast("⚠️ Page content cannot be empty!");
+
+//     console.log("Payload:", { ...formData, html, css });
 //     setIsSaving(true);
 //     try {
 //       const res = await axios.put(
 //         `http://localhost:5000/api/pages/${page.slug}`,
-//         payload,
-//         { withCredentials: true }
+//         { ...formData, html, css },
+//         {
+//           withCredentials: true,
+//         }
 //       );
+
 //       setPages(pages.map((p) => (p.slug === page.slug ? res.data : p)));
 //       toast.success("✅ Page updated successfully!");
 //       navigate("/admin/pages");
@@ -528,58 +72,227 @@ export default EditorPage;
 //     }
 //   };
 
-//   if (!page) return <p>Page not found</p>;
+//   const loadSavedComponents = async () => {
+//     if (!editorRef.current) return;
 
+//     try {
+//       const res = await axios.get("http://localhost:5000/api/components", {
+//         withCredentials: true,
+//       });
+
+//       const bm = editorRef.current.BlockManager;
+//       res.data.forEach((cmp) => {
+//         bm.add(cmp.name, {
+//           label: cmp.name,
+//           category: cmp.category || "Reusable",
+//           content: `<div>${cmp.html}</div><style>${cmp.css}</style>`,
+//         });
+//       });
+//     } catch (err) {
+//       console.error("Failed to load components:", err);
+//     }
+//   };
+
+//   useEffect(() => {
+//     return () => {
+//       if (editorRef.current?.destroy) {
+//         editorRef.current.destroy();
+//         editorRef.current = null;
+//       }
+//     };
+//   }, []);
+
+//   if (!page) return <p>Page not found</p>;
+//   console.log(loadSavedComponents);
 //   return (
 //     <div className="flex flex-col h-screen">
+//       {/* Header */}
+
 //       <div className="flex flex-1 overflow-hidden">
-//         {/* Left Panel: HTML / CSS / JS */}
-//         <div className="w-1/4 p-2 bg-gray-50 border-r overflow-y-auto">
-//           <h2 className="text-lg font-semibold mb-2">HTML</h2>
-//           <textarea
-//             value={htmlContent}
-//             onChange={(e) => setHtmlContent(e.target.value)}
-//             className="border p-2 rounded w-full h-1/3 font-mono mb-2"
-//           />
-
-//           <h2 className="text-lg font-semibold mb-2">CSS</h2>
-//           <textarea
-//             value={cssContent}
-//             onChange={(e) => setCssContent(e.target.value)}
-//             className="border p-2 rounded w-full h-1/3 font-mono mb-2"
-//           />
-
-//           <h2 className="text-lg font-semibold mb-2">JS</h2>
-//           <textarea
-//             value={jsContent}
-//             onChange={(e) => setJsContent(e.target.value)}
-//             className="border p-2 rounded w-full h-1/3 font-mono"
-//           />
-//         </div>
-
-//         {/* Center Panel: StudioEditor */}
-//         <div className="w-3/4 p-2 bg-white overflow-y-auto">
+//         {/* Right panel - GrapesJS Editor */}
+//         <div className="w-3/4 p-4 bg-gray-50 overflow-y-auto border-r">
 //           <StudioEditor
 //             key={slug}
 //             options={{
-//               initialHtml: htmlContent,
-//               initialCss: cssContent,
-//               style: { height: "80vh", width: "100%" },
+//               initialHtml: page.html || "<div>Start editing...</div>",
+//               initialCss: page.css || "",
+//               style: { height: "100%", width: "100%" },
+
+//               /* ===============================
+//        🔐 SAFE SCRIPT CONFIG
+//     =============================== */
+//               allowScripts: true, // Allow JS inside components
+//               enableScripting: true, // Enables <script> inside canvas
+//               allowUnsafeInlineStyle: false,
+
+//               /* ===============================
+//        📚 PRELOAD JS LIBRARIES INSIDE CANVAS
+//     =============================== */
+//               canvas: {
+//                 scripts: [
+//                   "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js",
+//                   "https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js",
+//                 ],
+//                 styles: [
+//                   "https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css",
+//                 ],
+//               },
+
+//               /* ===============================
+//        🎨 CSS Manager
+//     =============================== */
+//               cssManager: {
+//                 clearProperties: true,
+//                 sectors: [
+//                   {
+//                     name: "Manual CSS",
+//                     open: true,
+//                     buildProps: [],
+//                   },
+//                 ],
+//               },
+
+//               /* ===============================
+//        🔌 Plugins + Custom Editors
+//     =============================== */
+//               plugins: [
+//                 googleFontsAssetProvider.init({
+//                   apiKey: "GOOGLE_FONTS_API_KEY",
+//                 }),
+
+//                 canvasGridMode?.init({ styleableGrid: true }),
+
+//                 rteTinyMce.init({6
+//                   enableOnClick: true,
+//                 }),
+
+//                 animationComponent.init({
+//                   animations: ({ items }) => [
+//                     ...items,
+//                     {
+//                       id: "customWiggle",
+//                       name: "Custom Wiggle",
+//                       css: `
+//               @keyframes customWiggle {
+//                 0% { transform: rotate(0deg); }
+//                 15% { transform: rotate(-5deg); }
+//                 30% { transform: rotate(5deg); }
+//                 45% { transform: rotate(-5deg); }
+//                 60% { transform: rotate(3deg); }
+//                 75% { transform: rotate(-2deg); }
+//                 100% { transform: rotate(0deg); }
+//               }
+//             `,
+//                     },
+//                   ],
+//                 }),
+
+//                 accordionComponent.init({
+//                   block: { category: "My Accordions" },
+//                   blockGroup: { category: "My Accordions" },
+//                 }),
+
+//                 iconifyComponent.init({
+//                   block: { category: "Extra", label: "Iconify" },
+//                 }),
+
+//                 swiperComponent?.init({ block: false }),
+
+//                 /* Add swiper block manually */
+//                 (editor) => {
+//                   editor.Blocks.add("swiper", {
+//                     label: "Swiper Slider",
+//                     category: "Swiper example",
+//                     content: `
+//             <div class="swiper" data-swiper>
+//               <div class="swiper-wrapper">
+//                 <div class="swiper-slide">Slide 1</div>
+//                 <div class="swiper-slide">Slide 2</div>
+//                 <div class="swiper-slide">Slide 3</div>
+//               </div>
+//               <div class="swiper-button-next"></div>
+//               <div class="swiper-button-prev"></div>
+//             </div>
+//           `,
+//                     /* 👇 JavaScript executed when placed on canvas */
+//                     script: function () {
+//                       const el = this.querySelector("[data-swiper]");
+//                       if (el) {
+//                         new Swiper(el, {
+//                           navigation: {
+//                             nextEl: ".swiper-button-next",
+//                             prevEl: ".swiper-button-prev",
+//                           },
+//                         });
+//                       }
+//                     },
+//                   });
+//                 },
+
+//                 lightGalleryComponent?.init({ block: false }),
+
+//                 (editor) => {
+//                   editor.Blocks.add("gallery-images", {
+//                     label: "Gallery Images",
+//                     category: "LightGallery examples",
+//                     content: {
+//                       type: "lightGallery",
+//                       components: [],
+//                     },
+//                   });
+//                 },
+
+//                 listPagesComponent?.init({
+//                   block: { category: "Extra", label: "My List Pages" },
+//                 }),
+
+//                 tableComponent.init({
+//                   block: { category: "Extra", label: "My Table" },
+//                 }),
+
+//                 dialogComponent.init({
+//                   block: { category: "Extra", label: "My Dialog" },
+//                 }),
+
+//                 layoutSidebarButtons.init({
+//                   sidebarButton: ({ id, buttonProps }) =>
+//                     id === "panelGlobalStyles" ? null : buttonProps,
+//                 }),
+
+//                 (editor) =>
+//                   editor.onReady(() => {
+//                     const firstP = editor.getWrapper().find("p")[0];
+//                     if (firstP) editor.select(firstP);
+//                   }),
+//               ],
 //             }}
+//             /* ================================
+//      🟢 EDITOR READY
+//   ================================ */
 //             onReady={(editor) => {
 //               editorRef.current = editor;
 
-//               // Load saved content
 //               editor.DomComponents.clear();
 //               editor.CssComposer.clear();
-//               editor.setComponents(htmlContent);
-//               editor.setStyle(cssContent);
+
+//               editor.setComponents(page.html || "<div>Start editing...</div>");
+//               editor.setStyle(page.css || "");
+
+//               loadSavedComponents();
+
+//               const addBlock = (id, opts) => {
+//                 if (!editor.Blocks.get(id)) editor.Blocks.add(id, opts);
+//               };
+
+//               addBlock("text-block", {
+//                 label: "Text",
+//                 category: "Basic",
+//                 content: '<p style="padding:10px;">Insert your text here</p>',
+//               });
 //             }}
 //           />
 //         </div>
-
-//         {/* Right Panel: Page Info & SEO */}
-//         <div className="w-1/4 p-4 bg-gray-50 border-l overflow-y-auto">
+//         <div className="w-1/4 p-4 bg-gray-50 overflow-y-auto border-r">
 //           <h2 className="text-lg font-semibold mb-2">Page Info</h2>
 //           <input
 //             type="text"
@@ -626,14 +339,13 @@ export default EditorPage;
 
 //           <h2 className="text-lg font-semibold mt-4 mb-2">Status</h2>
 //           <select
-//             className="border p-2 rounded w-full mb-4"
+//             className="border p-2 rounded w-full"
 //             value={formData.status}
 //             onChange={(e) => handleChange("status", e.target.value)}
 //           >
 //             <option value="draft">Draft</option>
 //             <option value="published">Published</option>
 //           </select>
-
 //           <button
 //             onClick={handleSave}
 //             disabled={isSaving}
@@ -652,3 +364,378 @@ export default EditorPage;
 // };
 
 // export default EditorPage;
+// 
+
+
+
+import { useContext, useState, useEffect, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import CmsContext from "../context/CmsContext";
+import StudioEditor from "@grapesjs/studio-sdk/react";
+import "@grapesjs/studio-sdk/style";
+import toast from "react-hot-toast";
+import axios from "axios";
+import {
+  ChevronLeft,
+  Save,
+  Code,
+  FileText,
+  Zap,
+  Settings,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+
+const EditorPage = () => {
+  const { slug } = useParams();
+  const { pages, setPages } = useContext(CmsContext);
+  const page = pages.find((p) => p.slug === slug);
+  const navigate = useNavigate();
+  const editorRef = useRef(null);
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [expandedSection, setExpandedSection] = useState("html");
+  const [codePanelExpanded, setCodePanelExpanded] = useState(false);
+
+  const [formData, setFormData] = useState({
+    title: page?.title || "",
+    slug: page?.slug || "",
+    description: page?.description || "",
+    metaTitle: page?.metaTitle || "",
+    metaDescription: page?.metaDescription || "",
+    keywords: page?.keywords || "",
+    status: page?.status || "draft",
+  });
+
+  const [htmlContent, setHtmlContent] = useState(
+    page?.html || "<div>Start editing...</div>"
+  );
+  const [cssContent, setCssContent] = useState(page?.css || "");
+  const [jsContent, setJsContent] = useState(page?.js || "");
+
+  const handleChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const LoadSavedComponents = async () => {
+    if (!editorRef.current) return;   
+
+    try {
+      const res = await axios.get("http://localhost:5000/api/components", {
+        withCredentials: true,
+      });
+      const bm = editorRef.current.BlockManager;
+      res.data.forEach((cmp) => {
+        bm.add(cmp.name, {
+          label: cmp.name,
+          category: cmp.category || "Saved Components",
+          content: `<div>${cmp.html}</div><style>${cmp.css}</style>`,
+        });
+      });
+    } catch (err) {
+      console.error("❌ Failed to fetch saved components", err.response || err.message);
+    }
+  };  
+
+  /* ------------------------
+     LIVE UPDATE CONTENT
+  ------------------------- */
+  useEffect(() => {
+    if (!editorRef.current) return;
+    const editor = editorRef.current;
+
+    const finalHTML = `
+      ${htmlContent}
+      <script>
+        (function runUniversal(){
+          if(document.readyState === "loading"){
+            document.addEventListener("DOMContentLoaded", function(){ 
+              try { ${jsContent} } catch(e){ console.error(e); }
+            });
+          } else { 
+            try { ${jsContent} } catch(e){ console.error(e); }
+          }
+        })();
+      </script>
+    `;
+
+    editor.setComponents(finalHTML);
+    editor.setStyle(cssContent);
+  }, [htmlContent, cssContent, jsContent]);
+
+  /* ------------------------
+     FIX: RESIZE EDITOR WHEN PANEL EXPANDS
+  ------------------------- */
+  useEffect(() => {
+    if (!editorRef.current) return;
+    setTimeout(() => editorRef.current.refresh(), 100);
+  }, [codePanelExpanded]);
+
+  /* ------------------------
+     SAVE PAGE
+  ------------------------- */
+  const handleSave = async () => {
+    if (!page) return toast.error("Editor not ready!");
+
+    const payload = {
+      ...formData,
+      html: htmlContent,
+      css: cssContent,
+      js: jsContent,
+    };
+
+    setIsSaving(true);
+
+    try {
+      const res = await axios.put(
+        `http://localhost:5000/api/pages/${page.slug}`,
+        payload,
+        { withCredentials: true }
+      );
+
+      setPages((prev) =>
+        prev.map((p) => (p.slug === page.slug ? res.data : p))
+      );
+      toast.success("Page saved successfully!");
+      navigate("/admin/pages");
+    } catch (error) {
+      toast.error("Save failed!");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  /* ------------------------
+     PAGE NOT FOUND
+  ------------------------- */
+  if (!page)
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-900 text-gray-300 text-xl">
+        Page not found
+      </div>
+    );
+
+  return (
+    <div className="flex flex-col h-screen bg-gray-50">
+      
+      {/* TOP NAVBAR */}
+      <header className="bg-white shadow-sm border-b sticky top-0 z-20">
+        <div className="flex items-center justify-between px-5 py-3">
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/admin/pages")}
+              className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg"
+            >
+              <ChevronLeft size={20} />
+            </button>
+
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">
+                {formData.title || "Untitled Page"}
+              </h1>
+              <p className="text-sm text-gray-500">{slug}</p>
+            </div>
+          </div>
+
+          {/* SAVE BUTTON */}
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className={`px-5 py-2 rounded-lg flex items-center gap-2 font-medium text-white transition-all ${
+              isSaving
+                ? "bg-gray-400"
+                : "bg-blue-600 hover:bg-blue-700 shadow-md"
+            }`}
+          >
+            <Save size={18} />
+            {isSaving ? "Saving..." : "Save"}
+          </button>
+        </div>
+      </header>
+
+      {/* MAIN EDITOR (FULL HEIGHT FIXED) */}
+      <div
+        className="overflow-hidden transition-all"
+        style={{
+          height: codePanelExpanded
+            ? "55vh"
+            : "calc(120vh - 70px)", // full height if collapsed
+        }}
+      >
+        <StudioEditor
+          key={slug}
+          options={{
+            initialHtml: page?.html || "<div>Start editing...</div>",
+            initialCss: page?.css || "",
+            allowScripts: true,
+            enableScripting: true,
+            canvas: {
+              scripts: [
+                "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js",
+              ],
+            },
+            style: { height: "100%", width: "100%" },
+          }}
+          onReady={(editor) => {
+            editorRef.current = editor;
+            editor.DomComponents.clear();
+            editor.CssComposer.clear();
+            editor.setComponents(page?.html || "<div>Start editing...</div>");
+            editor.setStyle(page?.css || "");
+            LoadSavedComponents();
+            setTimeout(() => editor.refresh(), 50);
+
+          }}
+        />
+      </div>
+
+      {/* BOTTOM PANEL */}
+      <div className="bg-white border-t shadow-inner flex flex-col">
+
+        {/* COLLAPSE HEADER */}
+        <div
+          className="flex justify-between items-center px-5 py-3 bg-gray-50 border-b cursor-pointer hover:bg-gray-100"
+          onClick={() => setCodePanelExpanded(!codePanelExpanded)}
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+              <Code size={20} />
+            </div>
+            <div>
+              <h3 className="font-semibold">Code & Page Details</h3>
+              <p className="text-xs text-gray-500">
+                Edit HTML, CSS, JavaScript & SEO
+              </p>
+            </div>
+          </div>
+
+          {codePanelExpanded ? <ChevronDown size={22} /> : <ChevronUp size={22} />}
+        </div>
+
+        {/* CONTENT */}
+        {codePanelExpanded && (
+          <div className="max-h-[40vh] overflow-auto">
+
+            {/* TABS */}
+            <div className="flex gap-1 bg-gray-50 border-b px-3 sticky top-0">
+              {[
+                { id: "html", label: "HTML", icon: Code },
+                { id: "css", label: "CSS", icon: FileText },
+                { id: "js", label: "JavaScript", icon: Zap },
+                { id: "info", label: "Page Info", icon: Settings },
+              ].map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => setExpandedSection(id)}
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 ${
+                    expandedSection === id
+                      ? "border-blue-600 text-blue-600 bg-white"
+                      : "border-transparent text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  <Icon size={16} />
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* TAB CONTENT */}
+            <div className="p-5">
+
+              {/* HTML */}
+              {expandedSection === "html" && (
+                <textarea
+                  className="w-full h-48 border p-3 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500"
+                  value={htmlContent}
+                  onChange={(e) => setHtmlContent(e.target.value)}
+                />
+              )}
+
+              {/* CSS */}
+              {expandedSection === "css" && (
+                <textarea
+                  className="w-full h-48 border p-3 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500"
+                  value={cssContent}
+                  onChange={(e) => setCssContent(e.target.value)}
+                />
+              )}
+
+              {/* JS */}
+              {expandedSection === "js" && (
+                <textarea
+                  className="w-full h-48 border p-3 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500"
+                  value={jsContent}
+                  onChange={(e) => setJsContent(e.target.value)}
+                />
+              )}
+
+              {/* PAGE INFO */}
+              {expandedSection === "info" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    className="p-3 border rounded-lg"
+                    placeholder="Title"
+                    value={formData.title}
+                    onChange={(e) => handleChange("title", e.target.value)}
+                  />
+
+                  <input
+                    className="p-3 border rounded-lg"
+                    placeholder="Slug"
+                    value={formData.slug}
+                    onChange={(e) => handleChange("slug", e.target.value)}
+                  />
+
+                  <textarea
+                    className="p-3 border rounded-lg col-span-full"
+                    placeholder="Description"
+                    rows={2}
+                    value={formData.description}
+                    onChange={(e) => handleChange("description", e.target.value)}
+                  />
+
+                  <input
+                    className="p-3 border rounded-lg"
+                    placeholder="Meta Title"
+                    value={formData.metaTitle}
+                    onChange={(e) => handleChange("metaTitle", e.target.value)}
+                  />
+
+                  <input
+                    className="p-3 border rounded-lg"
+                    placeholder="Keywords"
+                    value={formData.keywords}
+                    onChange={(e) => handleChange("keywords", e.target.value)}
+                  />
+
+                  <textarea
+                    className="p-3 border rounded-lg col-span-full"
+                    placeholder="Meta Description"
+                    rows={2}
+                    value={formData.metaDescription}
+                    onChange={(e) =>
+                      handleChange("metaDescription", e.target.value)
+                    }
+                  />
+
+                  <select
+                    className="p-3 border rounded-lg"
+                    value={formData.status}
+                    onChange={(e) => handleChange("status", e.target.value)}
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                  </select>
+                </div>
+              )}
+
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default EditorPage;

@@ -1,0 +1,192 @@
+{
+  "root": "c:\\Users\\TECHY SQUAD\\OneDrive\\Desktop\\Cms",
+  "vscode": [
+    ".vscode/settings.json"
+  ],
+  "backend2": {
+    "files": [
+      ".gitignore",
+      "constants.js",
+      "index.js",
+      "package.json",
+      "package-lock.json",
+      "seed.js",
+      "sync-db.js"
+    ],
+    "conf": ["env.js"],
+    "config": ["config.json"],
+    "controllers": [
+      "auth.controller.js",
+      "blog.controller.js",
+      "component.controller.js",
+      "content.controller.js",
+      "menu.controller.js",
+      "page.controller.js"
+    ],
+    "db": ["index.js","sequelize.js"],
+    "middleware": ["auth.middleware.js","upload.js"],
+    "migrations": [
+      "20251014-update-customContents-table.js",
+      "20251014-update-menus-table.js",
+      "20251103092917-add-logo-to-menus.js",
+      "20251103132316-create-blog-table.js",
+      "20251105100505-create-blog.js",
+      "20251105125302-create-blog.js",
+      "20251106091633-add-logo-and-menutype-to-customcontent.js",
+      "20251111090225-add-seo-fields-to-blogs.js",
+      "20251111112030-change-content-to-json.js"
+    ],
+    "models": [
+      "blog.model.js",
+      "component.model.js",
+      "custommenu.model.js",
+      "index.js",
+      "menu.model.js",
+      "page.model.js",
+      "user.model.js"
+    ],
+    "routes": [
+      "auth.routes.js",
+      "blog.routes.js",
+      "component.routes.js",
+      "content.routes.js",
+      "menu.routes.js",
+      "page.routes.js"
+    ],
+    "utils": ["ApiHelpers.js"]
+  },
+  "frontend2": {
+    "files": [
+      ".gitignore",
+      "README.md",
+      "components.json",
+      "index.html",
+      "package.json",
+      "package-lock.json",
+      "vite.config.js",
+      "jsconfig.json",
+      "jsconfig.app.json"
+    ],
+    "public": ["cms.png","vite.svg"],
+    "src": {
+      "rootFiles": ["App.jsx","App.css","index.css","main.jsx"],
+      "componentsPublic": ["PublicPage.jsx"],
+      "Pages": [
+        "AddBlog.jsx",
+        "AddBlog_clean.jsx",
+        "AddPageForm.jsx",
+        "AdminSettings.jsx",
+        "BlogPage.jsx",
+        "Components.jsx",
+        "Dashboard.jsx",
+        "EditorAdd.jsx",
+        "Editorpage.jsx",
+        "Footermenu.jsx",
+        "Login.jsx",
+        "Navbarmenu.jsx",
+        "PageManager.jsx"
+      ],
+      "context": ["CmsContext.jsx"],
+      "hooks": [
+        "use-composed-ref.js",
+        "use-cursor-visibility.js",
+        "use-element-rect.js",
+        "use-menu-navigation.js",
+        "use-mobile.js",
+        "use-scrolling.js",
+        "use-throttled-callback.js",
+        "use-tiptap-editor.js",
+        "use-unmount.js",
+        "use-window-size.js"
+      ],
+      "lib": [
+        "markdown-joiner-transform.js",
+        "tiptap-utils.js",
+        "uploadthing.js",
+        "utils.js"
+      ],
+      "assets": ["react.svg","cms.png"],
+      "components": {
+        "topLevel": ["Navbar.jsx","Navbarpages.jsx","Footerpages.jsx","NAVBAR_IMPROVEMENTS.md"],
+        "Blogpage": ["RichTextEditor.jsx","SeoPreview.jsx","ViewBlog.jsx"],
+        "Navbarmanager": [
+          "ActiveMenuSelector.jsx",
+          "CustomContentDialog.jsx",
+          "DnD/DnDContainer.jsx",
+          "DnD/SortableItem.jsx",
+          "MenuTreeUtils.jsx",
+          "MenustyleChanger.jsx",
+          "Navmenuform.jsx"
+        ],
+        "tiptap-templates": {
+          "simple": [
+            "simple-editor.jsx",
+            "simple-editor.scss",
+            "theme-toggle.jsx",
+            "data/content.json"
+          ]
+        },
+        "tiptap-node": {
+          "code-block-node": ["code-block-node.scss"],
+          "image-node": ["image-node.scss"],
+          "horizontal-rule-node": ["horizontal-rule-node-extension.js","horizontal-rule-node.scss"],
+          "heading-node": ["heading-node.scss"],
+          "image-upload-node": ["image-upload-node-extension.js","image-upload-node.jsx","image-upload-node.scss"],
+          "list-node": ["list-node.scss"],
+          "paragraph-node": ["paragraph-node.scss"],
+          "blockquote-node": ["blockquote-node.scss"]
+        },
+        "tiptap-ui": {
+          "undo-redo-button": ["undo-redo-button.jsx","use-undo-redo.js","index.jsx"],
+          "heading-button": ["heading-button.jsx","use-heading.js","index.jsx"],
+          "heading-dropdown-menu": ["heading-dropdown-menu.jsx","index.jsx","use-heading-dropdown-menu.js"],
+          "list-button": ["list-button.jsx","index.jsx","use-list.js"],
+          "list-dropdown-menu": ["list-dropdown-menu.jsx","use-list-dropdown-menu.js","index.jsx"],
+          "image-upload-button": ["image-upload-button.jsx","use-image-upload.js","index.jsx"],
+          "color-highlight-button": ["color-highlight-button.jsx","color-highlight-button.scss","use-color-highlight.js","index.jsx"],
+          "link-popover": ["link-popover.jsx","use-link-popover.js","index.jsx"],
+          "mark-button": ["mark-button.jsx","use-mark.js","index.jsx"],
+          "code-block-button": ["code-block-button.jsx","use-code-block.js","index.jsx"],
+          "blockquote-button": ["blockquote-button.jsx","use-blockquote.js","index.jsx"]
+        },
+        "tiptap-ui-primitive": {
+          "toolbar": ["toolbar.jsx","toolbar.scss"],
+          "tooltip": ["tooltip.jsx","tooltip.scss","index.jsx"],
+          "popover": ["popover.jsx","popover.scss","index.jsx"],
+          "separator": ["separator.jsx","separator.scss","index.jsx"],
+          "input": ["input.jsx","input.scss","index.jsx"],
+          "badge": ["badge.jsx","badge.scss","badge-group.scss","badge-colors.scss"],
+          "button": ["button.jsx","button.scss","button-group.scss","button-colors.scss"],
+          "card": ["card.jsx","card.scss","index.jsx"],
+          "dropdown-menu": ["dropdown-menu.jsx","dropdown-menu.scss","index.jsx"],
+          "spacer": ["spacer.jsx","index.jsx"]
+        },
+        "tiptap-icons": "(many small icon components - align, bold, italic, headings, etc.)",
+        "ui": [
+          "navigation-menu.jsx",
+          "popover.jsx",
+          "input.jsx",
+          "label.jsx",
+          "select.jsx",
+          "textarea.jsx",
+          "button.jsx",
+          "badge.jsx",
+          "card.jsx",
+          "checkbox.jsx",
+          "calendar.jsx",
+          "separator.jsx"
+        ]
+      },
+      "app": {
+        "api": {
+          "uploadthing": ["route.js"],
+          "ai": {
+            "copilot": ["route.js"],
+            "command": ["route.js","prompts.js","utils.js"]
+          }
+        }
+      },
+      "styles": ["_variables.scss","_keyframe-animations.scss"]
+    }
+  }
+}

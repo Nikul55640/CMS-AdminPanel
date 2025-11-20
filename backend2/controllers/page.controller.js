@@ -28,20 +28,30 @@ export const getPublishedPages = AsyncHandler(async (req, res) => {
 // ======================================
 export const getPageBySlug = AsyncHandler(async (req, res) => {
   const { slug } = req.params;
-  const page = await Page.findOne({ where: { slug } });
+  const preview = req.query.preview === "true"; // ⭐ NEW: Support preview mode
 
-  if (!page) return res.status(404).json({ message: "Page not found" });
+  let page;
 
-  // 🟡 If the page is draft → only admin can access
-  if (page.status === "draft") {
-    if (!req.user || req.user.role !== "admin") {
-      return res
-        .status(403)
-        .json({ message: "Unauthorized access to draft page" });
+  // ⭐ PREVIEW MODE (admin/editor preview)
+  if (preview) {
+    page = await Page.findOne({ where: { slug } });
+
+    if (!page) {
+      return res.status(404).json({ message: "Page not found" });
     }
+
+    return res.json(page); // allow draft + published
   }
 
-  // 🟢 For published pages → public can access
+  // ⭐ PUBLIC MODE (only published)
+  page = await Page.findOne({
+    where: { slug, status: "published" },
+  });
+
+  if (!page) {
+    return res.status(404).json({ message: "Page not found or unpublished" });
+  }
+
   res.json(page);
 });
 

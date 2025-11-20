@@ -47,13 +47,21 @@ const EditorAdd = () => {
     const html = editorRef.current.getHtml();
     const css = editorRef.current.getCss();
 
+    // Extract JS from all JS blocks
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const jsBlocks = doc.querySelectorAll(".js-block textarea");
+    const jsContent = Array.from(jsBlocks)
+      .map((t) => t.value)
+      .join("\n");
+
     const componentName = prompt("Enter component name");
     if (!componentName) return;
 
     try {
       const res = await axios.post(
         "http://localhost:5000/api/components",
-        { name: componentName, html, css, category: "Reusable" },
+        { name: componentName, html, css, js: jsContent, category: "Reusable" },
         { withCredentials: true }
       );
 
@@ -61,7 +69,7 @@ const EditorAdd = () => {
       bm.add(res.data.name, {
         label: res.data.name,
         category: res.data.category || "Reusable",
-        content: `<div>${res.data.html}</div><style>${res.data.css}</style>`,
+        content: `<div>${res.data.html}</div><style>${res.data.css}</style><script>${res.data.js}</script>`,
       });
 
       toast.success("Component saved!");
@@ -78,38 +86,39 @@ const EditorAdd = () => {
     const html = editorRef.current.getHtml();
     const css = editorRef.current.getCss();
 
-    setPageContent({ html, css });
+    // Extract JS from all JS blocks
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const jsBlocks = doc.querySelectorAll(".js-block textarea");
+    const jsContent = Array.from(jsBlocks)
+      .map((t) => t.value)
+      .join("\n");
+
+    setPageContent({ html, css, js: jsContent });
     toast.success("✅ Content saved!");
     navigate("/admin/addPage");
   };
 
-  // Load saved components from backend on editor ready
+  // Load saved components from backend
   const loadSavedComponents = async () => {
     if (!editorRef.current) return;
-
     try {
       const bm = editorRef.current.BlockManager;
-
-      // ✅ Get all components from backend (no second API needed)
       const res = await axios.get("http://localhost:5000/api/components", {
         withCredentials: true,
       });
 
-      if (!res.data || res.data.length === 0) {
-        console.warn("⚠️ No components found from backend.");
-        return;
-      }
+      if (!res.data || res.data.length === 0) return;
 
-      // ✅ Add all components (reusable or not)
       res.data.forEach((cmp) => {
         bm.add(cmp.name, {
           label: cmp.name,
           category: cmp.category || "Custom Components",
           content: `
-          <div>${cmp.html || ""}</div>
-          <style>${cmp.css || ""}</style>
-          ${cmp.js ? `<script>${cmp.js}</script>` : ""}
-        `,
+            <div>${cmp.html || ""}</div>
+            <style>${cmp.css || ""}</style>
+            ${cmp.js ? `<script>${cmp.js}</script>` : ""}
+          `,
         });
       });
 
@@ -119,11 +128,22 @@ const EditorAdd = () => {
     }
   };
 
+  // Run JS from a JS block in the iframe preview
+  const runJsBlock = (component) => {
+    if (component.attributes?.classes?.includes("js-block")) {
+      const iframe = editorRef.current.Canvas.getFrameEl();
+      const iframeDoc = iframe.contentDocument;
+      const textarea = component.view.el.querySelector(".js-code");
+      if (textarea) {
+        const script = iframeDoc.createElement("script");
+        script.innerHTML = textarea.value;
+        iframeDoc.body.appendChild(script);
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col md:flex-row h-screen">
-      {/* Sidebar can go here if you have one */}
-
-      {/* Main editor area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border-b bg-white shadow gap-2">
@@ -170,14 +190,8 @@ const EditorAdd = () => {
                 layoutSidebarButtons.init(),
               ],
               cssManager: {
-                clearProperties: true, // optional: clear default CSS on reset
-                sectors: [
-                  {
-                    name: "Manual CSS", // Panel title
-                    open: true,
-                    buildProps: [], // leave empty, user can type anything
-                  },
-                ],
+                clearProperties: true,
+                sectors: [{ name: "Manual CSS", open: true, buildProps: [] }],
               },
             }}
             onReady={(editor) => {
@@ -191,25 +205,25 @@ const EditorAdd = () => {
 
               loadSavedComponents();
 
-              // Default blocks
               const bm = editor.BlockManager;
-              
-  bm.add("custom-js", {
-    label: "Custom JS",
-    category: "Extra",
-    content: {
-      type: "script",
-      script: function () {
-        alert("Hello from GrapesJS editor JS!");
-      },
-    },
-  });
+
+              // JS Block
+              bm.add("custom-js-block", {
+                label: "Custom JS",
+                category: "Extra",
+                content: `<div class="js-block">
+                  <strong>JS Block - Click Edit Code</strong>
+                  <textarea class="js-code" style="width:100%;height:100px;">console.log('Hello from JS block');</textarea>
+                </div>`,
+              });
+
+              // Other blocks
               bm.add("section", {
                 label: "Section",
                 content: `<section style="padding: 20px; border: 1px solid #ccc;">
-              <h2>Section Title</h2>
-              <p>Section content...</p>
-            </section>`,
+                  <h2>Section Title</h2>
+                  <p>Section content...</p>
+                </section>`,
               });
               bm.add("text", {
                 label: "Text",
@@ -221,6 +235,10 @@ const EditorAdd = () => {
                 label: "Link",
                 content: '<a href="#">Insert link</a>',
               });
+
+              // Run JS when a JS block is added or updated
+              editor.on("component:add", runJsBlock);
+              editor.on("component:update", runJsBlock);
             }}
           />
         </div>
@@ -230,25 +248,6 @@ const EditorAdd = () => {
 };
 
 export default EditorAdd;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // import { useRef, useEffect, useContext } from "react";
 // import { useNavigate } from "react-router-dom";

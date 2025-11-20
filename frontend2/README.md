@@ -1467,17 +1467,4 @@ export default SortableItem;
   //         className="hidden"
   //       />
   //     </div>
-
-<!-- 
-   <div className="flex">
-        <label className="block font-medium mb-1">
-          Content
-        </label>
-        <SimpleEditor
-          value={content}
-          setContent={(val) => {
-            console.log("🖋️ Content Updated:", val);
-            setContent(val);
-          }}
-        />
-      </div> -->
+  //      

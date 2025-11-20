@@ -17,11 +17,11 @@ const router = express.Router();
    PUBLIC ROUTES
    ============================================ */
 
-// ❌ Do NOT expose all pages publicly
-// router.get("/", getPages);
-
-// ✅ Public should only see published pages
+// Show published pages list
 router.get("/published", getPublishedPages);
+
+// ⭐ NEW → Public single page route
+router.get("/public/:slug", getPageBySlug);
 
 /* ============================================
    PROTECTED (ADMIN ONLY)
@@ -43,10 +43,10 @@ router.put("/:slug", authMiddleware, updatePage);
 router.delete("/:slug", authMiddleware, deletePage);
 
 /* ============================================
-   MUST BE LAST → Slug route
+   MUST BE LAST → Slug route for admin preview
    ============================================ */
 
-// Both public + admin can view page by slug
+// Admin or preview: /pages/home
 router.get("/:slug", getPageBySlug);
 
 export default router;
