@@ -16,6 +16,7 @@ import {
   canvasGridMode,
   googleFontsAssetProvider,
 } from "@grapesjs/studio-sdk-plugins";
+
 import toast from "react-hot-toast";
 import CmsContext from "../context/CmsContext";
 import axios from "axios";
@@ -26,7 +27,7 @@ const EditorAdd = () => {
   const { setPageContent } = useContext(CmsContext);
   const navigate = useNavigate();
 
-  // Cleanup editor on unmount
+  // CLEANUP ON UNMOUNT
   useEffect(() => {
     return () => {
       if (editorRef.current?.destroy) {
@@ -40,28 +41,31 @@ const EditorAdd = () => {
     };
   }, []);
 
-  // Save a section as a reusable component
+  /* ----------------------------------------
+     SAVE AS COMPONENT
+  ----------------------------------------- */
   const handleSaveAsComponent = async () => {
     if (!editorRef.current) return;
 
     const html = editorRef.current.getHtml();
     const css = editorRef.current.getCss();
 
-    // Extract JS from all JS blocks
+    // Extract JS blocks
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
     const jsBlocks = doc.querySelectorAll(".js-block textarea");
+
     const jsContent = Array.from(jsBlocks)
       .map((t) => t.value)
       .join("\n");
 
-    const componentName = prompt("Enter component name");
-    if (!componentName) return;
+    const name = prompt("Component name?");
+    if (!name) return;
 
     try {
       const res = await axios.post(
         "http://localhost:5000/api/components",
-        { name: componentName, html, css, js: jsContent, category: "Reusable" },
+        { name, html, css, js: jsContent, category: "Reusable" },
         { withCredentials: true }
       );
 
@@ -69,37 +73,45 @@ const EditorAdd = () => {
       bm.add(res.data.name, {
         label: res.data.name,
         category: res.data.category || "Reusable",
-        content: `<div>${res.data.html}</div><style>${res.data.css}</style><script>${res.data.js}</script>`,
+        content: `
+          <div>${res.data.html}</div>
+          <style>${res.data.css}</style>
+          <script>${res.data.js}</script>
+        `,
       });
 
       toast.success("Component saved!");
     } catch (err) {
-      console.error(err);
       toast.error("Failed to save component");
     }
   };
 
-  // Save current page content
+  /* ----------------------------------------
+     SAVE PAGE CONTENT
+  ----------------------------------------- */
   const handleSaveContent = () => {
     if (!editorRef.current) return;
 
     const html = editorRef.current.getHtml();
     const css = editorRef.current.getCss();
 
-    // Extract JS from all JS blocks
+    // Extract JS blocks
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
     const jsBlocks = doc.querySelectorAll(".js-block textarea");
+
     const jsContent = Array.from(jsBlocks)
       .map((t) => t.value)
       .join("\n");
 
     setPageContent({ html, css, js: jsContent });
-    toast.success("✅ Content saved!");
+    toast.success("Saved!");
     navigate("/admin/addPage");
   };
 
-  // Load saved components from backend
+  /* ----------------------------------------
+     LOAD EXISTING SAVED COMPONENTS
+  ----------------------------------------- */
   const loadSavedComponents = async () => {
     if (!editorRef.current) return;
     try {
@@ -108,31 +120,32 @@ const EditorAdd = () => {
         withCredentials: true,
       });
 
-      if (!res.data || res.data.length === 0) return;
-
       res.data.forEach((cmp) => {
         bm.add(cmp.name, {
           label: cmp.name,
-          category: cmp.category || "Custom Components",
+          category: cmp.category || "Custom",
           content: `
-            <div>${cmp.html || ""}</div>
-            <style>${cmp.css || ""}</style>
+            <div>${cmp.html}</div>
+            <style>${cmp.css}</style>
             ${cmp.js ? `<script>${cmp.js}</script>` : ""}
           `,
         });
       });
-
-      console.log(`✅ Loaded ${res.data.length} components`);
     } catch (err) {
-      console.error("❌ Failed to load components:", err);
+      console.error("Could not load components", err);
     }
   };
 
-  // Run JS from a JS block in the iframe preview
+  /* ----------------------------------------
+      RUN JS BLOCKS
+  ----------------------------------------- */
   const runJsBlock = (component) => {
+    if (!editorRef.current) return;
+
     if (component.attributes?.classes?.includes("js-block")) {
       const iframe = editorRef.current.Canvas.getFrameEl();
       const iframeDoc = iframe.contentDocument;
+
       const textarea = component.view.el.querySelector(".js-code");
       if (textarea) {
         const script = iframeDoc.createElement("script");
@@ -142,35 +155,38 @@ const EditorAdd = () => {
     }
   };
 
+  /* ----------------------------------------
+      RENDER
+  ----------------------------------------- */
   return (
     <div className="flex flex-col md:flex-row h-screen">
       <div className="flex-1 flex flex-col">
-        {/* Header */}
+        {/* HEADER */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border-b bg-white shadow gap-2">
           <h1 className="text-xl font-bold">Editor PRO</h1>
-          <div className="flex gap-2 w-full sm:w-auto">
+          <div className="flex gap-2">
             <button
               onClick={handleSaveAsComponent}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-full sm:w-auto"
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
               Save as Component
             </button>
             <button
               onClick={handleSaveContent}
-              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 w-full sm:w-auto"
+              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
             >
               Save Content
             </button>
           </div>
         </div>
 
-        {/* Editor */}
+        {/* EDITOR */}
         <div className="flex-1 min-h-0">
           <StudioEditor
             key={editorKey}
             options={{
               storageManager: { autoload: false, autosave: false },
-              initialHtml: "<div>Start editing...</div>",
+              initialHtml: "<div>Start editing your page...</div>",
               initialCss: "",
               style: { width: "100%", height: "100%" },
               plugins: [
@@ -189,10 +205,6 @@ const EditorAdd = () => {
                 dialogComponent.init(),
                 layoutSidebarButtons.init(),
               ],
-              cssManager: {
-                clearProperties: true,
-                sectors: [{ name: "Manual CSS", open: true, buildProps: [] }],
-              },
             }}
             onReady={(editor) => {
               editorRef.current = editor;
@@ -207,36 +219,82 @@ const EditorAdd = () => {
 
               const bm = editor.BlockManager;
 
-              // JS Block
+              /* ----------------------------------------
+                  DEFAULT BLOCKS
+              ----------------------------------------- */
               bm.add("custom-js-block", {
                 label: "Custom JS",
                 category: "Extra",
-                content: `<div class="js-block">
-                  <strong>JS Block - Click Edit Code</strong>
-                  <textarea class="js-code" style="width:100%;height:100px;">console.log('Hello from JS block');</textarea>
-                </div>`,
+                content: `
+                  <div class="js-block">
+                    <strong>JS Block</strong>
+                    <textarea class="js-code" style="width:100%;height:100px;">console.log('JS Block')</textarea>
+                  </div>`,
               });
 
-              // Other blocks
               bm.add("section", {
                 label: "Section",
-                content: `<section style="padding: 20px; border: 1px solid #ccc;">
-                  <h2>Section Title</h2>
-                  <p>Section content...</p>
-                </section>`,
+                content: `
+                  <section style="padding:20px;">
+                    <h2>Section Title</h2>
+                  </section>
+                `,
               });
+
               bm.add("text", {
                 label: "Text",
                 content:
                   '<div data-gjs-type="text">Insert your text here</div>',
               });
-              bm.add("image", { label: "Image", content: { type: "image" } });
-              bm.add("link", {
-                label: "Link",
-                content: '<a href="#">Insert link</a>',
+
+              bm.add("image", {
+                label: "Image",
+                content: { type: "image" },
               });
 
-              // Run JS when a JS block is added or updated
+              /* ----------------------------------------
+                  ⭐ DYNAMIC BLOG COMPONENTS
+              ----------------------------------------- */
+
+              // BLOG LIST
+              bm.add("blog-list", {
+                label: "Blog List",
+                category: "Dynamic",
+                content: `
+                  <div data-blog="list" style="padding:20px;border:1px dashed #bbb;">
+                    <h3>Blog List (Dynamic)</h3>
+                    <p>Blogs will load automatically...</p>
+                  </div>
+                `,
+              });
+
+              // FEATURED BLOG
+              bm.add("featured-blog", {
+                label: "Featured Blog",
+                category: "Dynamic",
+                content: `
+                  <div data-blog="featured" style="padding:20px;border:1px dashed #bbb;">
+                    <h3>Featured Blog</h3>
+                    <p>Latest blog loads automatically...</p>
+                  </div>
+                `,
+              });
+
+              // SINGLE BLOG READER
+              bm.add("single-blog", {
+                label: "Single Blog View",
+                category: "Dynamic",
+                content: `
+                  <div data-blog="single" style="padding:20px;border:1px dashed #bbb;">
+                    <h3>Blog Viewer</h3>
+                    <p>Full blog content loads based on URL...</p>
+                  </div>
+                `,
+              });
+
+              /* ----------------------------------------
+                  JS BLOCK EXECUTION
+              ----------------------------------------- */
               editor.on("component:add", runJsBlock);
               editor.on("component:update", runJsBlock);
             }}
@@ -248,6 +306,7 @@ const EditorAdd = () => {
 };
 
 export default EditorAdd;
+
 
 // import { useRef, useEffect, useContext } from "react";
 // import { useNavigate } from "react-router-dom";

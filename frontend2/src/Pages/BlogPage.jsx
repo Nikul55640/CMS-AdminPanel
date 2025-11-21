@@ -12,7 +12,7 @@ const BlogPage = () => {
 
   const API = "http://localhost:5000/api/blogs";
 
-  // Fetch all blogs from backend
+  // Fetch all blogs
   const fetchBlogs = async () => {
     setLoading(true);
     try {
@@ -34,8 +34,9 @@ const BlogPage = () => {
     try {
       await axios.delete(`${API}/${id}`);
       toast.success("Blog deleted successfully");
-      setBlogs((prev) => prev.filter((b) => b.id !== id));
-      setFiltered((prev) => prev.filter((b) => b.id !== id));
+
+      setBlogs((prev) => prev.filter((b) => b.id != id));
+      setFiltered((prev) => prev.filter((b) => b.id != id));
     } catch (err) {
       console.error("Failed to delete blog:", err);
       toast.error("Failed to delete blog.");
@@ -59,14 +60,15 @@ const BlogPage = () => {
   }, []);
 
   return (
-    <div className="max-w-5xl mx-auto mt-10  shadow-2xl rounded-2xl bg-white">
+    <div className="max-w-5xl mx-auto mt-10 shadow-2xl rounded-2xl bg-white">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-4 rounded-t-2xl text-white flex justify-center">
         <h1 className="text-3xl font-bold tracking-wide">Blog Management</h1>
       </div>
 
       {/* Toolbar */}
-      <div className="p-6 flex flex-col md:flex-row  items-center justify-between gap-4 border-b">
+      <div className="p-6 flex flex-col md:flex-row items-center justify-between gap-4 border-b">
+        {/* Search */}
         <div className="relative w-full md:w-1/2">
           <Search className="absolute top-3 left-3 text-gray-400" size={20} />
           <input
@@ -78,9 +80,9 @@ const BlogPage = () => {
           />
         </div>
 
-        {/* Unified Add/Edit Route */}
+        {/* Add Blog */}
         <Link
-          to="/admin/blog/new"
+          to="/admin/blog/add"
           className="bg-blue-600 flex items-center gap-2 text-white px-4 py-2 rounded-lg shadow-lg hover:scale-105 transition-transform"
         >
           <Plus size={20} /> Add Blog
@@ -99,11 +101,14 @@ const BlogPage = () => {
               key={blog.id}
               className="p-4 border rounded-lg hover:shadow-md transition flex flex-col md:flex-row justify-between items-start md:items-center"
             >
+              {/* Blog Info */}
               <div className="w-full md:w-auto">
                 <h2 className="text-xl font-semibold">{blog.title}</h2>
+
                 <p className="text-gray-600 text-sm mt-1 line-clamp-2">
                   {blog.description || "No description provided."}
                 </p>
+
                 <div className="flex flex-wrap gap-2 mt-2 text-sm text-gray-500">
                   <span className="capitalize bg-gray-100 px-2 py-0.5 rounded">
                     {blog.category || "Uncategorized"}
@@ -118,15 +123,17 @@ const BlogPage = () => {
                 </div>
               </div>
 
+              {/* Action Buttons */}
               <div className="flex gap-2 mt-3 md:mt-0">
-                {/* Unified Add/Edit link */}
+                {/* Edit */}
                 <Link
-                  to={`/admin/blog/${blog.id}`}
+                  to={`/admin/blog/edit/${blog.id}`}
                   className="bg-yellow-500 text-white px-3 py-2 rounded-lg hover:scale-105 transition"
                 >
                   <Edit2 size={18} />
                 </Link>
 
+                {/* Delete */}
                 <button
                   onClick={() => handleDelete(blog.id)}
                   className="bg-red-600 text-white px-3 py-2 rounded-lg hover:scale-105 transition"
@@ -134,6 +141,7 @@ const BlogPage = () => {
                   <Trash2 size={18} />
                 </button>
 
+                {/* View Public */}
                 <Link
                   to={`/admin/blog/view/${blog.slug}`}
                   className="bg-green-600 text-white px-3 py-2 rounded-lg hover:scale-105 transition"

@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import PublicBlogList from "./PublicBlogList"; // ⭐ Add this
 
 const PublicPage = () => {
   const { slug } = useParams();
@@ -10,7 +11,16 @@ const PublicPage = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const isPreview = urlParams.get("preview") === "1";
 
-  // Fetch page
+  /* -------------------------------------------
+    🟦 1. SPECIAL CASE → "blog" PAGE
+  ------------------------------------------- */
+  if (slug === "blog") {
+    return <PublicBlogList />; // ⭐ Show blog list instead of CMS HTML
+  }
+
+  /* -------------------------------------------
+    🟦 2. Fetch CMS Page
+  ------------------------------------------- */
   useEffect(() => {
     const fetchPage = async () => {
       try {
@@ -29,7 +39,9 @@ const PublicPage = () => {
     fetchPage();
   }, [slug, isPreview]);
 
-  // 🚀 Inject JS (MUST BE ABOVE ANY RETURN)
+  /* -------------------------------------------
+    🟦 3. Inject Javascript
+  ------------------------------------------- */
   useEffect(() => {
     if (!page?.js) return;
 
@@ -41,9 +53,11 @@ const PublicPage = () => {
     return () => {
       document.body.removeChild(script);
     };
-  }, [page]); // <-- Hook must be here before any "return"
+  }, [page]);
 
-  // Now returns are safe
+  /* -------------------------------------------
+    🟦 4. Loading
+  ------------------------------------------- */
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen text-xl">
@@ -52,6 +66,9 @@ const PublicPage = () => {
     );
   }
 
+  /* -------------------------------------------
+    🟦 5. Not Found
+  ------------------------------------------- */
   if (!page) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center">
@@ -74,6 +91,9 @@ const PublicPage = () => {
     );
   }
 
+  /* -------------------------------------------
+    🟦 6. Render normal CMS page
+  ------------------------------------------- */
   return (
     <div className="flex flex-col min-h-screen">
       <main className="flex-grow p-4 bg-white rounded shadow min-h-[500px]">

@@ -1,0 +1,283 @@
+FRONTEND STRUCTURE - frontend2/
+================================
+
+frontend2/
+├── .gitignore
+├── components.json
+├── vite.config.js
+├── README.md
+├── package.json
+├── package-lock.json
+├── jsconfig.json
+├── jsconfig.app.json
+├── index.html
+├── public/
+│   ├── vite.svg
+│   └── cms.png
+└── src/
+    ├── App.jsx
+    ├── App.css
+    ├── main.jsx
+    ├── index.css
+    ├── assets/
+    │   ├── react.svg
+    │   └── cms.png
+    ├── styles/
+    │   ├── _variables.scss
+    │   └── _keyframe-animations.scss
+    ├── lib/
+    │   ├── utils.js
+    │   ├── uploadthing.js
+    │   ├── tiptap-utils.js
+    │   └── markdown-joiner-transform.js
+    ├── app/
+    │   └── api/
+    │       ├── uploadthing/
+    │       │   └── route.js
+    │       └── ai/
+    │           ├── copilot/
+    │           │   └── route.js
+    │           └── command/
+    │               ├── route.js
+    │               ├── utils.js
+    │               └── prompts.js
+    ├── context/
+    │   └── CmsContext.jsx
+    ├── hooks/
+    │   ├── use-window-size.js
+    │   ├── use-unmount.js
+    │   ├── use-tiptap-editor.js
+    │   ├── use-throttled-callback.js
+    │   ├── use-scrolling.js
+    │   ├── use-mobile.js
+    │   ├── use-menu-navigation.js
+    │   ├── use-element-rect.js
+    │   ├── use-cursor-visibility.js
+    │   └── use-composed-ref.js
+    ├── Pages/
+    │   ├── AddBlog_clean.jsx
+    │   ├── AddBlog.jsx
+    │   ├── BlogPage.jsx
+    │   ├── AdminSettings.jsx
+    │   ├── AddPageForm.jsx
+    │   ├── PageManager.jsx
+    │   ├── Navbarmenu.jsx
+    │   ├── Login.jsx
+    │   ├── Footermenu.jsx
+    │   ├── Editorpage.jsx
+    │   ├── EditorAdd.jsx
+    │   ├── Dashboard.jsx
+    │   └── Components.jsx
+    ├── componentsPublic/
+    │   └── PublicPage.jsx
+    └── components/
+        ├── NAVBAR_IMPROVEMENTS.md
+        ├── Navbarpages.jsx
+        ├── Navbar.jsx
+        ├── Footerpages.jsx
+        ├── Navbarmanager/
+        │   ├── MenuTreeUtils.jsx
+        │   ├── Navmenuform.jsx
+        │   ├── MenustyleChanger.jsx
+        │   ├── CustomContentDialog.jsx
+        │   ├── ActiveMenuSelector.jsx
+        │   └── DND/
+        │       ├── SortableItem.jsx
+        │       └── DnDContainer.jsx
+        ├── Blogpage/
+        │   ├── ViewBlog.jsx
+        │   ├── SeoPreview.jsx
+        │   └── RichTextEditor.jsx
+        ├── tiptap-templates/
+        │   └── simple/
+        │       ├── theme-toggle.jsx
+        │       ├── simple-editor.scss
+        │       ├── simple-editor.jsx
+        │       └── data/
+        │           └── content.json
+        ├── tiptap-node/
+        │   ├── image-upload-node/
+        │   │   ├── index.jsx
+        │   │   ├── image-upload-node.jsx
+        │   │   ├── image-upload-node.scss
+        │   │   └── image-upload-node-extension.js
+        │   ├── paragraph-node/
+        │   │   └── paragraph-node.scss
+        │   ├── list-node/
+        │   │   └── list-node.scss
+        │   ├── horizontal-rule-node/
+        │   │   ├── horizontal-rule-node.scss
+        │   │   └── horizontal-rule-node-extension.js
+        │   ├── image-node/
+        │   │   └── image-node.scss
+        │   ├── code-block-node/
+        │   │   └── code-block-node.scss
+        │   ├── heading-node/
+        │   │   └── heading-node.scss
+        │   └── blockquote-node/
+        │       └── blockquote-node.scss
+        ├── tiptap-ui/
+        │   ├── text-align-button/
+        │   │   ├── use-text-align.js
+        │   │   ├── text-align-button.jsx
+        │   │   └── index.jsx
+        │   ├── mark-button/
+        │   │   ├── use-mark.js
+        │   │   ├── mark-button.jsx
+        │   │   └── index.jsx
+        │   ├── undo-redo-button/
+        │   │   ├── use-undo-redo.js
+        │   │   ├── undo-redo-button.jsx
+        │   │   └── index.jsx
+        │   ├── list-dropdown-menu/
+        │   │   ├── use-list-dropdown-menu.js
+        │   │   ├── list-dropdown-menu.jsx
+        │   │   └── index.jsx
+        │   ├── list-button/
+        │   │   ├── use-list.js
+        │   │   ├── list-button.jsx
+        │   │   └── index.jsx
+        │   ├── link-popover/
+        │   │   ├── use-link-popover.js
+        │   │   ├── link-popover.jsx
+        │   │   └── index.jsx
+        │   ├── heading-button/
+        │   │   ├── use-heading.js
+        │   │   ├── index.jsx
+        │   │   └── heading-button.jsx
+        │   ├── image-upload-button/
+        │   │   ├── use-image-upload.js
+        │   │   ├── index.jsx
+        │   │   └── image-upload-button.jsx
+        │   ├── color-highlight-popover/
+        │   │   ├── index.jsx
+        │   │   └── color-highlight-popover.jsx
+        │   ├── color-highlight-button/
+        │   │   ├── use-color-highlight.js
+        │   │   ├── index.jsx
+        │   │   ├── color-highlight-button.scss
+        │   │   └── color-highlight-button.jsx
+        │   ├── heading-dropdown-menu/
+        │   │   ├── use-heading-dropdown-menu.js
+        │   │   ├── index.jsx
+        │   │   └── heading-dropdown-menu.jsx
+        │   ├── code-block-button/
+        │   │   ├── use-code-block.js
+        │   │   ├── index.jsx
+        │   │   └── code-block-button.jsx
+        │   └── blockquote-button/
+        │       ├── index.jsx
+        │       ├── blockquote-button.jsx
+        │       └── use-blockquote.js
+        ├── tiptap-ui-primitive/
+        │   ├── toolbar/
+        │   │   ├── toolbar.scss
+        │   │   ├── toolbar.jsx
+        │   │   └── index.jsx
+        │   ├── tooltip/
+        │   │   ├── tooltip.scss
+        │   │   ├── tooltip.jsx
+        │   │   └── index.jsx
+        │   ├── separator/
+        │   │   ├── separator.scss
+        │   │   ├── separator.jsx
+        │   │   └── index.jsx
+        │   ├── popover/
+        │   │   ├── popover.scss
+        │   │   ├── popover.jsx
+        │   │   └── index.jsx
+        │   ├── button/
+        │   │   ├── button.scss
+        │   │   ├── button.jsx
+        │   │   ├── button-group.scss
+        │   │   ├── button-colors.scss
+        │   │   └── index.jsx
+        │   ├── card/
+        │   │   ├── card.scss
+        │   │   ├── card.jsx
+        │   │   └── index.jsx
+        │   ├── badge/
+        │   │   ├── badge.scss
+        │   │   ├── badge.jsx
+        │   │   ├── badge-group.scss
+        │   │   ├── badge-colors.scss
+        │   │   └── index.jsx
+        │   ├── input/
+        │   │   ├── input.scss
+        │   │   ├── input.jsx
+        │   │   └── index.jsx
+        │   ├── dropdown-menu/
+        │   │   ├── dropdown-menu.jsx
+        │   │   ├── dropdown-menu.scss
+        │   │   └── index.jsx
+        │   └── spacer/
+        │       ├── spacer.jsx
+        │       └── index.jsx
+        ├── tiptap-icons/
+        │   ├── code-block-icon.jsx
+        │   ├── code2-icon.jsx
+        │   ├── close-icon.jsx
+        │   ├── chevron-down-icon.jsx
+        │   ├── bold-icon.jsx
+        │   ├── blockquote-icon.jsx
+        │   ├── ban-icon.jsx
+        │   ├── arrow-left-icon.jsx
+        │   ├── align-right-icon.jsx
+        │   ├── align-left-icon.jsx
+        │   ├── align-justify-icon.jsx
+        │   ├── align-center-icon.jsx
+        │   ├── undo2-icon.jsx
+        │   ├── underline-icon.jsx
+        │   ├── trash-icon.jsx
+        │   ├── superscript-icon.jsx
+        │   ├── sun-icon.jsx
+        │   ├── subscript-icon.jsx
+        │   ├── strike-icon.jsx
+        │   ├── redo2-icon.jsx
+        │   ├── moon-star-icon.jsx
+        │   ├── list-todo-icon.jsx
+        │   ├── list-ordered-icon.jsx
+        │   ├── list-icon.jsx
+        │   ├── link-icon.jsx
+        │   ├── italic-icon.jsx
+        │   ├── image-plus-icon.jsx
+        │   ├── highlighter-icon.jsx
+        │   ├── heading-two-icon.jsx
+        │   ├── heading-three-icon.jsx
+        │   ├── heading-six-icon.jsx
+        │   ├── heading-one-icon.jsx
+        │   ├── heading-icon.jsx
+        │   ├── heading-four-icon.jsx
+        │   ├── heading-five-icon.jsx
+        │   ├── external-link-icon.jsx
+        │   └── corner-down-left-icon.jsx
+        └── ui/
+            ├── textarea.jsx
+            ├── separator.jsx
+            ├── select.jsx
+            ├── popover.jsx
+            ├── navigation-menu.jsx
+            ├── label.jsx
+            ├── input.jsx
+            ├── checkbox.jsx
+            ├── calendar.jsx
+            ├── button.jsx
+            ├── badge.jsx
+            └── card.jsx
+
+SUMMARY
+=======
+Total top-level files: 9
+Total directories: 13 (main src/ subdirs)
+Total component subdirectories: 30+
+Total files in frontend: ~204 files across all directories
+
+KEY DIRECTORIES:
+- src/Pages/ : Main admin page components (Dashboard, AddBlog, Editor, etc.)
+- src/components/ : Reusable React components and UI elements
+- src/components/tiptap-* : Rich text editor (Tiptap) infrastructure
+- src/hooks/ : Custom React hooks
+- src/lib/ : Utility libraries and helpers
+- src/context/ : React Context API providers (CmsContext)
+- src/app/api/ : API routes and handlers
+- src/styles/ : Global SCSS variables and animations
