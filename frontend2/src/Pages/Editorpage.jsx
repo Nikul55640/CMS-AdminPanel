@@ -366,8 +366,6 @@
 // export default EditorPage;
 // 
 
-
-
 import { useContext, useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import CmsContext from "../context/CmsContext";
@@ -385,6 +383,22 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+
+// OPTIONAL: if you also want the same plugins like EditorAdd
+import {
+  layoutSidebarButtons,
+  dialogComponent,
+  tableComponent,
+  listPagesComponent,
+  lightGalleryComponent,
+  swiperComponent,
+  iconifyComponent,
+  accordionComponent,
+  animationComponent,
+  rteTinyMce,
+  canvasGridMode,
+  googleFontsAssetProvider,
+} from "@grapesjs/studio-sdk-plugins";
 
 const EditorPage = () => {
   const { slug } = useParams();
@@ -413,55 +427,122 @@ const EditorPage = () => {
   const [cssContent, setCssContent] = useState(page?.css || "");
   const [jsContent, setJsContent] = useState(page?.js || "");
 
+  // 🔁 guard flags to avoid infinite loops
+  const updatingFromCodeRef = useRef(false);
+
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const LoadSavedComponents = async () => {
-    if (!editorRef.current) return;   
+  // Load saved components (same pattern as EditorAdd)
+  const loadSavedComponents = async () => {
+    if (!editorRef.current) return;
 
     try {
       const res = await axios.get("http://localhost:5000/api/components", {
         withCredentials: true,
       });
       const bm = editorRef.current.BlockManager;
+
       res.data.forEach((cmp) => {
         bm.add(cmp.name, {
           label: cmp.name,
           category: cmp.category || "Saved Components",
-          content: `<div>${cmp.html}</div><style>${cmp.css}</style>`,
+          content: `
+            <div>${cmp.html || ""}</div>
+            <style>${cmp.css || ""}</style>
+            ${cmp.js ? `<script>${cmp.js}</script>` : ""}
+          `,
         });
       });
     } catch (err) {
-      console.error("❌ Failed to fetch saved components", err.response || err.message);
+      console.error(
+        "❌ Failed to fetch saved components",
+        err.response || err.message
+      );
     }
-  };  
+  };
 
   /* ------------------------
-     LIVE UPDATE CONTENT
+     TEXTAREA → EDITOR SYNC
+  ------------------------- */
+
+  // HTML -> GrapesJS
+  useEffect(() => {
+    if (!editorRef.current) return;
+    if (!updatingFromCodeRef.current) return; // only when user changes textarea
+
+    const editor = editorRef.current;
+
+    editor.DomComponents.clear();
+    editor.setComponents(htmlContent || "<div></div>");
+
+    // after applying to editor, reset flag
+    updatingFromCodeRef.current = false;
+  }, [htmlContent]);
+
+  // CSS -> GrapesJS
+  useEffect(() => {
+    if (!editorRef.current) return;
+    if (!updatingFromCodeRef.current) return;
+
+    const editor = editorRef.current;
+    editor.CssComposer.clear();
+    editor.setStyle(cssContent || "");
+
+    updatingFromCodeRef.current = false;
+  }, [cssContent]);
+
+  /* ------------------------
+     JS → Canvas iframe
   ------------------------- */
   useEffect(() => {
     if (!editorRef.current) return;
     const editor = editorRef.current;
+    const frame = editor.Canvas.getFrameEl();
+    if (!frame) return;
 
-    const finalHTML = `
-      ${htmlContent}
-      <script>
-        (function runUniversal(){
-          if(document.readyState === "loading"){
-            document.addEventListener("DOMContentLoaded", function(){ 
-              try { ${jsContent} } catch(e){ console.error(e); }
-            });
-          } else { 
-            try { ${jsContent} } catch(e){ console.error(e); }
-          }
-        })();
-      </script>
+    const iframeDoc = frame.contentDocument || frame.contentWindow?.document;
+    if (!iframeDoc) return;
+
+    // remove previous custom script
+    iframeDoc
+      .querySelectorAll("script[data-custom-js]")
+      .forEach((s) => s.remove());
+
+    if (!jsContent.trim()) return;
+
+    const script = iframeDoc.createElement("script");
+    script.dataset.customJs = "true";
+    script.innerHTML = `
+      try {
+        ${jsContent}
+      } catch (e) {
+        console.error("Custom JS error:", e);
+      }
     `;
+    iframeDoc.body.appendChild(script);
+  }, [jsContent]);
 
-    editor.setComponents(finalHTML);
-    editor.setStyle(cssContent);
-  }, [htmlContent, cssContent, jsContent]);
+  /* ------------------------
+     EDITOR → TEXTAREA SYNC
+  ------------------------- */
+  const attachEditorSyncEvents = (editor) => {
+    const syncFromEditor = () => {
+      // here change comes from editor, so DO NOT set updatingFromCodeRef
+      const newHtml = editor.getHtml();
+      const newCss = editor.getCss();
+
+      setHtmlContent(newHtml);
+      setCssContent(newCss);
+    };
+
+    editor.on("component:add", syncFromEditor);
+    editor.on("component:update", syncFromEditor);
+    editor.on("component:remove", syncFromEditor);
+    editor.on("style:change", syncFromEditor);
+    editor.on("load", syncFromEditor);
+  };
 
   /* ------------------------
      FIX: RESIZE EDITOR WHEN PANEL EXPANDS
@@ -499,6 +580,7 @@ const EditorPage = () => {
       toast.success("Page saved successfully!");
       navigate("/admin/pages");
     } catch (error) {
+      console.error(error);
       toast.error("Save failed!");
     } finally {
       setIsSaving(false);
@@ -517,11 +599,9 @@ const EditorPage = () => {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      
       {/* TOP NAVBAR */}
       <header className="bg-white shadow-sm border-b sticky top-0 z-20">
         <div className="flex items-center justify-between px-5 py-3">
-
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/admin/pages")}
@@ -554,18 +634,17 @@ const EditorPage = () => {
         </div>
       </header>
 
-      {/* MAIN EDITOR (FULL HEIGHT FIXED) */}
+      {/* MAIN EDITOR */}
       <div
         className="overflow-hidden transition-all"
         style={{
-          height: codePanelExpanded
-            ? "55vh"
-            : "calc(120vh - 70px)", // full height if collapsed
+          height: codePanelExpanded ? "55vh" : "calc(120vh - 70px)",
         }}
       >
         <StudioEditor
           key={slug}
           options={{
+            storageManager: { autoload: false, autosave: false },
             initialHtml: page?.html || "<div>Start editing...</div>",
             initialCss: page?.css || "",
             allowScripts: true,
@@ -576,23 +655,42 @@ const EditorPage = () => {
               ],
             },
             style: { height: "100%", width: "100%" },
+            plugins: [
+              googleFontsAssetProvider.init({
+                apiKey: "GOOGLE_FONTS_API_KEY",
+              }),
+              canvasGridMode?.init({ styleableGrid: true }),
+              rteTinyMce.init({ enableOnClick: true }),
+              animationComponent.init(),
+              accordionComponent.init(),
+              iconifyComponent.init(),
+              swiperComponent?.init({ block: true }),
+              lightGalleryComponent?.init({ block: true }),
+              listPagesComponent?.init(),
+              tableComponent.init(),
+              dialogComponent.init(),
+              layoutSidebarButtons.init(),
+            ],
           }}
           onReady={(editor) => {
             editorRef.current = editor;
+
+            // clear and load current page content
             editor.DomComponents.clear();
             editor.CssComposer.clear();
-            editor.setComponents(page?.html || "<div>Start editing...</div>");
-            editor.setStyle(page?.css || "");
-            LoadSavedComponents();
-            setTimeout(() => editor.refresh(), 50);
+            editor.setComponents(htmlContent || "<div>Start editing...</div>");
+            editor.setStyle(cssContent || "");
 
+            loadSavedComponents();
+            attachEditorSyncEvents(editor);
+
+            setTimeout(() => editor.refresh(), 50);
           }}
         />
       </div>
 
       {/* BOTTOM PANEL */}
       <div className="bg-white border-t shadow-inner flex flex-col">
-
         {/* COLLAPSE HEADER */}
         <div
           className="flex justify-between items-center px-5 py-3 bg-gray-50 border-b cursor-pointer hover:bg-gray-100"
@@ -610,13 +708,16 @@ const EditorPage = () => {
             </div>
           </div>
 
-          {codePanelExpanded ? <ChevronDown size={22} /> : <ChevronUp size={22} />}
+          {codePanelExpanded ? (
+            <ChevronDown size={22} />
+          ) : (
+            <ChevronUp size={22} />
+          )}
         </div>
 
         {/* CONTENT */}
         {codePanelExpanded && (
           <div className="max-h-[40vh] overflow-auto">
-
             {/* TABS */}
             <div className="flex gap-1 bg-gray-50 border-b px-3 sticky top-0">
               {[
@@ -642,13 +743,15 @@ const EditorPage = () => {
 
             {/* TAB CONTENT */}
             <div className="p-5">
-
               {/* HTML */}
               {expandedSection === "html" && (
                 <textarea
                   className="w-full h-48 border p-3 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500"
                   value={htmlContent}
-                  onChange={(e) => setHtmlContent(e.target.value)}
+                  onChange={(e) => {
+                    updatingFromCodeRef.current = true;
+                    setHtmlContent(e.target.value);
+                  }}
                 />
               )}
 
@@ -657,7 +760,10 @@ const EditorPage = () => {
                 <textarea
                   className="w-full h-48 border p-3 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500"
                   value={cssContent}
-                  onChange={(e) => setCssContent(e.target.value)}
+                  onChange={(e) => {
+                    updatingFromCodeRef.current = true;
+                    setCssContent(e.target.value);
+                  }}
                 />
               )}
 
@@ -677,7 +783,9 @@ const EditorPage = () => {
                     className="p-3 border rounded-lg"
                     placeholder="Title"
                     value={formData.title}
-                    onChange={(e) => handleChange("title", e.target.value)}
+                    onChange={(e) =>
+                      handleChange("title", e.target.value)
+                    }
                   />
 
                   <input
@@ -692,21 +800,27 @@ const EditorPage = () => {
                     placeholder="Description"
                     rows={2}
                     value={formData.description}
-                    onChange={(e) => handleChange("description", e.target.value)}
+                    onChange={(e) =>
+                      handleChange("description", e.target.value)
+                    }
                   />
 
                   <input
                     className="p-3 border rounded-lg"
                     placeholder="Meta Title"
                     value={formData.metaTitle}
-                    onChange={(e) => handleChange("metaTitle", e.target.value)}
+                    onChange={(e) =>
+                      handleChange("metaTitle", e.target.value)
+                    }
                   />
 
                   <input
                     className="p-3 border rounded-lg"
                     placeholder="Keywords"
                     value={formData.keywords}
-                    onChange={(e) => handleChange("keywords", e.target.value)}
+                    onChange={(e) =>
+                      handleChange("keywords", e.target.value)
+                    }
                   />
 
                   <textarea
@@ -722,14 +836,15 @@ const EditorPage = () => {
                   <select
                     className="p-3 border rounded-lg"
                     value={formData.status}
-                    onChange={(e) => handleChange("status", e.target.value)}
+                    onChange={(e) =>
+                      handleChange("status", e.target.value)
+                    }
                   >
                     <option value="draft">Draft</option>
                     <option value="published">Published</option>
                   </select>
                 </div>
               )}
-
             </div>
           </div>
         )}

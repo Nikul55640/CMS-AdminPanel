@@ -9,6 +9,7 @@ import pageRouter from "./routes/page.routes.js";
 import menuRouter from "./routes/menu.routes.js";
 import componentRouter from "./routes/component.routes.js";
 import blogRouter from "./routes/blog.routes.js";
+import settingsRouter from "./routes/settings.routes.js";
 import { ApiError } from "./utils/ApiHelpers.js";
 
 dotenv.config();
@@ -42,6 +43,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/pages", pageRouter);
 app.use("/api/menus", menuRouter);
 app.use("/api/components", componentRouter);
+app.use("/api/settings", settingsRouter);
 
 // ------------------- 404 Handler -------------------
 app.use((req, res, next) => {

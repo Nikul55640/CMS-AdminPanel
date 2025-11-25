@@ -1,16 +1,25 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Plus, Trash2, Edit2, Search, Loader2, Eye } from "lucide-react";
+import { Plus, Trash2, Edit2, Search, Loader2, Eye, Palette } from "lucide-react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
+
+const THEMES = {
+  light: { name: "Light" },
+  dark: { name: "Dark" },
+  blue: { name: "Ocean" },
+  purple: { name: "Purple" },
+};
 
 const BlogPage = () => {
   const [blogs, setBlogs] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [theme, setTheme] = useState("light");
 
   const API = "http://localhost:5000/api/blogs";
+  const SETTINGS_API = "http://localhost:5000/api/settings";
 
   // Fetch all blogs
   const fetchBlogs = async () => {
@@ -43,6 +52,18 @@ const BlogPage = () => {
     }
   };
 
+  // Update theme
+  const handleThemeChange = async (newTheme) => {
+    try {
+      await axios.post(`${SETTINGS_API}/theme`, { value: newTheme });
+      setTheme(newTheme);
+      toast.success(`Theme changed to ${THEMES[newTheme].name}`);
+    } catch (err) {
+      console.error("Failed to update theme:", err);
+      toast.error("Failed to update theme.");
+    }
+  };
+
   // Search filter
   useEffect(() => {
     if (!search.trim()) {
@@ -57,13 +78,37 @@ const BlogPage = () => {
 
   useEffect(() => {
     fetchBlogs();
+    // Load current theme from backend
+    axios
+      .get(`${SETTINGS_API}/theme`)
+      .then((res) => {
+        const themeValue = res.data.theme || "light";
+        setTheme(themeValue);
+      })
+      .catch(() => setTheme("light"));
   }, []);
 
   return (
     <div className="max-w-5xl mx-auto mt-10 shadow-2xl rounded-2xl bg-white">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-4 rounded-t-2xl text-white flex justify-center">
+      <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-4 rounded-t-2xl text-white flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-wide">Blog Management</h1>
+        
+        {/* Theme Selector */}
+        <div className="flex items-center gap-2 bg-white/20 px-3 py-2 rounded-lg">
+          <Palette size={18} />
+          <select
+            value={theme}
+            onChange={(e) => handleThemeChange(e.target.value)}
+            className="bg-transparent text-white font-medium text-sm focus:outline-none cursor-pointer"
+          >
+            {Object.entries(THEMES).map(([key, value]) => (
+              <option key={key} value={key} className="bg-gray-900 text-white">
+                {value.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Toolbar */}

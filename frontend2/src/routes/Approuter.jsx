@@ -74,19 +74,19 @@ function AppRouter() {
       />
 
       {/* Blog */}
-      {/* <Route
+       <Route
         path="/admin/blog"
         element={
           <ProtectedRoute>
             <AdminLayout>
               <BlogPage />
-            </AdminLayout> */}
-          {/* </ProtectedRoute>
+            </AdminLayout> 
+          </ProtectedRoute>
         }
       />
 
       {/* Add Blog */}
-      {/* <Route
+       <Route
         path="/admin/blog/add"
         element={
           <ProtectedRoute>
@@ -95,10 +95,10 @@ function AppRouter() {
             </AdminLayout>
           </ProtectedRoute>
         }
-      /> */} 
+      /> 
 
       {/* Edit Blog */}
-      {/* <Route
+       <Route
         path="/admin/blog/edit/:id"
         element={
           <ProtectedRoute>
@@ -118,60 +118,10 @@ function AppRouter() {
             </AdminLayout>
           </ProtectedRoute>
         }
-      /> */}
+      />
 
   {/* Blog */}
-      <Route
-        path="/admin/blog"
-        element={
-          <ProtectedRoute>
-            <AdminLayout>
-              <BlogPage />
-            </AdminLayout>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Add Blog */}
-      <Route
-        path="/admin/blog/add"
-        element={
-          <ProtectedRoute>
-            <AdminLayout>
-              <BlogEditor />
-            </AdminLayout>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Edit Blog */}
-      <Route
-        path="/admin/blog/edit/:id"
-        element={
-          <ProtectedRoute>
-            <AdminLayout>
-              <BlogEditor/>
-            </AdminLayout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/admin/blog/view/:slug"
-        element={
-          <ProtectedRoute>
-            <AdminLayout>
-              <ViewBlog />
-            </AdminLayout>
-          </ProtectedRoute>
-        }
-      />
-<Route path="/admin/blog" element={<AdminLayout><BlogPage /></AdminLayout>} />
-
-<Route path="/admin/blog/add" element={<AdminLayout><BlogEditor /></AdminLayout>} />
-
-<Route path="/admin/blog/edit/:id" element={<AdminLayout><BlogEditor /></AdminLayout>} />
-<Route path="/admin/blog/view/:slug" element={<AdminLayout><ViewBlog /></AdminLayout>} />
+    
 
       {/* Menus */}
       <Route

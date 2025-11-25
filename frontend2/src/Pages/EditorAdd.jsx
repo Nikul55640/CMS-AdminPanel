@@ -179,7 +179,6 @@ const EditorAdd = () => {
             </button>
           </div>
         </div>
-
         {/* EDITOR */}
         <div className="flex-1 min-h-0">
           <StudioEditor
@@ -218,10 +217,6 @@ const EditorAdd = () => {
               loadSavedComponents();
 
               const bm = editor.BlockManager;
-
-              /* ----------------------------------------
-                  DEFAULT BLOCKS
-              ----------------------------------------- */
               bm.add("custom-js-block", {
                 label: "Custom JS",
                 category: "Extra",
