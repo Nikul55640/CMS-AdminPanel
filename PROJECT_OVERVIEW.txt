@@ -1,0 +1,97 @@
+Project: CMS-AdminPanel
+Location: workspace root
+
+High-level Overview
+- Project Type: A Content Management System (CMS) with a Node.js + Express backend and a React frontend (Vite).
+- Repo Layout: Two main folders: `backend2/` (server API) and `frontend2/` (React admin + public app).
+- Purpose: Provide an admin interface to manage pages, menus, components, blog posts, settings and custom content; expose API endpoints for admin and public usage.
+
+Backend (summary)
+- Entry & Config
+  - `backend2/index.js` — Express app entrypoint (starts server, mounts routes, middleware).
+  - `backend2/config/config.json` and `backend2/conf/env.js` — DB and environment configuration.
+- Database
+  - `backend2/db/sequelize.js` and `backend2/db/index.js` — Sequelize initialization and connection helpers.
+  - `backend2/migrations/` — database schema migrations (blog, menus, customcontents, etc.).
+  - `backend2/seeders/` and `backend2/seed.js` / `sync-db.js` — seeding scripts to pre-populate data.
+- Models
+  - `backend2/models/` — Sequelize models: `user.model.js`, `menu.model.js`, `page.model.js`, `blog.model.js`, `component.model.js`, `settings.model.js`, `custommenu.model.js`.
+- Controllers & Routes
+  - `backend2/controllers/` — controllers that implement business logic and CRUD for each resource.
+  - `backend2/routes/` — Express route files that wire HTTP endpoints to controllers (auth, blog, content, menu, page, settings, component).
+- Middleware & Utilities
+  - `backend2/middleware/auth.middleware.js` — authentication/authorization checks.
+  - `backend2/middleware/upload.js` — file upload handling.
+  - `backend2/utils/ApiHelpers.js` — helpers for API responses and error handling.
+- How it runs (typical flow)
+  - Frontend sends HTTP requests to backend API routes.
+  - Controllers interact with Sequelize models to read/write DB.
+  - Middleware handles auth, uploads and request validation.
+  - Migrations manage schema changes; seeders populate initial data.
+
+Frontend (summary)
+- Project Type: React app built with Vite, located in `frontend2/`.
+- Entrypoint
+  - `frontend2/src/main.jsx` and `frontend2/src/App.jsx` — bootstrap the app and routes.
+- Pages & Routing
+  - `frontend2/src/Pages/` — admin pages and public pages. Example files: `AddBlog.jsx`, `Footermenu.jsx` (edit footer menus), other admin pages.
+- Components
+  - `frontend2/src/components/` — UI components: `Navbar.jsx`, `ImageUploader.jsx`, tiptap editor related components.
+  - `frontend2/src/componentsPublic/` — public components like `Footerpages.jsx`, `Navbarpages.jsx`, `PublicBlogList.jsx`, `PublicPage.jsx`.
+- State & Context
+  - `frontend2/src/context/CmsContext.jsx` — central app context (auth, settings, API base URL).
+- Hooks & Utilities
+  - `frontend2/src/hooks/` — custom hooks for UI/behavior.
+  - `frontend2/src/lib/` — utility modules (e.g., `tiptap-utils.js`, `uploadthing.js`, `utils.js`).
+- How it works (typical flow)
+  - Admin logs in via `auth` endpoints.
+  - Admin pages use API endpoints for CRUD operations on content, menus, blogs, pages, and settings.
+  - Rich text editing uses tiptap integrations.
+  - Image uploads use either backend upload endpoints or utilities in `src/lib/`.
+
+Key Files and Their Roles
+- `backend2/index.js`: server bootstrap, mounts routes and middleware.
+- `backend2/controllers/*.controller.js`: implement API logic for resources.
+- `backend2/models/*.model.js`: Sequelize model definitions and associations.
+- `backend2/migrations/*.js`: database schema changes tracked over time.
+- `frontend2/src/Pages/Footermenu.jsx`: admin UI for creating/editing footer menus (your current file).
+- `frontend2/src/context/CmsContext.jsx`: global context provider for auth and app settings.
+- `frontend2/src/components/ImageUploader.jsx`: UI to upload images used in pages/blogs/components.
+
+How to run (typical steps)
+- Backend (from `backend2/`):
+  - Inspect `backend2/package.json` for scripts.
+  - Install deps and run migrations/seeders:
+
+    npm install
+    # run migrations (may use sequelize CLI or package script)
+    # run seed script if available
+    node index.js  # or `npm start` depending on scripts
+
+  - Ensure environment variables for DB, JWT secret and port are set (check `conf/env.js` or `config/config.json`).
+
+- Frontend (from `frontend2/`):
+  - Install deps and run Vite dev server:
+
+    npm install
+    npm run dev
+
+  - Confirm the frontend's API base URL is configured in `CmsContext.jsx` or env variables and that CORS is allowed on the backend.
+
+Common places to inspect for integration
+- API base URL: `frontend2/src/context/CmsContext.jsx` or environment files.
+- DB credentials: `backend2/config/config.json` or `backend2/conf/env.js`.
+- Upload destination: `backend2/middleware/upload.js` and `frontend2/src/lib/uploadthing.js`.
+
+Suggested Improvements
+- Add a top-level `README.md` with quick start instructions (both backend and frontend).
+- Add `dev:all` script to run frontend + backend together (e.g., with `concurrently`).
+- Document migrations/seeders and make seeding idempotent.
+- Add basic tests for critical controllers and a smoke test for the React app.
+
+Next steps I can take (tell me which):
+- Create a `README.md` with exact commands and env examples.
+- Explain any specific file in detail (e.g., `Footermenu.jsx`, `menu.controller.js`).
+- Run a quick check of `package.json` files to list exact scripts and dependencies.
+
+File created: `PROJECT_OVERVIEW.txt` in workspace root.
