@@ -1,31 +1,55 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 
-// ✅ ensure uploads folder exists
-const uploadDir = "uploads";
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// ✅ multer configuration
+const uploadDir = path.join(__dirname, "../uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Storage engine
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
+    const uniqueName = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(
+      null,
+      file.fieldname + "-" + uniqueName + path.extname(file.originalname)
+    );
   },
 });
 
+// Allowed MIME types
 const fileFilter = (req, file, cb) => {
-  const allowed = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
-  if (allowed.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    console.warn("⚠️ Invalid file type:", file.mimetype);
-    cb(new Error("Invalid file type. Only JPEG, PNG, and WEBP allowed."));
-  }
+  const allowed = [
+    "image/jpeg",
+    "image/png",
+    "image/jpg",
+    "image/webp",
+    "video/mp4",
+    "video/webm",
+    "video/ogg",
+  ];
+
+  if (allowed.includes(file.mimetype)) return cb(null, true);
+  return cb(new Error("Invalid file type"));
 };
 
-export const upload = multer({ storage, fileFilter });
+// Max upload size: 100MB
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100 MB
+  },
+});
+
+// 👉 EXPORT BOTH WAYS ✔
+export { upload };
+export default upload;

@@ -1468,3 +1468,513 @@ export default SortableItem;
   //       />
   //     </div>
   //      
+
+
+  // src/components/ImageCropUploader.jsx
+import React, { useState, useRef } from "react";
+import ReactCrop from "react-image-crop";
+import 'react-image-crop/dist/ReactCrop.css';
+import imageCompression from "browser-image-compression";
+import {
+  Upload,
+  X,
+  RotateCw,
+  FlipHorizontal,
+  FlipVertical,
+  Download,
+} from "lucide-react";
+
+const API_UPLOAD = "http://localhost:5000/api/blogs/upload";
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const ACCEPTED_FORMATS = ["image/jpeg", "image/png", "image/webp"];
+
+const ImageCropUploader = ({ value, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [imageSrc, setImageSrc] = useState(null);
+  const [crop, setCrop] = useState({
+    unit: "%",
+    width: 50,
+    aspect: 16 / 9,
+  });
+  const [completedCrop, setCompletedCrop] = useState(null);
+
+  const [rotation, setRotation] = useState(0);
+  const [flipX, setFlipX] = useState(false);
+  const [flipY, setFlipY] = useState(false);
+
+  const [brightness, setBrightness] = useState(100);
+  const [contrast, setContrast] = useState(100);
+  const [saturation, setSaturation] = useState(100);
+
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+
+  const imgRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  const validateFile = (file) => {
+    if (!file) {
+      setError("No file selected");
+      return false;
+    }
+    if (!ACCEPTED_FORMATS.includes(file.type)) {
+      setError("Invalid format. Accept: JPG, PNG, WebP");
+      return false;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      setError(
+        `File too large. Max: 10MB (${(file.size / 1024 / 1024).toFixed(1)}MB)`
+      );
+      return false;
+    }
+    setError(null);
+    return true;
+  };
+
+  const handleSelectFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!validateFile(file)) return;
+
+    const url = URL.createObjectURL(file);
+    setImageSrc(url);
+    setError(null);
+  };
+
+  const pixelsToCoordinates = (crop) => {
+    if (!crop || !imgRef.current) return null;
+
+    const image = imgRef.current;
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+
+    return {
+      x: crop.x * scaleX,
+      y: crop.y * scaleY,
+      width: crop.width * scaleX,
+      height: crop.height * scaleY,
+    };
+  };
+
+  const getCroppedAndFilteredBlob = async () => {
+    if (!imageSrc || !completedCrop) {
+      throw new Error("No image or crop area");
+    }
+
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.src = imageSrc;
+      image.crossOrigin = "anonymous";
+
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        const crop = pixelsToCoordinates(completedCrop);
+
+        if (!crop) {
+          reject(new Error("Invalid crop"));
+          return;
+        }
+
+        canvas.width = crop.width;
+        canvas.height = crop.height;
+
+        const ctx = canvas.getContext("2d");
+
+        // Apply filters
+        ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`;
+
+        // Apply transformations
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((rotation * Math.PI) / 180);
+        ctx.scale(flipX ? -1 : 1, flipY ? -1 : 1);
+
+        ctx.drawImage(
+          image,
+          crop.x,
+          crop.y,
+          crop.width,
+          crop.height,
+          -crop.width / 2,
+          -crop.height / 2,
+          crop.width,
+          crop.height
+        );
+
+        ctx.restore();
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error("Canvas returned empty blob"));
+            } else {
+              resolve(blob);
+            }
+          },
+          "image/jpeg",
+          0.9
+        );
+      };
+
+      image.onerror = () => reject(new Error("Failed to load image"));
+    });
+  };
+
+  const handleUpload = async () => {
+    try {
+      setUploading(true);
+      setError(null);
+
+      const croppedBlob = await getCroppedAndFilteredBlob();
+
+      const compressed = await imageCompression(croppedBlob, {
+        maxSizeMB: 0.7,
+        maxWidthOrHeight: 1200,
+        useWebWorker: true,
+      });
+
+      const formData = new FormData();
+      formData.append("image", compressed, "edited-image.jpg");
+
+      const res = await fetch(API_UPLOAD, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error(`Upload failed with status ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      if (!data.imageUrl) {
+        throw new Error("No imageUrl in response");
+      }
+
+      onChange(data.imageUrl);
+      setSuccess(true);
+      setTimeout(() => {
+        setIsOpen(false);
+        setImageSrc(null);
+        setSuccess(false);
+      }, 1500);
+    } catch (err) {
+      setError(err.message || "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const resetEditor = () => {
+    setCrop({ unit: "%", width: 50, aspect: 16 / 9 });
+    setCompletedCrop(null);
+    setRotation(0);
+    setFlipX(false);
+    setFlipY(false);
+    setBrightness(100);
+    setContrast(100);
+    setSaturation(100);
+  };
+
+  const openEditor = () => {
+    resetEditor();
+    setIsOpen(true);
+    setError(null);
+  };
+
+  const closeEditor = () => {
+    setIsOpen(false);
+    setImageSrc(null);
+    setError(null);
+  };
+
+  const hasChanges =
+    rotation !== 0 ||
+    flipX ||
+    flipY ||
+    brightness !== 100 ||
+    contrast !== 100 ||
+    saturation !== 100;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <button
+          type="button"
+          onClick={openEditor}
+          className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2.5 rounded-lg font-medium transition-all shadow-md hover:shadow-lg active:scale-95"
+        >
+          <Upload size={18} />
+          {value ? "Edit Image" : "Upload Image"}
+        </button>
+
+        {value && (
+          <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-lg">
+            <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+            Image selected
+          </div>
+        )}
+      </div>
+
+      {value && (
+        <div className="relative group rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-400 transition-colors">
+          <img
+            src={value}
+            alt="Featured"
+            className="w-full h-64 object-cover"
+          />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+            <button
+              type="button"
+              onClick={openEditor}
+              className="bg-white text-gray-900 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors"
+            >
+              Edit
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
+              <div>
+                <h2 className="font-bold text-lg text-gray-900">
+                  Image Crop & Editor
+                </h2>
+                <p className="text-xs text-gray-500 mt-1">
+                  Crop, adjust, and enhance your image
+                </p>
+              </div>
+              <button
+                onClick={closeEditor}
+                disabled={uploading}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <X size={20} className="text-gray-600" />
+              </button>
+            </div>
+
+            {success && (
+              <div className="bg-green-50 border-b border-green-200 px-6 py-3 flex items-center gap-3">
+                <span className="text-sm font-medium text-green-800">
+                  ✓ Image uploaded successfully!
+                </span>
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-red-50 border-b border-red-200 px-6 py-3 flex items-center gap-3">
+                <span className="text-sm font-medium text-red-800">{error}</span>
+              </div>
+            )}
+
+            <div className="flex flex-1 overflow-hidden gap-6 p-6">
+              <div className="flex-1 bg-gray-900 rounded-lg relative overflow-hidden flex flex-col">
+                {!imageSrc ? (
+                  <div className="flex flex-col items-center justify-center h-full text-white gap-4">
+                    <Upload size={48} className="opacity-50" />
+                    <p className="font-medium">Select an image to get started</p>
+                    <p className="text-xs text-gray-400">
+                      JPG, PNG, WebP (Max 10MB)
+                    </p>
+                    <label className="bg-blue-600 hover:bg-blue-700 px-4 py-2.5 rounded-lg cursor-pointer font-medium transition-colors inline-flex items-center gap-2">
+                      <Upload size={16} />
+                      Choose Image
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.webp"
+                        className="hidden"
+                        onChange={handleSelectFile}
+                        disabled={uploading}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex-1 flex items-center justify-center overflow-auto p-4">
+                      <ReactCrop
+                        crop={crop}
+                        onChange={(c) => setCrop(c)}
+                        onComplete={(c) => setCompletedCrop(c)}
+                        aspect={16 / 9}
+                      >
+                        <img
+                          ref={imgRef}
+                          src={imageSrc}
+                          alt="Crop"
+                          style={{
+                            maxWidth: "100%",
+                            maxHeight: "100%",
+                            objectFit: "contain",
+                            filter: `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`,
+                            transform: `rotate(${rotation}deg) scaleX(${flipX ? -1 : 1}) scaleY(${flipY ? -1 : 1})`,
+                          }}
+                        />
+                      </ReactCrop>
+                    </div>
+
+                    <div className="bg-white/95 border-t border-gray-200 p-3 flex items-center justify-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setRotation((r) => (r - 90 + 360) % 360)}
+                        className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+                        title="Rotate counter-clockwise"
+                      >
+                        <RotateCw size={18} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRotation((r) => (r + 90) % 360)}
+                        className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+                        title="Rotate clockwise"
+                      >
+                        <RotateCw size={18} className="rotate-180" />
+                      </button>
+                      <div className="w-px h-6 bg-gray-300"></div>
+                      <button
+                        type="button"
+                        onClick={() => setFlipX(!flipX)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          flipX
+                            ? "bg-blue-100 text-blue-600"
+                            : "bg-gray-100 hover:bg-gray-200"
+                        }`}
+                        title="Flip horizontally"
+                      >
+                        <FlipHorizontal size={18} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFlipY(!flipY)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          flipY
+                            ? "bg-blue-100 text-blue-600"
+                            : "bg-gray-100 hover:bg-gray-200"
+                        }`}
+                        title="Flip vertically"
+                      >
+                        <FlipVertical size={18} />
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="w-80 space-y-4 flex flex-col">
+                {!imageSrc ? (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-gray-600">No image selected</p>
+                  </div>
+                ) : (
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <p className="text-xs font-medium text-blue-900 mb-2">
+                      ✓ Image loaded
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                      disabled={uploading}
+                    >
+                      Choose different image
+                    </button>
+                  </div>
+                )}
+
+                <div className="bg-gray-50 rounded-lg p-4 space-y-4 flex-1 overflow-y-auto">
+                  <h3 className="font-bold text-gray-900 text-sm">Adjustments</h3>
+
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <label className="text-xs font-medium text-gray-700">
+                        Brightness
+                      </label>
+                      <span className="text-xs font-semibold text-blue-600">
+                        {brightness}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={50}
+                      max={150}
+                      value={brightness}
+                      onChange={(e) => setBrightness(Number(e.target.value))}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <label className="text-xs font-medium text-gray-700">
+                        Contrast
+                      </label>
+                      <span className="text-xs font-semibold text-blue-600">
+                        {contrast}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={50}
+                      max={150}
+                      value={contrast}
+                      onChange={(e) => setContrast(Number(e.target.value))}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <label className="text-xs font-medium text-gray-700">
+                        Saturation
+                      </label>
+                      <span className="text-xs font-semibold text-blue-600">
+                        {saturation}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={50}
+                      max={200}
+                      value={saturation}
+                      onChange={(e) => setSaturation(Number(e.target.value))}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2 border-t border-gray-200 pt-4">
+                  {hasChanges && (
+                    <button
+                      type="button"
+                      onClick={resetEditor}
+                      disabled={uploading}
+                      className="w-full py-2.5 text-sm font-medium rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-900 transition-colors"
+                    >
+                      Reset Adjustments
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleUpload}
+                    disabled={uploading || !imageSrc || !completedCrop}
+                    className="w-full py-2.5 text-sm font-medium rounded-lg bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    <Download size={16} />
+                    {uploading ? "Uploading..." : "Save & Upload"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ImageCropUploader;

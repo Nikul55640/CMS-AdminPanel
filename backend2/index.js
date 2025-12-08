@@ -11,6 +11,7 @@ import componentRouter from "./routes/component.routes.js";
 import blogRouter from "./routes/blog.routes.js";
 import settingsRouter from "./routes/settings.routes.js";
 import { ApiError } from "./utils/ApiHelpers.js";
+import uploadRouter from "./routes/upload.routes.js";
 
 dotenv.config();
 
@@ -23,9 +24,7 @@ app.use(
   cors({
     origin: "http://localhost:5173", // frontend URL
     credentials: true,
-
   })
-
 );
 
 app.use(cookieParser());
@@ -36,10 +35,11 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 // Serve static uploads
 app.use("/uploads", express.static("uploads"));
 
-
 // ------------------- Routes -------------------
 app.use("/api/blogs", blogRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/upload", uploadRouter);
+
 app.use("/api/pages", pageRouter);
 app.use("/api/menus", menuRouter);
 app.use("/api/components", componentRouter);

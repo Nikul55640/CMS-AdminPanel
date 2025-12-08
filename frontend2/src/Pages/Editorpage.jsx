@@ -364,7 +364,7 @@
 // };
 
 // export default EditorPage;
-// 
+//
 
 import { useContext, useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -433,6 +433,66 @@ const EditorPage = () => {
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
+ const videoPlugin = (editor) => {
+  console.log("📦 Registering custom video-file component...");
+
+  editor.DomComponents.addType("video-file", {
+    model: {
+      defaults: {
+        tagName: "video",
+        attributes: { controls: true },
+        style: { width: "100%", height: "auto" },
+        traits: [
+          {
+            type: "text",
+            label: "Video URL",
+            name: "src",
+            changeProp: 1,
+          },
+        ],
+      },
+    },
+    view: {
+      events: {
+        dblclick: "openAM",
+      },
+      openAM() {
+        console.log("🎬 Double-click detected — opening Asset Manager...");
+        const am = editor.AssetManager;
+
+        am.open({
+          types: ["video"],
+          accept: "video/*",
+          select: (asset) => {
+            const src = asset.get("src");
+            console.log("✅ Video selected:", src);
+
+            if (!src) {
+              console.warn("⚠ No video source found in selected asset.");
+              return;
+            }
+
+            this.model.set("src", src);
+            this.el.innerHTML = `<source src="${src}" type="video/mp4">`;
+            this.el.load();
+
+            am.close();
+          },
+        });
+      },
+    },
+  });
+
+  editor.BlockManager.add("video-file", {
+    label: "Upload Video",
+    category: "Media",
+    content: { type: "video-file" },
+  });
+
+  console.log("🎉 video-file block added to BlockManager.");
+};
+
 
   // Load saved components (same pattern as EditorAdd)
   const loadSavedComponents = async () => {
@@ -644,7 +704,18 @@ const EditorPage = () => {
         <StudioEditor
           key={slug}
           options={{
-            storageManager: { autoload: false, autosave: false },
+            storageManager: {
+              type: "remote",
+              stepsBeforeSave: 1,
+              autoload: true,
+              autosave: true,
+              urlStore: "http://localhost:5000/api/pages/save",
+            },
+            assetManager: {
+              upload: "http://localhost:5000/api/upload",
+              uploadName: "file",
+              autoAdd: true,
+            },
             initialHtml: page?.html || "<div>Start editing...</div>",
             initialCss: page?.css || "",
             allowScripts: true,
@@ -656,9 +727,8 @@ const EditorPage = () => {
             },
             style: { height: "100%", width: "100%" },
             plugins: [
-              googleFontsAssetProvider.init({
-                apiKey: "GOOGLE_FONTS_API_KEY",
-              }),
+              videoPlugin, // ✅ this must be FIRST to register the component early
+              googleFontsAssetProvider.init({ apiKey: "..." }),
               canvasGridMode?.init({ styleableGrid: true }),
               rteTinyMce.init({ enableOnClick: true }),
               animationComponent.init(),
@@ -675,7 +745,6 @@ const EditorPage = () => {
           onReady={(editor) => {
             editorRef.current = editor;
 
-            // clear and load current page content
             editor.DomComponents.clear();
             editor.CssComposer.clear();
             editor.setComponents(htmlContent || "<div>Start editing...</div>");
@@ -683,8 +752,6 @@ const EditorPage = () => {
 
             loadSavedComponents();
             attachEditorSyncEvents(editor);
-
-            setTimeout(() => editor.refresh(), 50);
           }}
         />
       </div>
@@ -783,9 +850,7 @@ const EditorPage = () => {
                     className="p-3 border rounded-lg"
                     placeholder="Title"
                     value={formData.title}
-                    onChange={(e) =>
-                      handleChange("title", e.target.value)
-                    }
+                    onChange={(e) => handleChange("title", e.target.value)}
                   />
 
                   <input
@@ -809,18 +874,14 @@ const EditorPage = () => {
                     className="p-3 border rounded-lg"
                     placeholder="Meta Title"
                     value={formData.metaTitle}
-                    onChange={(e) =>
-                      handleChange("metaTitle", e.target.value)
-                    }
+                    onChange={(e) => handleChange("metaTitle", e.target.value)}
                   />
 
                   <input
                     className="p-3 border rounded-lg"
                     placeholder="Keywords"
                     value={formData.keywords}
-                    onChange={(e) =>
-                      handleChange("keywords", e.target.value)
-                    }
+                    onChange={(e) => handleChange("keywords", e.target.value)}
                   />
 
                   <textarea
@@ -836,9 +897,7 @@ const EditorPage = () => {
                   <select
                     className="p-3 border rounded-lg"
                     value={formData.status}
-                    onChange={(e) =>
-                      handleChange("status", e.target.value)
-                    }
+                    onChange={(e) => handleChange("status", e.target.value)}
                   >
                     <option value="draft">Draft</option>
                     <option value="published">Published</option>
