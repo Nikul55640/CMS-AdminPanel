@@ -366,7 +366,7 @@
 // export default EditorPage;
 //
 
-import { useContext, useState, useEffect, useRef } from "react";
+import { useContext, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import CmsContext from "../context/CmsContext";
 import StudioEditor from "@grapesjs/studio-sdk/react";
@@ -379,12 +379,15 @@ import {
   Code,
   FileText,
   Zap,
-  Settings,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
 
-// OPTIONAL: if you also want the same plugins like EditorAdd
+import CodeMirror from "@uiw/react-codemirror";
+import { html } from "@codemirror/lang-html";
+import { css } from "@codemirror/lang-css";
+import { javascript } from "@codemirror/lang-javascript";
+
 import {
   layoutSidebarButtons,
   dialogComponent,
@@ -421,202 +424,34 @@ const EditorPage = () => {
     status: page?.status || "draft",
   });
 
-  const [htmlContent, setHtmlContent] = useState(
-    page?.html || "<div>Start editing...</div>"
-  );
+  const [htmlContent, setHtmlContent] = useState(page?.html || "<div></div>");
   const [cssContent, setCssContent] = useState(page?.css || "");
   const [jsContent, setJsContent] = useState(page?.js || "");
 
-  // 🔁 guard flags to avoid infinite loops
-  const updatingFromCodeRef = useRef(false);
+  const applyToCanvas = () => {
+    const editor = editorRef.current;
+    if (!editor) return;
 
-  const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+    editor.setComponents(htmlContent);
+    editor.setStyle(cssContent);
 
- const videoPlugin = (editor) => {
-  console.log("📦 Registering custom video-file component...");
+    const frame = editor.Canvas.getFrameEl();
+    const doc = frame?.contentDocument;
 
-  editor.DomComponents.addType("video-file", {
-    model: {
-      defaults: {
-        tagName: "video",
-        attributes: { controls: true },
-        style: { width: "100%", height: "auto" },
-        traits: [
-          {
-            type: "text",
-            label: "Video URL",
-            name: "src",
-            changeProp: 1,
-          },
-        ],
-      },
-    },
-    view: {
-      events: {
-        dblclick: "openAM",
-      },
-      openAM() {
-        console.log("🎬 Double-click detected — opening Asset Manager...");
-        const am = editor.AssetManager;
-
-        am.open({
-          types: ["video"],
-          accept: "video/*",
-          select: (asset) => {
-            const src = asset.get("src");
-            console.log("✅ Video selected:", src);
-
-            if (!src) {
-              console.warn("⚠ No video source found in selected asset.");
-              return;
-            }
-
-            this.model.set("src", src);
-            this.el.innerHTML = `<source src="${src}" type="video/mp4">`;
-            this.el.load();
-
-            am.close();
-          },
-        });
-      },
-    },
-  });
-
-  editor.BlockManager.add("video-file", {
-    label: "Upload Video",
-    category: "Media",
-    content: { type: "video-file" },
-  });
-
-  console.log("🎉 video-file block added to BlockManager.");
-};
-
-
-  // Load saved components (same pattern as EditorAdd)
-  const loadSavedComponents = async () => {
-    if (!editorRef.current) return;
-
-    try {
-      const res = await axios.get("http://localhost:5000/api/components", {
-        withCredentials: true,
-      });
-      const bm = editorRef.current.BlockManager;
-
-      res.data.forEach((cmp) => {
-        bm.add(cmp.name, {
-          label: cmp.name,
-          category: cmp.category || "Saved Components",
-          content: `
-            <div>${cmp.html || ""}</div>
-            <style>${cmp.css || ""}</style>
-            ${cmp.js ? `<script>${cmp.js}</script>` : ""}
-          `,
-        });
-      });
-    } catch (err) {
-      console.error(
-        "❌ Failed to fetch saved components",
-        err.response || err.message
-      );
+    doc.querySelectorAll("script[data-custom-js]").forEach((s) => s.remove());
+    if (jsContent.trim()) {
+      const script = doc.createElement("script");
+      script.dataset.customJs = "true";
+      script.innerHTML = jsContent;
+      doc.body.appendChild(script);
     }
   };
 
-  /* ------------------------
-     TEXTAREA → EDITOR SYNC
-  ------------------------- */
-
-  // HTML -> GrapesJS
-  useEffect(() => {
-    if (!editorRef.current) return;
-    if (!updatingFromCodeRef.current) return; // only when user changes textarea
-
-    const editor = editorRef.current;
-
-    editor.DomComponents.clear();
-    editor.setComponents(htmlContent || "<div></div>");
-
-    // after applying to editor, reset flag
-    updatingFromCodeRef.current = false;
-  }, [htmlContent]);
-
-  // CSS -> GrapesJS
-  useEffect(() => {
-    if (!editorRef.current) return;
-    if (!updatingFromCodeRef.current) return;
-
-    const editor = editorRef.current;
-    editor.CssComposer.clear();
-    editor.setStyle(cssContent || "");
-
-    updatingFromCodeRef.current = false;
-  }, [cssContent]);
-
-  /* ------------------------
-     JS → Canvas iframe
-  ------------------------- */
-  useEffect(() => {
-    if (!editorRef.current) return;
-    const editor = editorRef.current;
-    const frame = editor.Canvas.getFrameEl();
-    if (!frame) return;
-
-    const iframeDoc = frame.contentDocument || frame.contentWindow?.document;
-    if (!iframeDoc) return;
-
-    // remove previous custom script
-    iframeDoc
-      .querySelectorAll("script[data-custom-js]")
-      .forEach((s) => s.remove());
-
-    if (!jsContent.trim()) return;
-
-    const script = iframeDoc.createElement("script");
-    script.dataset.customJs = "true";
-    script.innerHTML = `
-      try {
-        ${jsContent}
-      } catch (e) {
-        console.error("Custom JS error:", e);
-      }
-    `;
-    iframeDoc.body.appendChild(script);
-  }, [jsContent]);
-
-  /* ------------------------
-     EDITOR → TEXTAREA SYNC
-  ------------------------- */
-  const attachEditorSyncEvents = (editor) => {
-    const syncFromEditor = () => {
-      // here change comes from editor, so DO NOT set updatingFromCodeRef
-      const newHtml = editor.getHtml();
-      const newCss = editor.getCss();
-
-      setHtmlContent(newHtml);
-      setCssContent(newCss);
-    };
-
-    editor.on("component:add", syncFromEditor);
-    editor.on("component:update", syncFromEditor);
-    editor.on("component:remove", syncFromEditor);
-    editor.on("style:change", syncFromEditor);
-    editor.on("load", syncFromEditor);
-  };
-
-  /* ------------------------
-     FIX: RESIZE EDITOR WHEN PANEL EXPANDS
-  ------------------------- */
-  useEffect(() => {
-    if (!editorRef.current) return;
-    setTimeout(() => editorRef.current.refresh(), 100);
-  }, [codePanelExpanded]);
-
-  /* ------------------------
-     SAVE PAGE
-  ------------------------- */
   const handleSave = async () => {
-    if (!page) return toast.error("Editor not ready!");
+    if (!editorRef.current) {
+      toast.error("Editor not ready!");
+      return;
+    }
 
     const payload = {
       ...formData,
@@ -629,95 +464,67 @@ const EditorPage = () => {
 
     try {
       const res = await axios.put(
-        `http://localhost:5000/api/pages/${page.slug}`,
+        `http://localhost:5000/api/pages/${slug}`,
         payload,
         { withCredentials: true }
       );
 
-      setPages((prev) =>
-        prev.map((p) => (p.slug === page.slug ? res.data : p))
-      );
+      setPages((prev) => prev.map((p) => (p.slug === slug ? res.data : p)));
       toast.success("Page saved successfully!");
       navigate("/admin/pages");
     } catch (error) {
-      console.error(error);
       toast.error("Save failed!");
+      console.error("Save error:", error);
     } finally {
       setIsSaving(false);
     }
   };
 
-  /* ------------------------
-     PAGE NOT FOUND
-  ------------------------- */
   if (!page)
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-900 text-gray-300 text-xl">
+      <div className="flex items-center justify-center h-screen bg-gray-900 text-xl text-gray-300">
         Page not found
       </div>
     );
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      {/* TOP NAVBAR */}
+      {/* Header */}
       <header className="bg-white shadow-sm border-b sticky top-0 z-20">
         <div className="flex items-center justify-between px-5 py-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate("/admin/pages")}
-              className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg"
-            >
-              <ChevronLeft size={20} />
-            </button>
+          <button
+            onClick={() => navigate("/admin/pages")}
+            className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg"
+          >
+            <ChevronLeft size={20} />
+          </button>
 
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">
-                {formData.title || "Untitled Page"}
-              </h1>
-              <p className="text-sm text-gray-500">{slug}</p>
-            </div>
-          </div>
+          <h1 className="text-lg font-semibold">{formData.title}</h1>
 
-          {/* SAVE BUTTON */}
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className={`px-5 py-2 rounded-lg flex items-center gap-2 font-medium text-white transition-all ${
-              isSaving
-                ? "bg-gray-400"
-                : "bg-blue-600 hover:bg-blue-700 shadow-md"
+            className={`px-4 py-2 rounded-lg text-white flex items-center gap-2 ${
+              isSaving ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
             }`}
           >
-            <Save size={18} />
+            <Save size={16} />
             {isSaving ? "Saving..." : "Save"}
           </button>
         </div>
       </header>
 
-      {/* MAIN EDITOR */}
+      {/* GrapesJS Canvas */}
       <div
-        className="overflow-hidden transition-all"
+        className="overflow-hidden"
         style={{
-          height: codePanelExpanded ? "55vh" : "calc(120vh - 70px)",
+          height: codePanelExpanded ? "55vh" : "calc(100vh - 70px)",
         }}
       >
         <StudioEditor
           key={slug}
           options={{
-            storageManager: {
-              type: "remote",
-              stepsBeforeSave: 1,
-              autoload: true,
-              autosave: true,
-              urlStore: "http://localhost:5000/api/pages/save",
-            },
-            assetManager: {
-              upload: "http://localhost:5000/api/upload",
-              uploadName: "file",
-              autoAdd: true,
-            },
-            initialHtml: page?.html || "<div>Start editing...</div>",
-            initialCss: page?.css || "",
+            storageManager: false,
             allowScripts: true,
             enableScripting: true,
             canvas: {
@@ -725,10 +532,8 @@ const EditorPage = () => {
                 "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js",
               ],
             },
-            style: { height: "100%", width: "100%" },
             plugins: [
-              videoPlugin, // ✅ this must be FIRST to register the component early
-              googleFontsAssetProvider.init({ apiKey: "..." }),
+              googleFontsAssetProvider.init({ apiKey: "GOOGLE_FONTS_API_KEY" }),
               canvasGridMode?.init({ styleableGrid: true }),
               rteTinyMce.init({ enableOnClick: true }),
               animationComponent.init(),
@@ -744,165 +549,77 @@ const EditorPage = () => {
           }}
           onReady={(editor) => {
             editorRef.current = editor;
+            applyToCanvas();
 
-            editor.DomComponents.clear();
-            editor.CssComposer.clear();
-            editor.setComponents(htmlContent || "<div>Start editing...</div>");
-            editor.setStyle(cssContent || "");
-
-            loadSavedComponents();
-            attachEditorSyncEvents(editor);
+            // Auto sync: GrapesJS → CodeMirror
+            editor.on("update", () => {
+              setHtmlContent(editor.getHtml());
+              setCssContent(editor.getCss());
+            });
           }}
         />
       </div>
 
-      {/* BOTTOM PANEL */}
-      <div className="bg-white border-t shadow-inner flex flex-col">
-        {/* COLLAPSE HEADER */}
+      {/* Code Editor Panel */}
+      <div className="bg-white border-t shadow-inner">
         <div
-          className="flex justify-between items-center px-5 py-3 bg-gray-50 border-b cursor-pointer hover:bg-gray-100"
+          className="flex justify-between items-center px-5 py-3 bg-gray-50 border-b cursor-pointer"
           onClick={() => setCodePanelExpanded(!codePanelExpanded)}
         >
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
-              <Code size={20} />
-            </div>
-            <div>
-              <h3 className="font-semibold">Code & Page Details</h3>
-              <p className="text-xs text-gray-500">
-                Edit HTML, CSS, JavaScript & SEO
-              </p>
-            </div>
-          </div>
-
-          {codePanelExpanded ? (
-            <ChevronDown size={22} />
-          ) : (
-            <ChevronUp size={22} />
-          )}
+          <h3 className="font-semibold flex items-center gap-2">
+            <Code size={18} /> Code Editor (HTML / CSS / JS)
+          </h3>
+          {codePanelExpanded ? <ChevronDown /> : <ChevronUp />}
         </div>
 
-        {/* CONTENT */}
         {codePanelExpanded && (
-          <div className="max-h-[40vh] overflow-auto">
-            {/* TABS */}
-            <div className="flex gap-1 bg-gray-50 border-b px-3 sticky top-0">
+          <div className="max-h-[45vh] overflow-auto">
+            {/* Tabs */}
+            <div className="flex gap-1 bg-gray-50 border-b px-3">
               {[
                 { id: "html", label: "HTML", icon: Code },
                 { id: "css", label: "CSS", icon: FileText },
-                { id: "js", label: "JavaScript", icon: Zap },
-                { id: "info", label: "Page Info", icon: Settings },
+                { id: "js", label: "JS", icon: Zap },
               ].map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
-                  onClick={() => setExpandedSection(id)}
-                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 ${
+                  className={`flex items-center gap-2 px-4 py-2 text-sm border-b-2 ${
                     expandedSection === id
-                      ? "border-blue-600 text-blue-600 bg-white"
-                      : "border-transparent text-gray-600 hover:text-gray-900"
+                      ? "border-blue-600 text-blue-600"
+                      : "border-transparent text-gray-600"
                   }`}
+                  onClick={() => setExpandedSection(id)}
                 >
-                  <Icon size={16} />
-                  {label}
+                  <Icon size={14} /> {label}
                 </button>
               ))}
             </div>
 
-            {/* TAB CONTENT */}
-            <div className="p-5">
-              {/* HTML */}
+            {/* CodeMirror Editors */}
+            <div className="p-4">
               {expandedSection === "html" && (
-                <textarea
-                  className="w-full h-48 border p-3 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500"
+                <CodeMirror
                   value={htmlContent}
-                  onChange={(e) => {
-                    updatingFromCodeRef.current = true;
-                    setHtmlContent(e.target.value);
-                  }}
+                  height="300px"
+                  extensions={[html()]}
+                  onChange={(value) => setHtmlContent(value)}
                 />
               )}
-
-              {/* CSS */}
               {expandedSection === "css" && (
-                <textarea
-                  className="w-full h-48 border p-3 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500"
+                <CodeMirror
                   value={cssContent}
-                  onChange={(e) => {
-                    updatingFromCodeRef.current = true;
-                    setCssContent(e.target.value);
-                  }}
+                  height="300px"
+                  extensions={[css()]}
+                  onChange={(value) => setCssContent(value)}
                 />
               )}
-
-              {/* JS */}
               {expandedSection === "js" && (
-                <textarea
-                  className="w-full h-48 border p-3 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500"
+                <CodeMirror
                   value={jsContent}
-                  onChange={(e) => setJsContent(e.target.value)}
+                  height="300px"
+                  extensions={[javascript()]}
+                  onChange={(value) => setJsContent(value)}
                 />
-              )}
-
-              {/* PAGE INFO */}
-              {expandedSection === "info" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <input
-                    className="p-3 border rounded-lg"
-                    placeholder="Title"
-                    value={formData.title}
-                    onChange={(e) => handleChange("title", e.target.value)}
-                  />
-
-                  <input
-                    className="p-3 border rounded-lg"
-                    placeholder="Slug"
-                    value={formData.slug}
-                    onChange={(e) => handleChange("slug", e.target.value)}
-                  />
-
-                  <textarea
-                    className="p-3 border rounded-lg col-span-full"
-                    placeholder="Description"
-                    rows={2}
-                    value={formData.description}
-                    onChange={(e) =>
-                      handleChange("description", e.target.value)
-                    }
-                  />
-
-                  <input
-                    className="p-3 border rounded-lg"
-                    placeholder="Meta Title"
-                    value={formData.metaTitle}
-                    onChange={(e) => handleChange("metaTitle", e.target.value)}
-                  />
-
-                  <input
-                    className="p-3 border rounded-lg"
-                    placeholder="Keywords"
-                    value={formData.keywords}
-                    onChange={(e) => handleChange("keywords", e.target.value)}
-                  />
-
-                  <textarea
-                    className="p-3 border rounded-lg col-span-full"
-                    placeholder="Meta Description"
-                    rows={2}
-                    value={formData.metaDescription}
-                    onChange={(e) =>
-                      handleChange("metaDescription", e.target.value)
-                    }
-                  />
-
-                  <select
-                    className="p-3 border rounded-lg"
-                    value={formData.status}
-                    onChange={(e) => handleChange("status", e.target.value)}
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                  </select>
-                </div>
               )}
             </div>
           </div>
