@@ -113,15 +113,14 @@ export const updatePage = AsyncHandler(async (req, res) => {
 
   if (title !== undefined) page.title = title;
   if (description !== undefined) page.description = description;
-  if (html !== undefined) page.html = html.slice(0, 100000);
-  if (css !== undefined) page.css = css.slice(0, 50000);
+  if (html !== undefined) page.html = html;  // 🔥 FULL SAVE
+  if (css !== undefined) page.css = css;    // 🔥 FULL SAVE
   if (js !== undefined) page.js = js;
   if (status !== undefined) page.status = status;
   if (metaTitle !== undefined) page.metaTitle = metaTitle;
   if (metaDescription !== undefined) page.metaDescription = metaDescription;
   if (keywords !== undefined) page.keywords = keywords;
 
-  // 🟡 Slug update
   if (newSlug !== undefined) {
     page.slug = slugify(newSlug, { lower: true, strict: true });
   } else if (title) {
@@ -131,6 +130,7 @@ export const updatePage = AsyncHandler(async (req, res) => {
   await page.save();
   res.json(page);
 });
+
 
 // ======================================
 // ✅ ADMIN — Delete page

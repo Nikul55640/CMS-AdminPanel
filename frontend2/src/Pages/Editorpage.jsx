@@ -162,7 +162,7 @@
 
 //                 canvasGridMode?.init({ styleableGrid: true }),
 
-//                 rteTinyMce.init({6
+//                 rteTinyMce.init({
 //                   enableOnClick: true,
 //                 }),
 
@@ -364,7 +364,6 @@
 // };
 
 // export default EditorPage;
-//
 
 import { useContext, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -372,7 +371,7 @@ import CmsContext from "../context/CmsContext";
 import StudioEditor from "@grapesjs/studio-sdk/react";
 import "@grapesjs/studio-sdk/style";
 import toast from "react-hot-toast";
-import axios from "axios";
+import axios from "../utils/axios";
 import {
   ChevronLeft,
   Save,
@@ -428,9 +427,15 @@ const EditorPage = () => {
   const [cssContent, setCssContent] = useState(page?.css || "");
   const [jsContent, setJsContent] = useState(page?.js || "");
 
+  // 🔥 Apply editor code to GrapesJS Canvas
   const applyToCanvas = () => {
     const editor = editorRef.current;
     if (!editor) return;
+
+    console.log("🎯 Applying to Canvas");
+    console.log("HTML Length:", htmlContent.length);
+    console.log("CSS Length:", cssContent.length);
+    console.log("JS Length:", jsContent.length);
 
     editor.setComponents(htmlContent);
     editor.setStyle(cssContent);
@@ -438,6 +443,7 @@ const EditorPage = () => {
     const frame = editor.Canvas.getFrameEl();
     const doc = frame?.contentDocument;
 
+    // Remove previous JS
     doc.querySelectorAll("script[data-custom-js]").forEach((s) => s.remove());
     if (jsContent.trim()) {
       const script = doc.createElement("script");
@@ -445,13 +451,20 @@ const EditorPage = () => {
       script.innerHTML = jsContent;
       doc.body.appendChild(script);
     }
+    toast.success("Preview Updated!");
   };
 
+  // 📌 Save Page to Database
   const handleSave = async () => {
     if (!editorRef.current) {
       toast.error("Editor not ready!");
       return;
     }
+
+    console.log("📌 Before Save");
+    console.log("HTML Length:", htmlContent.length);
+    console.log("CSS Length:", cssContent.length);
+    console.log("JS Length:", jsContent.length);
 
     const payload = {
       ...formData,
@@ -463,18 +476,19 @@ const EditorPage = () => {
     setIsSaving(true);
 
     try {
-      const res = await axios.put(
-        `http://localhost:5000/api/pages/${slug}`,
-        payload,
-        { withCredentials: true }
-      );
+      const res = await axios.put(`/pages/${slug}`, payload);
+
+      console.log("📌 After Save (DB Response)");
+      console.log("DB HTML Length:", res.data?.html?.length);
+      console.log("DB CSS Length:", res.data?.css?.length);
+      console.log("DB JS Length:", res.data?.js?.length);
 
       setPages((prev) => prev.map((p) => (p.slug === slug ? res.data : p)));
       toast.success("Page saved successfully!");
       navigate("/admin/pages");
     } catch (error) {
       toast.error("Save failed!");
-      console.error("Save error:", error);
+      console.error("❌ Save error:", error);
     } finally {
       setIsSaving(false);
     }
@@ -550,12 +564,6 @@ const EditorPage = () => {
           onReady={(editor) => {
             editorRef.current = editor;
             applyToCanvas();
-
-            // Auto sync: GrapesJS → CodeMirror
-            editor.on("update", () => {
-              setHtmlContent(editor.getHtml());
-              setCssContent(editor.getCss());
-            });
           }}
         />
       </div>
@@ -573,30 +581,40 @@ const EditorPage = () => {
         </div>
 
         {codePanelExpanded && (
-          <div className="max-h-[45vh] overflow-auto">
-            {/* Tabs */}
-            <div className="flex gap-1 bg-gray-50 border-b px-3">
-              {[
-                { id: "html", label: "HTML", icon: Code },
-                { id: "css", label: "CSS", icon: FileText },
-                { id: "js", label: "JS", icon: Zap },
-              ].map(({ id, label, icon: Icon }) => (
-                <button
-                  key={id}
-                  className={`flex items-center gap-2 px-4 py-2 text-sm border-b-2 ${
-                    expandedSection === id
-                      ? "border-blue-600 text-blue-600"
-                      : "border-transparent text-gray-600"
-                  }`}
-                  onClick={() => setExpandedSection(id)}
-                >
-                  <Icon size={14} /> {label}
-                </button>
-              ))}
+          <>
+            {/* Tabs + Apply Button */}
+            <div className="flex justify-between items-center bg-gray-50 border-b px-3">
+              <div className="flex gap-1">
+                {[
+                  { id: "html", label: "HTML", icon: Code },
+                  { id: "css", label: "CSS", icon: FileText },
+                  { id: "js", label: "JS", icon: Zap },
+                ].map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm border-b-2 ${
+                      expandedSection === id
+                        ? "border-blue-600 text-blue-600"
+                        : "border-transparent text-gray-600"
+                    }`}
+                    onClick={() => setExpandedSection(id)}
+                  >
+                    <Icon size={14} /> {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Apply Button */}
+              <button
+                onClick={applyToCanvas}
+                className="px-4 py-1.5 rounded-md text-white bg-green-600 hover:bg-green-700 flex items-center gap-2"
+              >
+                <Zap size={14} /> Apply Changes
+              </button>
             </div>
 
-            {/* CodeMirror Editors */}
-            <div className="p-4">
+            {/* Editors */}
+            <div className="p-4 max-h-[45vh] overflow-auto">
               {expandedSection === "html" && (
                 <CodeMirror
                   value={htmlContent}
@@ -622,7 +640,7 @@ const EditorPage = () => {
                 />
               )}
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>
